@@ -28,8 +28,8 @@ for (const post of data.list) {
 }
 ---
 <BaseLayout description="我的个人博客">
-  <!-- banner：仅极简模式显示（normal 主题通过 CSS 隐藏） -->
-  <div class="reader-banner">
+  <!-- banner：仅极简模式显示（normal 主题通过 CSS 隐藏），置于导航上方 -->
+  <div slot="banner" class="reader-banner">
     <img src="/banner.png" alt="Banner" />
   </div>
 

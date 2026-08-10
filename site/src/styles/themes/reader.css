@@ -57,17 +57,21 @@
   border-color: var(--color-text-muted);
 }
 
-/* ---------- banner：克制居中，上下留白 ---------- */
+/* ---------- banner：克制居中，置于导航上方 ---------- */
 [data-theme='reader'] .reader-banner {
   display: block;
-  max-width: var(--max-width);
+  max-width: 560px;
   margin: 0 auto;
-  padding: 48px 24px 40px;
+  padding: 56px 24px 40px;
 }
 [data-theme='reader'] .reader-banner img {
   display: block;
   width: 100%;
   height: auto;
+}
+/* banner 下方的导航：顶部加细分隔线，与 banner 的留白衔接成整体 */
+[data-theme='reader'] body:has(.reader-banner) .site-header {
+  border-top: 1px solid var(--color-border);
 }
 
 /* ---------- 年份分组文章列表 ---------- */

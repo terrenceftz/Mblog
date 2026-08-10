@@ -49,6 +49,8 @@ const navItems = (settings.navMenu ?? []).filter((i) => i.label && i.url);
     />
   </head>
   <body>
+    <!-- 首页 banner：置于导航上方（仅首页传入，极简模式显示） -->
+    <slot name="banner" />
     <header class="site-header">
       <div class="inner">
         <nav class="nav">
