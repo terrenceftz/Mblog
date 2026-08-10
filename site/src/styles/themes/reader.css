@@ -16,6 +16,8 @@
   --color-text-secondary: #888580;
   --color-text-heading: #2c2b29;
   --color-border-strong: #c8c3ba;
+  /* 正文主色别名（跟随后台配置的 --color-text） */
+  --color-text-primary: var(--color-text);
   --radius: 2px;
   --max-width: 1200px;
   --shadow: none;

@@ -107,3 +107,11 @@
   max-width: var(--max-width);
   margin: 0 auto;
 }
+
+/* 极简模式侧栏在正常主题隐藏；page-layout 还原为普通文档流 */
+[data-theme='normal'] .sidebar {
+  display: none;
+}
+[data-theme='normal'] .page-layout {
+  display: contents;
+}
