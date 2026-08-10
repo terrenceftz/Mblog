@@ -1,10 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import CommentSection from '../../components/CommentSection.vue';
-import { getPost } from '../../lib/api';
+import { getPost, type PostDetail } from '../../lib/api';
 
 const { slug } = Astro.params;
-let post;
+let post: PostDetail;
 try {
   post = await getPost(slug!);
 } catch {
@@ -17,7 +17,7 @@ try {
       <h1 class="article-title">{post.title}</h1>
       <div class="article-meta">
         {post.category && <a href={`/category/${post.category.slug}`}>{post.category.name}</a>}
-        <time>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</time>
+        <time datetime={new Date(post.createdAt).toISOString()}>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</time>
         <span>{post.viewCount} 次阅读</span>
       </div>
     </header>

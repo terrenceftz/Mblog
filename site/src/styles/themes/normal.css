@@ -25,13 +25,8 @@
   border: 1px solid var(--color-border);
 }
 
-/* banner 仅极简模式显示 */
-[data-theme='normal'] .reader-banner {
-  display: none;
-}
-
 /* 年份分组列表：normal 下以卡片行呈现 */
-[data-theme='normal'] .year-groups {
+[data-theme='normal'] .content-stream {
   max-width: var(--max-width);
   margin: 0 auto;
   display: flex;

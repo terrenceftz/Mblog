@@ -806,3 +806,13 @@
   margin-top: 64px;
   padding-top: 32px;
 }
+
+/* 系统减少动效偏好：关闭入场动画，避免内容不可见 */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='reader'] .page-layout,
+  [data-theme='reader'] .year-item {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
