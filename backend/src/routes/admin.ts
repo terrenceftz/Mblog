@@ -5,6 +5,7 @@ import { categoriesAdminRoutes } from './admin/categories';
 import { tagsAdminRoutes } from './admin/tags';
 import { postsAdminRoutes } from './admin/posts';
 import { commentsAdminRoutes } from './admin/comments';
+import { friendLinksAdminRoutes } from './admin/friendLinks';
 import type { Db } from '../db';
 
 export function adminRoutes(ctx: Db) {
@@ -15,5 +16,6 @@ export function adminRoutes(ctx: Db) {
   app.route('/', tagsAdminRoutes(ctx));
   app.route('/', postsAdminRoutes(ctx));
   app.route('/', commentsAdminRoutes(ctx));
+  app.route('/', friendLinksAdminRoutes(ctx));
   return app;
 }

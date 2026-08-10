@@ -217,3 +217,40 @@ describe('admin comments', () => {
     expect(del.status).toBe(200);
   });
 });
+
+describe('admin friend links', () => {
+  const { app } = makeTestApp();
+  let token = '';
+
+  beforeAll(async () => {
+    resetRateLimit();
+    token = await loginAsAdmin(app);
+  });
+
+  it('友链审核', async () => {
+    const headers = authHeaders(token);
+    // 访客申请一条（待审核）
+    const apply = await app.request('/api/friend-links', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: '待审站', url: 'https://pending.example' }),
+    });
+    expect(apply.status).toBe(201);
+
+    // 管理员通过
+    const approve = await app.request('/api/admin/friend-links/1', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ status: 'approved' }),
+    });
+    expect(approve.status).toBe(200);
+
+    // 公开列表能看到
+    const pub = await app.request('/api/friend-links');
+    const pubBody = await pub.json();
+    expect(pubBody.data.length).toBe(1);
+
+    // 删除
+    const del = await app.request('/api/admin/friend-links/1', { method: 'DELETE', headers });
+    expect(del.status).toBe(200);
+  });
+});
