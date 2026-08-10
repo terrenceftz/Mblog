@@ -208,7 +208,7 @@ git commit -m "chore: 初始化后端项目（Hono + Drizzle + TS）"
 - [ ] **Step 1: 创建 `backend/src/db/schema.ts`**
 
 ```ts
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -238,17 +238,23 @@ export const posts = sqliteTable('posts', {
   contentHtml: text('content_html').notNull().default(''),
   summary: text('summary').notNull().default(''),
   cover: text('cover').notNull().default(''),
-  categoryId: integer('category_id').references(() => categories.id),
+  // 删除分类时文章自动置为"未分类"
+  categoryId: integer('category_id').references(() => categories.id, { onDelete: 'set null' }),
   status: text('status', { enum: ['draft', 'published'] }).notNull().default('draft'),
   viewCount: integer('view_count').notNull().default(0),
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
   updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now()),
 });
 
-export const postTags = sqliteTable('post_tags', {
-  postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
-  tagId: integer('tag_id').references(() => tags.id, { onDelete: 'cascade' }).notNull(),
-});
+export const postTags = sqliteTable(
+  'post_tags',
+  {
+    postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
+    tagId: integer('tag_id').references(() => tags.id, { onDelete: 'cascade' }).notNull(),
+  },
+  // 复合主键：防重复关联 + 双列索引
+  (t) => [primaryKey({ columns: [t.postId, t.tagId] })],
+);
 
 export const comments = sqliteTable('comments', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -319,6 +325,7 @@ export type Db = ReturnType<typeof createDb>;
 export function createDb(path: string) {
   const sqlite = new Database(path);
   sqlite.pragma('journal_mode = WAL');
+  sqlite.pragma('foreign_keys = ON'); // 显式启用外键级联
   const db = drizzle(sqlite, { schema });
   return { db, sqlite };
 }
