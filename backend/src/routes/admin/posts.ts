@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { eq, desc, count, and } from 'drizzle-orm';
-import { posts, tags, postTags } from '../../db/schema';
+import { posts, tags, postTags, categories } from '../../db/schema';
 import { createPost, updatePost, deletePost } from '../../services/posts';
 import type { Db } from '../../db';
 
@@ -42,13 +42,18 @@ export function postsAdminRoutes(ctx: Db) {
     const body = await c.req.json().catch(() => null);
     const title = typeof body?.title === 'string' ? body.title.trim() : '';
     if (!title) return c.json({ error: { code: 'INVALID', message: '标题不能为空' } }, 400);
+    const categoryId = typeof body.categoryId === 'number' ? body.categoryId : null;
+    if (categoryId !== null) {
+      const cat = ctx.db.select({ id: categories.id }).from(categories).where(eq(categories.id, categoryId)).get();
+      if (!cat) return c.json({ error: { code: 'INVALID', message: '分类不存在' } }, 400);
+    }
     const id = await createPost(ctx, {
       title,
       slug: typeof body.slug === 'string' ? body.slug : undefined,
       contentMd: typeof body.contentMd === 'string' ? body.contentMd : '',
       summary: typeof body.summary === 'string' ? body.summary : undefined,
       cover: typeof body.cover === 'string' ? body.cover : undefined,
-      categoryId: typeof body.categoryId === 'number' ? body.categoryId : null,
+      categoryId,
       status: body.status === 'published' ? 'published' : 'draft',
       tagIds: Array.isArray(body.tagIds) ? body.tagIds : [],
     });
@@ -60,6 +65,11 @@ export function postsAdminRoutes(ctx: Db) {
     const body = await c.req.json().catch(() => null);
     const title = typeof body?.title === 'string' ? body.title.trim() : '';
     if (!title) return c.json({ error: { code: 'INVALID', message: '标题不能为空' } }, 400);
+    const categoryId = typeof body.categoryId === 'number' ? body.categoryId : null;
+    if (categoryId !== null) {
+      const cat = ctx.db.select({ id: categories.id }).from(categories).where(eq(categories.id, categoryId)).get();
+      if (!cat) return c.json({ error: { code: 'INVALID', message: '分类不存在' } }, 400);
+    }
     try {
       await updatePost(ctx, id, {
         title,
@@ -67,7 +77,7 @@ export function postsAdminRoutes(ctx: Db) {
         contentMd: typeof body.contentMd === 'string' ? body.contentMd : '',
         summary: typeof body.summary === 'string' ? body.summary : undefined,
         cover: typeof body.cover === 'string' ? body.cover : undefined,
-        categoryId: typeof body.categoryId === 'number' ? body.categoryId : null,
+        categoryId,
         status: body.status === 'published' ? 'published' : 'draft',
         tagIds: Array.isArray(body.tagIds) ? body.tagIds : [],
       });

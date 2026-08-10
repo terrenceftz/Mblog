@@ -157,6 +157,15 @@ describe('admin posts', () => {
     const gone = await app.request('/api/posts/hello-updated');
     expect(gone.status).toBe(404);
   });
+
+  it('无效 categoryId 返回 400', async () => {
+    const headers = authHeaders(token);
+    const res = await app.request('/api/admin/posts', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Bad', contentMd: 'x', categoryId: 9999, status: 'draft' }),
+    });
+    expect(res.status).toBe(400);
+  });
 });
 
 describe('admin comments', () => {
