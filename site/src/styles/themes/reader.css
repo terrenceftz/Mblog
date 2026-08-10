@@ -1,23 +1,28 @@
 [data-theme='reader'] {
   --color-bg: #faf9f7;
   --color-surface: transparent;
-  --color-text: #2b2b2b;
-  --color-text-muted: #8a8a8a;
-  --color-primary: #8b5cf6;
+  --color-text: #33312e;
+  --color-text-muted: #8d8a85;
+  --color-primary: #4a6b8a; /* 黛青墨色强调，书卷气质 */
   --color-primary-contrast: #ffffff;
-  --color-border: #ececec;
-  --color-code-bg: #f4f2ee;
+  --color-border: #e9e6e1;
+  --color-code-bg: #f3f1ec;
   --radius: 0;
   --max-width: 680px;
   --shadow: none;
   --card-padding: 8px 0;
+  /* 思源宋体 + 系统中文字体回退（Google Fonts 不可用时依然有宋体观感） */
+  --font-body: 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN',
+    'Songti SC', 'Noto Serif CJK SC', 'SimSun', serif;
 }
 
 [data-theme='reader'] body {
   background: var(--color-bg);
   color: var(--color-text);
   font-size: 18px;
-  line-height: 1.9;
+  line-height: 1.95;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
 }
 
 [data-theme='reader'] .site-header,
@@ -31,4 +36,38 @@
   border-radius: 0;
   box-shadow: none;
   padding: 32px 0;
+}
+
+/* 链接：下划线强化书卷感 */
+[data-theme='reader'] a {
+  color: var(--color-primary);
+  text-underline-offset: 3px;
+}
+
+[data-theme='reader'] .markdown-body a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  text-decoration-thickness: 1px;
+}
+
+/* 标题：思源宋体粗体，克制留白 */
+[data-theme='reader'] h1,
+[data-theme='reader'] h2,
+[data-theme='reader'] h3,
+[data-theme='reader'] .post-title a,
+[data-theme='reader'] .post-head h1 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+[data-theme='reader'] .post-head h1 {
+  font-size: 26px;
+  margin-bottom: 14px;
+}
+
+/* 正文：两端对齐，更接近书籍排版 */
+[data-theme='reader'] .markdown-body p {
+  margin: 1em 0;
+  text-align: justify;
 }

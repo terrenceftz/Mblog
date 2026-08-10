@@ -12,12 +12,14 @@ function apply(t: string) {
 function toggle() {
   apply(current.value === 'normal' ? 'reader' : 'normal');
 }
-// onMounted 内读 localStorage，避免 SSR 期访问 window
+// onMounted 内读 localStorage，避免 SSR 期访问 window；同时把保存的主题应用到文档（回访用户加载即生效）
 onMounted(() => {
-  current.value =
-    localStorage.getItem(THEME_KEY) ??
-    document.documentElement.getAttribute('data-theme') ??
-    'normal';
+  const saved = localStorage.getItem(THEME_KEY);
+  const currentTheme = document.documentElement.getAttribute('data-theme') ?? 'normal';
+  current.value = saved ?? currentTheme;
+  if (saved && saved !== currentTheme) {
+    apply(saved);
+  }
 });
 </script>
 
