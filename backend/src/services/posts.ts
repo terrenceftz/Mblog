@@ -1,0 +1,73 @@
+import { eq } from 'drizzle-orm';
+import { posts, postTags } from '../db/schema';
+import { renderMarkdown } from './markdown';
+import { makeSlug } from '../lib/slug';
+import type { Db } from '../db';
+
+export interface PostInput {
+  title: string;
+  slug?: string;
+  contentMd: string;
+  summary?: string;
+  cover?: string;
+  categoryId?: number | null;
+  status?: 'draft' | 'published';
+  tagIds?: number[];
+}
+
+export function syncFts(ctx: Db, post: { id: number; title: string; contentMd: string }): void {
+  ctx.sqlite.prepare('DELETE FROM posts_fts WHERE rowid = ?').run(post.id);
+  ctx.sqlite.prepare('INSERT INTO posts_fts(rowid, title, content_md) VALUES (?, ?, ?)').run(post.id, post.title, post.contentMd);
+}
+
+export function setPostTags(ctx: Db, postId: number, tagIds: number[]): void {
+  ctx.db.delete(postTags).where(eq(postTags.postId, postId)).run();
+  for (const tagId of tagIds) {
+    ctx.db.insert(postTags).values({ postId, tagId }).run();
+  }
+}
+
+export async function createPost(ctx: Db, input: PostInput): Promise<number> {
+  const slug = input.slug?.trim() || makeSlug(input.title);
+  const contentHtml = await renderMarkdown(input.contentMd || '');
+  const summary = input.summary?.trim() || input.contentMd.slice(0, 150);
+  const row = ctx.db.insert(posts).values({
+    title: input.title,
+    slug,
+    contentMd: input.contentMd,
+    contentHtml,
+    summary,
+    cover: input.cover ?? '',
+    categoryId: input.categoryId ?? null,
+    status: input.status ?? 'draft',
+  }).returning({ id: posts.id }).get();
+  syncFts(ctx, { id: row.id, title: input.title, contentMd: input.contentMd });
+  setPostTags(ctx, row.id, input.tagIds ?? []);
+  return row.id;
+}
+
+export async function updatePost(ctx: Db, id: number, input: PostInput): Promise<void> {
+  const existing = ctx.db.select().from(posts).where(eq(posts.id, id)).get();
+  if (!existing) throw new Error('NOT_FOUND');
+  const slug = input.slug?.trim() || existing.slug;
+  const contentHtml = await renderMarkdown(input.contentMd ?? '');
+  ctx.db.update(posts).set({
+    title: input.title,
+    slug,
+    contentMd: input.contentMd,
+    contentHtml,
+    summary: input.summary?.trim() || input.contentMd.slice(0, 150),
+    cover: input.cover ?? '',
+    categoryId: input.categoryId ?? null,
+    status: input.status ?? existing.status,
+    updatedAt: Date.now(),
+  }).where(eq(posts.id, id)).run();
+  syncFts(ctx, { id, title: input.title, contentMd: input.contentMd });
+  setPostTags(ctx, id, input.tagIds ?? []);
+}
+
+export function deletePost(ctx: Db, id: number): void {
+  ctx.sqlite.prepare('DELETE FROM posts_fts WHERE rowid = ?').run(id);
+  ctx.db.delete(postTags).where(eq(postTags.postId, id)).run();
+  ctx.db.delete(posts).where(eq(posts.id, id)).run();
+}
