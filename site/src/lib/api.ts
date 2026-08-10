@@ -11,7 +11,13 @@ export interface PostDetail extends PostListItem {
   category: { id: number; name: string; slug: string } | null;
 }
 export interface Page<T> { list: T[]; total: number }
-export interface PublicSettings { siteName: string; siteDesc: string; theme: string; friendLinkEnabled: boolean }
+export interface PublicSettings {
+  siteName: string;
+  siteDesc: string;
+  theme: string;
+  friendLinkEnabled: boolean;
+  navMenu: { label: string; url: string }[];
+}
 export interface Category { id: number; name: string; slug: string; postCount: number }
 export interface Tag { id: number; name: string; slug: string; postCount: number }
 export interface ArchiveGroup { month: string; items: { createdAt: number; title: string; slug: string }[] }
@@ -31,6 +37,12 @@ async function get<T>(path: string): Promise<T> {
 export function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
     siteName: '我的博客', siteDesc: '', theme: 'normal', friendLinkEnabled: true,
+    navMenu: [
+      { label: '首页', url: '/' },
+      { label: '归档', url: '/archive' },
+      { label: '友链', url: '/friends' },
+      { label: 'RSS', url: '/api/rss' },
+    ],
   }));
 }
 

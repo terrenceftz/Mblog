@@ -104,6 +104,10 @@ describe('public posts', () => {
     const body = await res.json();
     expect(body.data.siteName).toBeTruthy();
     expect(body.data.theme).toBe('normal');
+    // 导航菜单：默认含 4 项
+    expect(Array.isArray(body.data.navMenu)).toBe(true);
+    expect(body.data.navMenu.length).toBe(4);
+    expect(body.data.navMenu[0].label).toBe('首页');
   });
 
   it('归档按月份分组', async () => {

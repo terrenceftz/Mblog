@@ -73,9 +73,27 @@ ${items}
   });
 
   app.get('/settings/public', (c) => {
-    const { site_name: siteName, site_description: siteDesc, default_theme: theme, friend_link_enabled: friendLinkEnabled } =
-      getSettings(ctx, ['site_name', 'site_description', 'default_theme', 'friend_link_enabled']);
-    return c.json({ data: { siteName, siteDesc, theme, friendLinkEnabled: friendLinkEnabled === '1' } });
+    const {
+      site_name: siteName, site_description: siteDesc, default_theme: theme,
+      friend_link_enabled: friendLinkEnabled, nav_menu: navMenuRaw,
+    } = getSettings(ctx, ['site_name', 'site_description', 'default_theme', 'friend_link_enabled', 'nav_menu']);
+
+    // 解析导航菜单 JSON；非法/空则回退默认
+    let navMenu: { label: string; url: string }[] = [];
+    try {
+      const parsed = JSON.parse(navMenuRaw);
+      if (Array.isArray(parsed)) {
+        navMenu = parsed
+          .filter((i) => i && typeof i.label === 'string' && typeof i.url === 'string')
+          .map((i) => ({ label: i.label, url: i.url }));
+      }
+    } catch {
+      navMenu = [];
+    }
+
+    return c.json({
+      data: { siteName, siteDesc, theme, friendLinkEnabled: friendLinkEnabled === '1', navMenu },
+    });
   });
 
   return app;

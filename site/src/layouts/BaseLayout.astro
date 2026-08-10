@@ -12,11 +12,13 @@ interface Props {
 }
 
 const { title = '', description = '' } = Astro.props;
-// 服务端读取默认主题，直接注入 <html data-theme>，避免闪烁
+// 服务端读取默认主题与导航菜单，直接注入 <html data-theme>，避免闪烁
 const settings = await getPublicSettings();
 const siteName = settings.siteName || '我的博客';
 const defaultTheme = settings.theme || 'normal';
 const year = new Date().getFullYear();
+// 后台自定义导航菜单（label + url；http 开头外链新窗口打开）
+const navItems = (settings.navMenu ?? []).filter((i) => i.label && i.url);
 ---
 <!doctype html>
 <html lang="zh-CN" data-theme={defaultTheme}>
@@ -38,10 +40,13 @@ const year = new Date().getFullYear();
       <div class="inner">
         <a class="brand" href="/">{siteName}</a>
         <nav class="nav">
-          <a href="/">首页</a>
-          <a href="/archive">归档</a>
-          <a href="/friends">友链</a>
-          <a href="/api/rss" target="_blank" rel="noopener">RSS</a>
+          {navItems.map((item) =>
+            item.url.startsWith('http') ? (
+              <a href={item.url} target="_blank" rel="noopener noreferrer">{item.label}</a>
+            ) : (
+              <a href={item.url}>{item.label}</a>
+            ),
+          )}
           <ThemeToggle client:load />
         </nav>
       </div>

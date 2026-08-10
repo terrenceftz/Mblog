@@ -13,6 +13,13 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   cos_secret_key: '',
   cos_bucket: '',
   cos_region: '',
+  // 前台导航菜单：JSON 数组 [{label, url}]，后台可自定义
+  nav_menu: JSON.stringify([
+    { label: '首页', url: '/' },
+    { label: '归档', url: '/archive' },
+    { label: '友链', url: '/friends' },
+    { label: 'RSS', url: '/api/rss' },
+  ]),
 };
 
 export function getSetting(ctx: Db, key: string): string {

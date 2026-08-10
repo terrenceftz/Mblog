@@ -5,15 +5,35 @@ import { adminGetSettings, adminPutSettings } from '../api/admin';
 const form = ref<Record<string, string>>({});
 const saved = ref(false);
 const error = ref('');
+// 导航菜单编辑：独立数组，保存时序列化为 JSON 写入 form.nav_menu
+const menuItems = ref<{ label: string; url: string }[]>([]);
 
 onMounted(async () => {
   form.value = await adminGetSettings();
+  try {
+    const parsed = JSON.parse(form.value.nav_menu || '[]');
+    menuItems.value = Array.isArray(parsed)
+      ? parsed.filter((i: { label?: string; url?: string }) => i && typeof i.label === 'string' && typeof i.url === 'string')
+      : [];
+  } catch {
+    menuItems.value = [];
+  }
 });
+
+function addMenuRow() {
+  menuItems.value.push({ label: '', url: '' });
+}
+function removeMenuRow(index: number) {
+  menuItems.value.splice(index, 1);
+}
 
 async function save() {
   saved.value = false;
   error.value = '';
   try {
+    form.value.nav_menu = JSON.stringify(
+      menuItems.value.filter((i) => i.label.trim() && i.url.trim()),
+    );
     form.value = await adminPutSettings(form.value);
     saved.value = true;
     setTimeout(() => (saved.value = false), 2000);
@@ -61,6 +81,19 @@ async function save() {
       </fieldset>
 
       <fieldset>
+        <legend>导航菜单（前台顶栏）</legend>
+        <div class="menu-editor">
+          <div v-for="(item, index) in menuItems" :key="index" class="menu-row">
+            <input v-model="item.label" placeholder="菜单名称" />
+            <input v-model="item.url" placeholder="链接（/归档 或 https://…）" />
+            <button type="button" class="menu-del" @click="removeMenuRow(index)">✕</button>
+          </div>
+          <button type="button" class="menu-add" @click="addMenuRow">＋ 添加菜单项</button>
+          <p class="menu-tip">提示：`/` 为首页；以 http 开头的链接会在新窗口打开；留空名称或链接的行会被忽略。</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
         <legend>存储（图片/音频上传）</legend>
         <label>存储方式
           <select v-model="form.storage_provider">
@@ -104,4 +137,12 @@ input, select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px
 .btn.primary { background: #3b82f6; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; cursor: pointer; }
 .saved { color: #059669; font-size: 14px; }
 .error { color: #dc2626; font-size: 14px; }
+.menu-editor { display: flex; flex-direction: column; gap: 8px; }
+.menu-row { display: flex; gap: 8px; align-items: center; }
+.menu-row input { flex: 1; }
+.menu-row input:first-child { flex: 0 0 140px; }
+.menu-del { background: none; border: 1px solid #e5e7eb; border-radius: 6px; color: #dc2626; cursor: pointer; padding: 4px 8px; }
+.menu-add { align-self: flex-start; background: #f3f4f6; border: 1px dashed #d1d5db; border-radius: 8px; color: #374151; cursor: pointer; padding: 6px 14px; }
+.menu-add:hover { border-color: #3b82f6; color: #3b82f6; }
+.menu-tip { color: #9ca3af; font-size: 12px; margin: 0; }
 </style>
