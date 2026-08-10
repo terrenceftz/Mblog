@@ -6,6 +6,7 @@ const data = await getProjects().catch((): ProjectsData => ({ enabled: false, us
 ---
 <BaseLayout title="项目">
   <h1 class="page-title">项目</h1>
+  {data.stale && <p class="projects-stale">已加载缓存数据</p>}
 
   {!data.enabled ? (
     <p class="projects-empty">暂未开启 GitHub 项目展示</p>
@@ -53,4 +54,5 @@ const data = await getProjects().catch((): ProjectsData => ({ enabled: false, us
   .project-desc { color: var(--color-text-muted); font-size: 13px; line-height: 1.6; margin: 0; }
   .project-updated { color: var(--color-text-muted); font-size: 12px; opacity: 0.7; }
   .projects-empty { text-align: center; color: var(--color-text-muted); padding: 48px 0; max-width: var(--max-width); margin: 0 auto; }
+  .projects-stale { color: var(--color-text-muted); font-size: 12px; opacity: 0.7; text-align: center; margin: -12px 0 20px; }
 </style>

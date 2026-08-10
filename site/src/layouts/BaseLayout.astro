@@ -29,7 +29,7 @@ function themeStyleBlock(theme: 'normal' | 'reader', cfg: ThemeConfig): string {
   if (cfg.border) vars.push(`--color-border:${cfg.border}`);
   if (cfg.fontSize) vars.push(`--font-size:${cfg.fontSize}px`);
   if (!vars.length) return '';
-  return `<style>[data-theme='${theme}']{${vars.join(';')}}</style>`;
+  return `<style>:root[data-theme='${theme}']{${vars.join(';')}}</style>`;
 }
 const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleBlock('reader', settings.themeReader)].join('');
 ---
