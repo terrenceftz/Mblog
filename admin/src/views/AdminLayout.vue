@@ -22,6 +22,7 @@ function doLogout() {
         <router-link to="/comments">评论</router-link>
         <router-link to="/friends">友链</router-link>
         <router-link to="/settings">设置</router-link>
+        <router-link to="/themes">主题</router-link>
       </nav>
       <div class="admin-actions">
         <a href="/">← 查看站点</a>
