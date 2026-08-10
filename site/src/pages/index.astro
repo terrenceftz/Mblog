@@ -11,38 +11,30 @@ const data = await getPosts({ page, pageSize });
 const total = data.total;
 const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+// 干支纪年：2026 -> 丙午（天干地支按年份取模）
+const GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+const ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+function yearGanzhi(year: number): string {
+  return GAN[(year - 4) % 10] + ZHI[(year - 4) % 12];
+}
 // 按年份分组（最新在前）
 function fmtMonthDay(ts: number): string {
   const d = new Date(ts);
   return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-// 年份大写数字：2026 -> 贰零贰陆（首字单独加大）
-const CN_DIGITS = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
-function yearCn(year: string): { first: string; rest: string } {
-  const chars = year.split('').map((d) => CN_DIGITS[Number(d)] ?? d);
-  return { first: chars[0], rest: chars.slice(1).join('') };
-}
-const yearGroups: { year: string; items: PostListItem[] }[] = [];
+const yearGroups: { year: number; ganzhi: string; items: PostListItem[] }[] = [];
 for (const post of data.list) {
-  const year = String(new Date(post.createdAt).getFullYear());
+  const y = new Date(post.createdAt).getFullYear();
   const last = yearGroups[yearGroups.length - 1];
-  if (last && last.year === year) last.items.push(post);
-  else yearGroups.push({ year, items: [post] });
+  if (last && last.year === y) last.items.push(post);
+  else yearGroups.push({ year: y, ganzhi: yearGanzhi(y), items: [post] });
 }
 ---
-<BaseLayout description="我的个人博客">
-  <!-- banner：仅极简模式显示（normal 主题通过 CSS 隐藏），置于导航上方 -->
-  <div slot="banner" class="reader-banner">
-    <img src="/banner.png" alt="Banner" />
-  </div>
-
-  <div class="year-groups">
+<BaseLayout description={settings.siteDesc} banner>
+  <div class="content-stream">
     {yearGroups.map((g) => (
       <section class="year-group">
-        <div class="year-label" title={g.year}>
-          <span class="year-first">{yearCn(g.year).first}</span>
-          <span class="year-rest">{yearCn(g.year).rest}</span>
-        </div>
+        <h2 class="year-label" id={`year-${g.year}`} title={String(g.year)}>{g.ganzhi}</h2>
         <ul class="year-list">
           {g.items.map((post) => (
             <li class="year-item">
@@ -62,14 +54,15 @@ for (const post of data.list) {
 
   {totalPages > 1 && (
     <nav class="pagination">
-      {page > 1 && <a href={`/?page=${page - 1}`}>← 上一页</a>}
+      {page > 1 && <a href={`/?page=${page - 1}`}>← 前页</a>}
       <span class="page-info">{page} / {totalPages}</span>
-      {page < totalPages && <a href={`/?page=${page + 1}`}>下一页 →</a>}
+      {page < totalPages && <a href={`/?page=${page + 1}`}>后页 →</a>}
     </nav>
   )}
 </BaseLayout>
 
 <style is:global>
+  /* 分页默认样式（normal 主题） */
   .pagination {
     display: flex; gap: 16px; align-items: center; justify-content: center;
     padding: 24px 0; max-width: var(--max-width); margin: 0 auto;

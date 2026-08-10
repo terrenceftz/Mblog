@@ -11,31 +11,27 @@ try {
   return Astro.redirect('/404');
 }
 ---
-<BaseLayout title={post.title} description={post.summary}>
-  <div class="post-detail">
-    <header class="post-head">
-      <h1>{post.title}</h1>
-      <div class="post-meta">
+<BaseLayout title={post.title} description={post.summary} layout="article">
+  <article class="article-wrapper">
+    <header class="article-header">
+      <h1 class="article-title">{post.title}</h1>
+      <div class="article-meta">
         {post.category && <a href={`/category/${post.category.slug}`}>{post.category.name}</a>}
-        <span>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</span>
-        <span>👁 {post.viewCount}</span>
+        <time>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</time>
+        <span>{post.viewCount} 次阅读</span>
       </div>
-      {post.tags.length > 0 && (
-        <div class="post-tags">
-          {post.tags.map((t) => <a class="tag" href={`/tag/${t.slug}`}>#{t.name}</a>)}
-        </div>
-      )}
     </header>
     {/* 后端已渲染并防 XSS 的 HTML */}
-    <article class="markdown-body" set:html={post.contentHtml} />
+    <div class="article-content markdown-body" set:html={post.contentHtml} />
+    {post.tags.length > 0 && (
+      <footer class="article-footer">
+        <ul class="tags">
+          {post.tags.map((t) => (
+            <li><a class="tag" href={`/tag/${t.slug}`}>{t.name}</a></li>
+          ))}
+        </ul>
+      </footer>
+    )}
     <CommentSection client:load postId={post.id} />
-  </div>
+  </article>
 </BaseLayout>
-
-<style is:global>
-  .post-detail { max-width: var(--max-width); margin: 0 auto; }
-  .post-head { margin-bottom: 24px; }
-  .post-head h1 { font-size: 28px; margin: 0 0 12px; }
-  .post-tags { margin-top: 12px; display: flex; gap: 8px; }
-  .post-tags .tag { color: var(--color-primary); font-size: 13px; text-decoration: none; }
-</style>
