@@ -175,7 +175,7 @@
   opacity: 0.6;
 }
 [data-theme='reader'] .item-title {
-  font-size: 17px;
+  font-size: var(--font-size);
   font-weight: 500;
   color: var(--color-text);
   text-decoration: none;
@@ -251,7 +251,7 @@
 
 /* 正文：两端对齐 + 段间距 */
 [data-theme='reader'] .markdown-body {
-  font-size: 17px;
+  font-size: var(--font-size);
   line-height: 2;
 }
 [data-theme='reader'] .markdown-body p {
@@ -260,11 +260,11 @@
 }
 [data-theme='reader'] .markdown-body h2 {
   margin-top: 2em;
-  font-size: 20px;
+  font-size: 1.18em;
 }
 [data-theme='reader'] .markdown-body h3 {
   margin-top: 1.6em;
-  font-size: 17px;
+  font-size: 1em;
 }
 [data-theme='reader'] .markdown-body blockquote {
   border-left: 2px solid var(--color-primary);
