@@ -51,7 +51,8 @@ export function commentsAdminRoutes(ctx: Db) {
     if (action === 'delete') {
       ctx.db.delete(comments).where(inArray(comments.id, ids)).run();
     } else if (action === 'approve' || action === 'reject') {
-      ctx.db.update(comments).set({ status: action }).where(inArray(comments.id, ids)).run();
+      const status = action === 'reject' ? 'rejected' : 'approved';
+      ctx.db.update(comments).set({ status }).where(inArray(comments.id, ids)).run();
     } else {
       return c.json({ error: { code: 'INVALID', message: '无效操作' } }, 400);
     }

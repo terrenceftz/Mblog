@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { comments } from '../src/db/schema';
 import { makeTestApp, loginAsAdmin, authHeaders } from './helpers';
 import { resetRateLimit } from '../src/middleware/rateLimit';
 
@@ -224,6 +226,41 @@ describe('admin comments', () => {
     // 删除一条评论
     const del = await app.request('/api/admin/comments/2', { method: 'DELETE', headers });
     expect(del.status).toBe(200);
+  });
+
+  it('批量拒绝写入 rejected 状态', async () => {
+    const headers = authHeaders(token);
+    const postRes = await app.request('/api/admin/posts', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'P2', contentMd: 'x', status: 'published' }),
+    });
+    expect(postRes.status).toBe(201);
+    // 访客发表一条评论（待审核）
+    const commentRes = await app.request('/api/comments', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ postId: 2, author: '批量拒绝访客', content: '待拒绝评论' }),
+    });
+    expect(commentRes.status).toBe(201);
+    const row = ctx.db.select().from(comments).where(eq(comments.author, '批量拒绝访客')).get();
+    expect(row).toBeTruthy();
+    const id = row!.id;
+
+    // 批量拒绝
+    const batch = await app.request('/api/admin/comments/batch', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ ids: [id], action: 'reject' }),
+    });
+    expect(batch.status).toBe(200);
+
+    // 存储状态必须是 rejected（enum 合法值）
+    const stored = ctx.db.select().from(comments).where(eq(comments.id, id)).get();
+    expect(stored?.status).toBe('rejected');
+
+    // 按状态过滤列表能查到
+    const list = await app.request('/api/admin/comments?status=rejected', { headers });
+    const listBody = await list.json();
+    expect(listBody.data.some((c: { id: number }) => c.id === id)).toBe(true);
   });
 });
 
