@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { eq, and, desc, count, inArray } from 'drizzle-orm';
 import { posts, postTags, tags, categories } from '../../db/schema';
-import { renderMarkdown } from '../../services/markdown';
 import type { Db } from '../../db';
 
 export function postsRoutes(ctx: Db) {
@@ -76,10 +75,9 @@ export function postsRoutes(ctx: Db) {
       .get();
     if (!post) return c.json({ error: { code: 'NOT_FOUND', message: '文章不存在' } }, 404);
 
-    ctx.db.update(posts).set({ viewCount: post.viewCount + 1 }).where(eq(posts.id, post.id)).run();
-
-    // 实时渲染 Markdown，保证 contentHtml 始终与 contentMd 一致
-    const contentHtml = await renderMarkdown(post.contentMd);
+    // contentHtml 由写入时渲染存储（见 services/posts.ts）；此处返回存储值，仅递增阅读量
+    const viewCount = post.viewCount + 1;
+    ctx.db.update(posts).set({ viewCount }).where(eq(posts.id, post.id)).run();
 
     const postTagList = ctx.db
       .select({ name: tags.name, slug: tags.slug })
@@ -91,7 +89,7 @@ export function postsRoutes(ctx: Db) {
       ? ctx.db.select().from(categories).where(eq(categories.id, post.categoryId)).get()
       : null;
 
-    return c.json({ data: { ...post, viewCount: post.viewCount + 1, contentHtml, tags: postTagList, category } });
+    return c.json({ data: { ...post, viewCount, tags: postTagList, category } });
   });
 
   return app;
