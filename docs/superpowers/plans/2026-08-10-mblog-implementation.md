@@ -751,6 +751,9 @@ import { users } from '../../db/schema';
 import { signToken } from '../../lib/jwt';
 import type { Db } from '../../db';
 
+// 预计算假哈希：用户不存在时也执行 bcrypt 比较，避免时序泄露用户是否存在
+const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing', 10);
+
 export function authRoutes(ctx: Db) {
   const app = new Hono();
 
@@ -762,7 +765,8 @@ export function authRoutes(ctx: Db) {
       return c.json({ error: { code: 'INVALID', message: '请输入用户名和密码' } }, 400);
     }
     const user = ctx.db.select().from(users).where(eq(users.username, username)).get();
-    if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
+    const ok = bcrypt.compareSync(password, user?.passwordHash ?? DUMMY_HASH);
+    if (!user || !ok) {
       return c.json({ error: { code: 'UNAUTHORIZED', message: '用户名或密码错误' } }, 401);
     }
     const token = await signToken({ username: user.username });
@@ -770,6 +774,18 @@ export function authRoutes(ctx: Db) {
   });
 
   return app;
+}
+```
+
+Step 4: 创建 `backend/src/context.d.ts`（Hono 上下文类型增强，后续路由 `c.get('user')` 有类型）：
+
+```ts
+import 'hono';
+
+declare module 'hono' {
+  interface ContextVariableMap {
+    user: { username: string };
+  }
 }
 ```
 
@@ -793,7 +809,7 @@ export function adminRoutes(ctx: Db) {
 - [ ] **Step 5: 编写测试 `backend/test/admin.test.ts`**
 
 ```ts
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { makeTestApp } from './helpers';
 
 describe('admin auth', () => {
@@ -831,12 +847,12 @@ describe('admin auth', () => {
 - [ ] **Step 6: 运行测试**
 
 Run: `cd backend && npx vitest run test/admin.test.ts`
-Expected: 前两条 PASS；第三条 404 属预期（路由未实现），Task 9 后全绿。
+Expected: 3 条全 PASS（第三条 `app.use('*', authMiddleware)` 对未匹配路径也生效，直接 401）。若第三条返回 404，检查 admin.ts 中间件注册顺序。
 
 - [ ] **Step 7: 提交**
 
 ```bash
-git add backend/src/lib/jwt.ts backend/src/middleware/auth.ts backend/src/routes/admin/auth.ts backend/src/routes/admin.ts backend/test/admin.test.ts
+git add backend/src/lib/jwt.ts backend/src/middleware/auth.ts backend/src/routes/admin/auth.ts backend/src/routes/admin.ts backend/src/context.d.ts backend/test/admin.test.ts
 git commit -m "feat: JWT 登录与认证中间件"
 ```
 
@@ -903,16 +919,37 @@ export function authHeaders(token: string): Record<string, string> {
 }
 ```
 
-- [ ] **Step 3: 运行全部现有测试**
+- [ ] **Step 3: 给登录接口加限流（防暴力破解）**
+
+修改 `backend/src/routes/admin/auth.ts`：引入 `rateLimit` 并给 `/login` 加限流（每 IP 每 60 秒最多 5 次）：
+
+```ts
+import { rateLimit } from '../../middleware/rateLimit';
+// ...
+app.post('/login', rateLimit(5, 60_000), async (c) => {
+```
+
+- [ ] **Step 4: 追加无效 token 测试到 `backend/test/admin.test.ts`**
+
+```ts
+it('无效 token 访问受保护路由返回 401', async () => {
+  const res = await app.request('/api/admin/posts', {
+    headers: { Authorization: 'Bearer not-a-real-token' },
+  });
+  expect(res.status).toBe(401);
+});
+```
+
+- [ ] **Step 5: 运行全部现有测试**
 
 Run: `cd backend && npx vitest run`
-Expected: markdown.test.ts 与 admin.test.ts 通过（admin 第三条 404 除外，Task 9 补齐）。
+Expected: 全部 PASS（markdown 6 + admin auth 4）。
 
-- [ ] **Step 4: 提交**
+- [ ] **Step 6: 提交**
 
 ```bash
-git add backend/src/middleware/rateLimit.ts backend/test/helpers.ts
-git commit -m "feat: IP 限流中间件与测试辅助函数"
+git add backend/src/middleware/rateLimit.ts backend/test/helpers.ts backend/src/routes/admin/auth.ts backend/test/admin.test.ts
+git commit -m "feat: IP 限流中间件 + 登录限流 + 测试辅助函数"
 ```
 
 ---
