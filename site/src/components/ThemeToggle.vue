@@ -5,11 +5,24 @@ const props = withDefaults(defineProps<{ variant?: 'text' | 'icon' }>(), { varia
 const THEME_KEY = 'mblog_theme';
 const current = ref('normal');
 
-function apply(t: string) {
+function doApply(t: string) {
   current.value = t;
   localStorage.setItem(THEME_KEY, t);
   document.documentElement.setAttribute('data-theme', t);
   window.dispatchEvent(new CustomEvent('mblog-theme-change', { detail: t }));
+}
+// animate=true：淡出（200ms 遮住布局变化）→ 切换主题 → 淡入；页面加载时不动画
+function apply(t: string, animate = true) {
+  if (!animate) {
+    doApply(t);
+    return;
+  }
+  const html = document.documentElement;
+  html.classList.add('theme-switching');
+  window.setTimeout(() => {
+    doApply(t);
+    requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove('theme-switching')));
+  }, 200);
 }
 function toggle() {
   const cur = document.documentElement.getAttribute('data-theme') ?? current.value;
@@ -21,7 +34,7 @@ onMounted(() => {
   const currentTheme = document.documentElement.getAttribute('data-theme') ?? 'normal';
   current.value = saved ?? currentTheme;
   if (saved && saved !== currentTheme) {
-    apply(saved);
+    apply(saved, false);
   }
   window.addEventListener('mblog-theme-change', (e) => {
     current.value = (e as CustomEvent<string>).detail;

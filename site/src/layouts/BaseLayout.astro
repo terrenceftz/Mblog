@@ -178,6 +178,9 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
     -webkit-font-smoothing: antialiased;
   }
   a { color: var(--color-primary); }
+  /* 主题切换过渡：淡出 → 切换 → 淡入 */
+  body { transition: opacity 0.2s ease; }
+  html.theme-switching body { opacity: 0; }
   /* 顶部阅读进度条 */
   .nav-progress {
     position: fixed; top: 0; left: 0; width: 0; height: 2px;
