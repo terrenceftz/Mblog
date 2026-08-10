@@ -168,6 +168,29 @@ describe('admin posts', () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it('无效 tagIds 返回 400', async () => {
+    const headers = authHeaders(token);
+    const res = await app.request('/api/admin/posts', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'BadTag', contentMd: 'x', tagIds: [9999], status: 'draft' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('重复 slug 返回 409', async () => {
+    const headers = authHeaders(token);
+    const create = await app.request('/api/admin/posts', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'First', contentMd: 'x', slug: 'dup-slug', status: 'draft' }),
+    });
+    expect(create.status).toBe(201);
+    const dup = await app.request('/api/admin/posts', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Second', contentMd: 'x', slug: 'dup-slug', status: 'draft' }),
+    });
+    expect(dup.status).toBe(409);
+  });
 });
 
 describe('admin comments', () => {

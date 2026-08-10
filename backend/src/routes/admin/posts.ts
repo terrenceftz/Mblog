@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, desc, count, and } from 'drizzle-orm';
+import { eq, desc, count, and, inArray } from 'drizzle-orm';
 import { posts, tags, postTags, categories } from '../../db/schema';
 import { createPost, updatePost, deletePost } from '../../services/posts';
 import type { Db } from '../../db';
@@ -47,15 +47,25 @@ export function postsAdminRoutes(ctx: Db) {
       const cat = ctx.db.select({ id: categories.id }).from(categories).where(eq(categories.id, categoryId)).get();
       if (!cat) return c.json({ error: { code: 'INVALID', message: '分类不存在' } }, 400);
     }
+    const tagIds = Array.isArray(body.tagIds) ? body.tagIds : [];
+    if (tagIds.length) {
+      const tagCount = ctx.db.select({ n: count() }).from(tags).where(inArray(tags.id, tagIds)).get()?.n ?? 0;
+      if (tagCount !== tagIds.length) return c.json({ error: { code: 'INVALID', message: '存在无效标签' } }, 400);
+    }
+    const slug = typeof body.slug === 'string' && body.slug.trim() ? body.slug.trim() : undefined;
+    if (slug) {
+      const dup = ctx.db.select({ id: posts.id }).from(posts).where(eq(posts.slug, slug)).get();
+      if (dup) return c.json({ error: { code: 'CONFLICT', message: 'slug 已存在' } }, 409);
+    }
     const id = await createPost(ctx, {
       title,
-      slug: typeof body.slug === 'string' ? body.slug : undefined,
+      slug,
       contentMd: typeof body.contentMd === 'string' ? body.contentMd : '',
       summary: typeof body.summary === 'string' ? body.summary : undefined,
       cover: typeof body.cover === 'string' ? body.cover : undefined,
       categoryId,
       status: body.status === 'published' ? 'published' : 'draft',
-      tagIds: Array.isArray(body.tagIds) ? body.tagIds : [],
+      tagIds,
     });
     return c.json({ data: { id } }, 201);
   });
@@ -70,16 +80,22 @@ export function postsAdminRoutes(ctx: Db) {
       const cat = ctx.db.select({ id: categories.id }).from(categories).where(eq(categories.id, categoryId)).get();
       if (!cat) return c.json({ error: { code: 'INVALID', message: '分类不存在' } }, 400);
     }
+    const tagIds = Array.isArray(body.tagIds) ? body.tagIds : [];
+    if (tagIds.length) {
+      const tagCount = ctx.db.select({ n: count() }).from(tags).where(inArray(tags.id, tagIds)).get()?.n ?? 0;
+      if (tagCount !== tagIds.length) return c.json({ error: { code: 'INVALID', message: '存在无效标签' } }, 400);
+    }
+    const slug = typeof body.slug === 'string' && body.slug.trim() ? body.slug.trim() : undefined;
     try {
       await updatePost(ctx, id, {
         title,
-        slug: typeof body.slug === 'string' ? body.slug : undefined,
+        slug,
         contentMd: typeof body.contentMd === 'string' ? body.contentMd : '',
         summary: typeof body.summary === 'string' ? body.summary : undefined,
         cover: typeof body.cover === 'string' ? body.cover : undefined,
         categoryId,
         status: body.status === 'published' ? 'published' : 'draft',
-        tagIds: Array.isArray(body.tagIds) ? body.tagIds : [],
+        tagIds,
       });
     } catch {
       return c.json({ error: { code: 'NOT_FOUND', message: '文章不存在' } }, 404);
