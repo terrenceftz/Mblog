@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/.astro
+backend/data
+backend/uploads
+.git
+docs
+*.log
+.env

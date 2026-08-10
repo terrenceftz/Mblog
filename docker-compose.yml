@@ -1,0 +1,38 @@
+services:
+  mblog-api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      DB_PATH: /app/data/mblog.db
+      UPLOAD_DIR: /app/uploads
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+    volumes:
+      - mblog-data:/app/data
+      - mblog-uploads:/app/uploads
+
+  mblog-site:
+    build: ./site
+    restart: unless-stopped
+    environment:
+      PORT: "4321"
+      API_BASE: http://mblog-api:3000
+    depends_on:
+      - mblog-api
+
+  mblog-web:
+    build:
+      context: .
+      dockerfile: deploy/nginx/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - mblog-api
+      - mblog-site
+    ports:
+      - "${PORT:-80}:80"
+
+volumes:
+  mblog-data:
+  mblog-uploads:
