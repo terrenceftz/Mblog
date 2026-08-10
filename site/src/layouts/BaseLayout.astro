@@ -87,7 +87,7 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
               <a href={item.url}>{item.label}</a>
             ),
           )}
-          <ThemeToggle client:load />
+          <ThemeToggle client:load variant="icon" />
         </nav>
       </div>
     </header>
@@ -133,7 +133,7 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
             <a class="social-icon" href="/api/rss" aria-label="RSS 订阅">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.18 15.64a2.18 2.18 0 1 1 0 4.36 2.18 2.18 0 0 1 0-4.36zM4 4.44v3.06c7.05 0 12.5 5.45 12.5 12.5h3.06C19.56 10.84 13.16 4.44 4 4.44zM4 10.1v3.06c3.88 0 6.84 2.96 6.84 6.84h3.06c0-5.47-4.43-9.9-9.9-9.9z"/></svg>
             </a>
-            <ThemeToggle client:load />
+            <ThemeToggle client:load variant="icon" />
           </footer>
         </aside>
         <main class="site-main"><slot /></main>

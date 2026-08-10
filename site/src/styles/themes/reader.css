@@ -185,20 +185,20 @@
 }
 [data-theme='reader'] .sidebar-footer .theme-toggle {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
   border: none;
   background: transparent;
   padding: 0;
   color: var(--color-text-muted);
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  opacity: 0.8;
   cursor: pointer;
-  transition: color 0.18s ease, opacity 0.18s ease;
+  opacity: 0.8;
+  transition: color 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
 }
 [data-theme='reader'] .sidebar-footer .theme-toggle:hover {
-  color: var(--color-text);
+  color: var(--color-text-secondary);
   opacity: 1;
+  transform: translateY(-2px);
 }
 
 /* 页脚 */

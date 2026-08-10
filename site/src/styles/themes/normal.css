@@ -151,3 +151,18 @@
   color: var(--color-primary);
   text-decoration: none;
 }
+
+/* 顶栏主题切换：图标按钮（去边框，与导航链接同色系） */
+[data-theme='normal'] .site-header .theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+[data-theme='normal'] .site-header .theme-toggle:hover {
+  color: var(--color-primary);
+}
