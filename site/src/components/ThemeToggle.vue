@@ -8,9 +8,11 @@ function apply(t: string) {
   current.value = t;
   localStorage.setItem(THEME_KEY, t);
   document.documentElement.setAttribute('data-theme', t);
+  window.dispatchEvent(new CustomEvent('mblog-theme-change', { detail: t }));
 }
 function toggle() {
-  apply(current.value === 'normal' ? 'reader' : 'normal');
+  const cur = document.documentElement.getAttribute('data-theme') ?? current.value;
+  apply(cur === 'reader' ? 'normal' : 'reader');
 }
 // onMounted 内读 localStorage，避免 SSR 期访问 window；同时把保存的主题应用到文档（回访用户加载即生效）
 onMounted(() => {
@@ -20,6 +22,9 @@ onMounted(() => {
   if (saved && saved !== currentTheme) {
     apply(saved);
   }
+  window.addEventListener('mblog-theme-change', (e) => {
+    current.value = (e as CustomEvent<string>).detail;
+  });
 });
 </script>
 
