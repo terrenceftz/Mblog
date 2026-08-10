@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { eq, desc } from 'drizzle-orm';
 import { posts } from '../../db/schema';
 import { getSettings } from '../../lib/settings';
+import { parseThemeConfig } from '../../lib/themeConfig';
 import type { Db } from '../../db';
 
 // 转义 CDATA 内的结束序列，防止内容破坏 XML 结构
@@ -76,7 +77,12 @@ ${items}
     const {
       site_name: siteName, site_description: siteDesc, default_theme: theme,
       friend_link_enabled: friendLinkEnabled, nav_menu: navMenuRaw,
-    } = getSettings(ctx, ['site_name', 'site_description', 'default_theme', 'friend_link_enabled', 'nav_menu']);
+      theme_normal: themeNormalRaw, theme_reader: themeReaderRaw,
+      github_enabled: githubEnabled, github_username: githubUsername,
+    } = getSettings(ctx, [
+      'site_name', 'site_description', 'default_theme', 'friend_link_enabled', 'nav_menu',
+      'theme_normal', 'theme_reader', 'github_enabled', 'github_username',
+    ]);
 
     // 解析导航菜单 JSON；非法/空则回退默认
     let navMenu: { label: string; url: string }[] = [];
@@ -92,7 +98,13 @@ ${items}
     }
 
     return c.json({
-      data: { siteName, siteDesc, theme, friendLinkEnabled: friendLinkEnabled === '1', navMenu },
+      data: {
+        siteName, siteDesc, theme, friendLinkEnabled: friendLinkEnabled === '1', navMenu,
+        themeNormal: parseThemeConfig(themeNormalRaw),
+        themeReader: parseThemeConfig(themeReaderRaw),
+        githubEnabled: githubEnabled === '1',
+        githubUsername,
+      },
     });
   });
 
