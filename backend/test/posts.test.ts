@@ -104,9 +104,9 @@ describe('public posts', () => {
     const body = await res.json();
     expect(body.data.siteName).toBeTruthy();
     expect(body.data.theme).toBe('normal');
-    // 导航菜单：默认含 4 项
+    // 导航菜单：默认含 5 项（含「项目」）
     expect(Array.isArray(body.data.navMenu)).toBe(true);
-    expect(body.data.navMenu.length).toBe(4);
+    expect(body.data.navMenu.length).toBe(5);
     expect(body.data.navMenu[0].label).toBe('首页');
   });
 
