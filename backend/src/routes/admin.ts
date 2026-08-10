@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth';
 import { authRoutes } from './admin/auth';
 import { categoriesAdminRoutes } from './admin/categories';
+import { tagsAdminRoutes } from './admin/tags';
 import type { Db } from '../db';
 
 export function adminRoutes(ctx: Db) {
@@ -9,5 +10,6 @@ export function adminRoutes(ctx: Db) {
   app.route('/', authRoutes(ctx));
   app.use('*', authMiddleware);
   app.route('/', categoriesAdminRoutes(ctx));
+  app.route('/', tagsAdminRoutes(ctx));
   return app;
 }

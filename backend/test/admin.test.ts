@@ -88,3 +88,34 @@ describe('admin categories', () => {
     expect(del.status).toBe(200);
   });
 });
+
+describe('admin tags', () => {
+  const { app } = makeTestApp();
+  let token = '';
+
+  beforeAll(async () => {
+    resetRateLimit();
+    token = await loginAsAdmin(app);
+  });
+
+  it('标签 CRUD', async () => {
+    const headers = authHeaders(token);
+    const create = await app.request('/api/admin/tags', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Vue' }),
+    });
+    expect(create.status).toBe(201);
+    const list = await app.request('/api/admin/tags', { headers });
+    const body = await list.json();
+    expect(body.data[0].name).toBe('Vue');
+
+    const update = await app.request('/api/admin/tags/1', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Vue3' }),
+    });
+    expect(update.status).toBe(200);
+
+    const del = await app.request('/api/admin/tags/1', { method: 'DELETE', headers });
+    expect(del.status).toBe(200);
+  });
+});
