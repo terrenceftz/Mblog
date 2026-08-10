@@ -35,4 +35,23 @@ describe('admin auth', () => {
     });
     expect(res.status).toBe(401);
   });
+
+  it('登录接口限流（连续 5 次失败后第 6 次 429）', async () => {
+    for (let i = 0; i < 5; i++) {
+      const res = await app.request('/api/admin/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ username: 'admin', password: 'wrong' }),
+      });
+      expect(res.status).toBe(401);
+    }
+    const res = await app.request('/api/admin/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+    });
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.error.code).toBe('RATE_LIMITED');
+  });
 });
