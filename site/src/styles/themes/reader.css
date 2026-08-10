@@ -1,12 +1,12 @@
 [data-theme='reader'] {
-  --color-bg: rgb(243, 240, 243); /* 淡粉紫灰背景 */
+  --color-bg: rgb(243, 240, 233); /* 暖米白背景 */
   --color-surface: transparent;
   --color-text: #33312e;
   --color-text-muted: #8d8a85;
   --color-primary: #4a6b8a; /* 黛青墨色强调，书卷气质 */
   --color-primary-contrast: #ffffff;
-  --color-border: rgb(228, 222, 228); /* 与背景同色调的发丝边框 */
-  --color-code-bg: rgb(236, 232, 236); /* 与背景同色调的代码底色 */
+  --color-border: rgb(228, 222, 212); /* 与背景同色调的发丝边框 */
+  --color-code-bg: rgb(236, 232, 222); /* 与背景同色调的代码底色 */
   --radius: 0;
   --max-width: 820px;
   --shadow: none;
