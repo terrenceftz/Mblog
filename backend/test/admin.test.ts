@@ -291,3 +291,38 @@ describe('admin upload & stats', () => {
     expect(body.data).toHaveProperty('totalViews');
   });
 });
+
+describe('admin settings', () => {
+  const { app } = makeTestApp();
+  let token = '';
+
+  beforeAll(async () => {
+    resetRateLimit();
+    token = await loginAsAdmin(app);
+  });
+
+  it('设置读写与 COS 密钥掩码', async () => {
+    const headers = authHeaders(token);
+    // 先写入真实密钥
+    const put = await app.request('/api/admin/settings', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ site_name: '我的新博客', default_theme: 'reader', cos_secret_key: 'real-secret-123' }),
+    });
+    expect(put.status).toBe(200);
+    const putBody = await put.json();
+    expect(putBody.data.site_name).toBe('我的新博客');
+    expect(putBody.data.cos_secret_key).toBe('********'); // 掩码返回
+
+    // 再用掩码 PUT，密钥应保留
+    const put2 = await app.request('/api/admin/settings', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ cos_secret_key: '********' }),
+    });
+    expect(put2.status).toBe(200);
+
+    // 公开设置反映默认主题变更
+    const pub = await app.request('/api/settings/public');
+    const pubBody = await pub.json();
+    expect(pubBody.data.theme).toBe('reader');
+  });
+});
