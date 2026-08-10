@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { makeTestApp } from './helpers';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { makeTestApp, loginAsAdmin, authHeaders } from './helpers';
+import { resetRateLimit } from '../src/middleware/rateLimit';
 
 describe('admin auth', () => {
   const { app } = makeTestApp();
@@ -53,5 +54,37 @@ describe('admin auth', () => {
     expect(res.status).toBe(429);
     const body = await res.json();
     expect(body.error.code).toBe('RATE_LIMITED');
+  });
+});
+
+describe('admin categories', () => {
+  const { app } = makeTestApp();
+  let token = '';
+
+  beforeAll(async () => {
+    resetRateLimit(); // admin auth 的限流用例会占满共享桶，登录前先清空
+    token = await loginAsAdmin(app);
+  });
+
+  it('创建、列出、更新、删除分类', async () => {
+    const headers = authHeaders(token);
+    const create = await app.request('/api/admin/categories', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ name: '前端' }),
+    });
+    expect(create.status).toBe(201);
+
+    const list = await app.request('/api/admin/categories', { headers });
+    const body = await list.json();
+    expect(body.data[0].name).toBe('前端');
+
+    const update = await app.request('/api/admin/categories/1', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ name: '前端开发' }),
+    });
+    expect(update.status).toBe(200);
+
+    const del = await app.request('/api/admin/categories/1', { method: 'DELETE', headers });
+    expect(del.status).toBe(200);
   });
 });
