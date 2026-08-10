@@ -9,6 +9,11 @@ export function createApp(ctx: Db) {
   const app = new Hono();
   app.onError(errorHandler);
 
+  // 未匹配路由统一返回 JSON 错误
+  app.notFound((c) =>
+    c.json({ error: { code: 'NOT_FOUND', message: '接口不存在' } }, 404),
+  );
+
   app.get('/api/health', (c) => c.json({ data: { status: 'ok' } }));
 
   // 开发环境：本地存储的文件由后端直接静态服务；生产由 Nginx 服务
