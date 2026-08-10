@@ -23,4 +23,14 @@ describe('renderMarkdown', () => {
     const html = await renderMarkdown('| a | b |\n| - | - |\n| 1 | 2 |');
     expect(html).toContain('<table>');
   });
+
+  it('剥离事件属性（onerror）', async () => {
+    const html = await renderMarkdown('<img src="x" onerror="alert(1)">');
+    expect(html).not.toContain('onerror');
+  });
+
+  it('剥离 javascript: 链接', async () => {
+    const html = await renderMarkdown('[危险](javascript:alert(1))');
+    expect(html).not.toContain('javascript:');
+  });
 });

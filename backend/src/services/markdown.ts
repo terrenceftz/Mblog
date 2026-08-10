@@ -10,12 +10,16 @@ import rehypeStringify from 'rehype-stringify';
 // 在默认白名单上扩展音频/视频标签，支持编辑器插入的 <audio>
 const schema = {
   ...defaultSchema,
-  tagNames: [...defaultSchema.tagNames, 'audio', 'source', 'video', 'figure', 'figcaption'],
+  tagNames: [...(defaultSchema.tagNames ?? []), 'audio', 'video', 'figure', 'figcaption'],
   attributes: {
     ...defaultSchema.attributes,
-    audio: [...(defaultSchema.attributes.audio ?? []), 'src', 'controls', 'preload', 'loop'],
-    source: [...(defaultSchema.attributes.source ?? []), 'src', 'type'],
-    video: [...(defaultSchema.attributes.video ?? []), 'src', 'controls', 'poster'],
+    audio: [...(defaultSchema.attributes?.audio ?? []), 'src', 'controls', 'preload', 'loop'],
+    source: [...(defaultSchema.attributes?.source ?? []), 'src', 'type'],
+    video: [...(defaultSchema.attributes?.video ?? []), 'src', 'controls', 'poster'],
+  },
+  protocols: {
+    ...defaultSchema.protocols,
+    poster: ['http', 'https'],
   },
 };
 
