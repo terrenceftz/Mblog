@@ -872,13 +872,17 @@ const buckets = new Map<string, { count: number; resetAt: number }>();
 /** 基于 IP 的简单限流（内存版，单实例够用）。 */
 export function rateLimit(max: number, windowMs: number) {
   return async (c: Context, next: Next) => {
+    // 优先取 x-real-ip（Nginx 设置为真实远端 IP）；XFF 取最右侧（由可信代理追加）
     const ip =
-      c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
-      c.req.header('x-real-ip') ??
+      c.req.header('x-real-ip')?.trim() ||
+      c.req.header('x-forwarded-for')?.split(',').pop()?.trim() ||
       'unknown';
     const now = Date.now();
     const bucket = buckets.get(ip);
-    if (!bucket || bucket.resetAt <= now) {
+    if (!bucket) {
+      buckets.set(ip, { count: 1, resetAt: now + windowMs });
+    } else if (bucket.resetAt <= now) {
+      buckets.delete(ip); // 惰性驱逐过期桶，防无限增长
       buckets.set(ip, { count: 1, resetAt: now + windowMs });
     } else if (bucket.count >= max) {
       return c.json({ error: { code: 'RATE_LIMITED', message: '操作过于频繁，请稍后再试' } }, 429);
@@ -898,6 +902,7 @@ export function resetRateLimit(): void {
 - [ ] **Step 2: 更新 `backend/test/helpers.ts` 增加登录辅助函数**
 
 ```ts
+import { expect } from 'vitest';
 import { createApp } from '../src/app';
 import { createDb } from '../src/db';
 import { ensureMigrated } from '../src/db/migrate';
@@ -917,6 +922,7 @@ export async function loginAsAdmin(app: ReturnType<typeof createApp>): Promise<s
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ username: 'admin', password: 'admin123' }),
   });
+  expect(res.status).toBe(200); // 登录失败（如误触限流）立即暴露，避免下游难排查
   const body = (await res.json()) as { data: { token: string } };
   return body.data.token;
 }
@@ -924,6 +930,29 @@ export async function loginAsAdmin(app: ReturnType<typeof createApp>): Promise<s
 export function authHeaders(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
+```
+
+- [ ] **Step 2b: 创建 `backend/vitest.config.ts` 与 `backend/test/setup.ts`（每个用例前重置限流桶）**
+
+`backend/vitest.config.ts`：
+```ts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    setupFiles: ['./test/setup.ts'],
+  },
+});
+```
+
+`backend/test/setup.ts`：
+```ts
+import { beforeEach } from 'vitest';
+import { resetRateLimit } from '../src/middleware/rateLimit';
+
+beforeEach(() => {
+  resetRateLimit();
+});
 ```
 
 - [ ] **Step 3: 给登录接口加限流（防暴力破解）**
@@ -947,15 +976,38 @@ it('无效 token 访问受保护路由返回 401', async () => {
 });
 ```
 
-- [ ] **Step 5: 运行全部现有测试**
+- [ ] **Step 5: 追加登录限流测试到 `backend/test/admin.test.ts`**
+
+```ts
+it('登录接口限流（连续 5 次失败后第 6 次 429）', async () => {
+  for (let i = 0; i < 5; i++) {
+    const res = await app.request('/api/admin/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'wrong' }),
+    });
+    expect(res.status).toBe(401);
+  }
+  const res = await app.request('/api/admin/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+  });
+  expect(res.status).toBe(429);
+  const body = await res.json();
+  expect(body.error.code).toBe('RATE_LIMITED');
+});
+```
+
+- [ ] **Step 6: 运行全部现有测试**
 
 Run: `cd backend && npx vitest run`
-Expected: 全部 PASS（markdown 6 + admin auth 4）。
+Expected: 全部 PASS（markdown 6 + admin auth 5）。注意：每个用例前 `setup.ts` 会重置限流桶，因此限流测试不会污染其他用例。
 
-- [ ] **Step 6: 提交**
+- [ ] **Step 7: 提交**
 
 ```bash
-git add backend/src/middleware/rateLimit.ts backend/test/helpers.ts backend/src/routes/admin/auth.ts backend/test/admin.test.ts
+git add backend/src/middleware/rateLimit.ts backend/test/helpers.ts backend/src/routes/admin/auth.ts backend/test/admin.test.ts backend/vitest.config.ts backend/test/setup.ts
 git commit -m "feat: IP 限流中间件 + 登录限流 + 测试辅助函数"
 ```
 
