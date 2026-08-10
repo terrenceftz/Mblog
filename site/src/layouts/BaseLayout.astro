@@ -9,9 +9,13 @@ import { getPublicSettings, type ThemeConfig } from '../lib/api';
 interface Props {
   title?: string;
   description?: string;
+  /** full = 侧栏布局（首页/列表页）；article = 窄列竖排品牌（文章页） */
+  layout?: 'full' | 'article';
+  /** 首页：侧栏品牌位显示 banner 图片 */
+  banner?: boolean;
 }
 
-const { title = '', description = '' } = Astro.props;
+const { title = '', description = '', layout = 'full', banner = false } = Astro.props;
 // 服务端读取默认主题与导航菜单，直接注入 <html data-theme>，避免闪烁
 const settings = await getPublicSettings();
 const siteName = settings.siteName || '我的博客';
@@ -19,7 +23,12 @@ const defaultTheme = settings.theme || 'normal';
 const year = new Date().getFullYear();
 // 后台自定义导航菜单（label + url；http 开头外链新窗口打开）
 const navItems = (settings.navMenu ?? []).filter((i) => i.label && i.url);
-// 后台主题配置 → CSS 变量覆盖（两套都注入，切换主题时同样生效）
+// 当前路径（用于导航高亮）
+const path = Astro.url.pathname;
+const isActive = (url: string) =>
+  url === '/' ? path === '/' : path === url || (url !== '/' && path.startsWith(url));
+
+// 后台主题配置 → CSS 变量覆盖（两套都注入，切换主题时同样生效；:root 提权压制打包 CSS）
 function themeStyleBlock(theme: 'normal' | 'reader', cfg: ThemeConfig): string {
   const vars: string[] = [];
   if (cfg.bg) vars.push(`--color-bg:${cfg.bg}`);
@@ -53,19 +62,21 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
         }
       })();
     </script>
-    <!-- 思源宋体（Noto Serif SC）：极简阅读模式的书卷气质字体 -->
+    <!-- 思源宋体（中文书卷气）+ Lora/EB Garamond（西文标题/正文）：对齐参考站字体组合 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <!-- 后台主题配置：覆盖主题 CSS 变量 -->
     <Fragment set:html={themeStyle} />
   </head>
   <body>
-    <!-- 首页 banner：置于导航上方（仅首页传入，极简模式显示） -->
-    <slot name="banner" />
+    <!-- 顶部阅读进度条（双主题通用） -->
+    <div class="nav-progress" aria-hidden="true"></div>
+
+    <!-- 顶栏导航：normal 主题使用（极简模式通过 CSS 隐藏，改用侧栏导航） -->
     <header class="site-header">
       <div class="inner">
         <nav class="nav">
@@ -80,13 +91,76 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
         </nav>
       </div>
     </header>
-    <main class="site-main"><slot /></main>
+
+    {layout === 'article' ? (
+      <!-- 文章页：窄列竖排品牌 -->
+      <div class="page-layout article-layout">
+        <aside class="sidebar sidebar-vertical">
+          <a class="brand-block" href="/" aria-label="返回首页">
+            <span class="brand-name-vertical">{siteName}</span>
+          </a>
+        </aside>
+        <main class="site-main"><slot /></main>
+      </div>
+    ) : (
+      <div class="page-layout">
+        <aside class="sidebar">
+          <header class="brand-area">
+            {banner ? (
+              <a class="brand-banner" href="/" aria-label="首页"><img src="/banner.png" alt={siteName} /></a>
+            ) : (
+              <h1 class="brand-name"><a href="/">{siteName}</a><span class="brand-mark" aria-hidden="true"></span></h1>
+            )}
+            {settings.siteDesc && <p class="bio">{settings.siteDesc}</p>}
+          </header>
+          <nav class="site-nav">
+            {navItems.map((item) =>
+              item.url.startsWith('http') ? (
+                <a href={item.url} target="_blank" rel="noopener noreferrer">{item.label}</a>
+              ) : (
+                <a href={item.url} class={isActive(item.url) ? 'active' : ''} aria-current={isActive(item.url) ? 'page' : undefined}>
+                  {item.label}
+                </a>
+              ),
+            )}
+          </nav>
+          <footer class="sidebar-footer">
+            {settings.githubUsername && (
+              <a class="social-icon" href={`https://github.com/${settings.githubUsername}`} target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.87-1.54-3.87-1.54-.53-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.33.95.1-.74.4-1.25.72-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.19-1.49 3.15-1.18 3.15-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.77 1.05.77 2.12v3.14c0 .31.21.67.8.56A10.52 10.52 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+              </a>
+            )}
+            <a class="social-icon" href="/api/rss" aria-label="RSS 订阅">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.18 15.64a2.18 2.18 0 1 1 0 4.36 2.18 2.18 0 0 1 0-4.36zM4 4.44v3.06c7.05 0 12.5 5.45 12.5 12.5h3.06C19.56 10.84 13.16 4.44 4 4.44zM4 10.1v3.06c3.88 0 6.84 2.96 6.84 6.84h3.06c0-5.47-4.43-9.9-9.9-9.9z"/></svg>
+            </a>
+            <ThemeToggle client:load />
+          </footer>
+        </aside>
+        <main class="site-main"><slot /></main>
+      </div>
+    )}
+
     <footer class="site-footer">
-      <span>© {year} {siteName}</span>
+      <span class="site-footer-text">© {year} {siteName}</span>
       <span class="footer-right">Powered by MBLOG</span>
     </footer>
     <script>
       import '../scripts/lenis.ts';
+    </script>
+    <script is:inline>
+      // 顶部阅读进度条
+      (function () {
+        var bar = document.querySelector('.nav-progress');
+        if (!bar) return;
+        function update() {
+          var h = document.documentElement;
+          var max = h.scrollHeight - h.clientHeight;
+          bar.style.width = (max > 0 ? Math.min(1, h.scrollTop / max) * 100 : 0) + '%';
+        }
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        update();
+      })();
     </script>
   </body>
 </html>
@@ -101,6 +175,14 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
     -webkit-font-smoothing: antialiased;
   }
   a { color: var(--color-primary); }
+  /* 顶部阅读进度条 */
+  .nav-progress {
+    position: fixed; top: 0; left: 0; width: 0; height: 2px;
+    background: var(--color-primary);
+    z-index: 9998; pointer-events: none;
+    transition: width 0.1s linear;
+  }
+  /* 顶栏（normal 主题） */
   .site-header { background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
   .inner {
     max-width: var(--max-width);
@@ -114,7 +196,7 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
   .nav { display: flex; gap: 16px; align-items: center; }
   .nav a { color: var(--color-text-muted); text-decoration: none; font-size: 14px; }
   .nav a:hover { color: var(--color-primary); }
-  .site-main { min-height: calc(100vh - 120px); }
+  .site-main { min-width: 0; min-height: calc(100vh - 120px); }
   .site-footer {
     border-top: 1px solid var(--color-border);
     padding: 20px;
@@ -125,7 +207,7 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
     max-width: var(--max-width);
     margin: 0 auto;
   }
-  /* markdown 正文排版 */
+  /* markdown 正文基础 */
   .markdown-body { line-height: var(--line-height); word-break: break-word; }
   .markdown-body h1, .markdown-body h2, .markdown-body h3 { margin: 1.4em 0 0.6em; line-height: 1.4; }
   .markdown-body p { margin: 0.8em 0; }
@@ -137,7 +219,7 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
   .markdown-body blockquote { margin: 0.8em 0; padding-left: 14px; border-left: 3px solid var(--color-border); color: var(--color-text-muted); }
   .markdown-body table { border-collapse: collapse; margin: 0.8em 0; width: 100%; }
   .markdown-body th, .markdown-body td { border: 1px solid var(--color-border); padding: 8px 12px; }
-  /* 文章列表卡片 */
+  /* 文章列表卡片（normal 主题） */
   .post-list { display: flex; flex-direction: column; gap: 16px; }
   .post-card { padding: var(--card-padding); }
   .post-card .post-title { margin: 0 0 8px; font-size: 20px; }
