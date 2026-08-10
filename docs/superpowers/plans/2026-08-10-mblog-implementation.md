@@ -1999,20 +1999,37 @@ export function adminRoutes(ctx: Db) {
 - [ ] **Step 3: 追加测试到 `backend/test/admin.test.ts`**
 
 ```ts
-it('标签 CRUD', async () => {
-  const headers = { Authorization: `Bearer ${token}` };
-  const create = await app.request('/api/admin/tags', {
-    method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
-    body: JSON.stringify({ name: 'Vue' }),
+describe('admin tags', () => {
+  const { app } = makeTestApp();
+  let token = '';
+
+  beforeAll(async () => {
+    resetRateLimit();
+    token = await loginAsAdmin(app);
   });
-  expect(create.status).toBe(201);
-  const list = await app.request('/api/admin/tags', { headers });
-  const body = await list.json();
-  expect(body.data[0].name).toBe('Vue');
+
+  it('标签 CRUD', async () => {
+    const headers = authHeaders(token);
+    const create = await app.request('/api/admin/tags', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Vue' }),
+    });
+    expect(create.status).toBe(201);
+    const list = await app.request('/api/admin/tags', { headers });
+    const body = await list.json();
+    expect(body.data[0].name).toBe('Vue');
+
+    const update = await app.request('/api/admin/tags/1', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Vue3' }),
+    });
+    expect(update.status).toBe(200);
+
+    const del = await app.request('/api/admin/tags/1', { method: 'DELETE', headers });
+    expect(del.status).toBe(200);
+  });
 });
 ```
-
-> 注：该用例依赖前一个 describe 的 `token` 变量，将 `let token` 提升到文件顶部模块级，或在 `admin categories` describe 内共用。实施时统一将 token 提升为顶层变量。
 
 - [ ] **Step 4: 运行测试**
 
