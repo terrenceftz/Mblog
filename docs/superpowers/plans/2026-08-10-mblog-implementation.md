@@ -1683,14 +1683,17 @@ export function miscRoutes(ctx: Db) {
       .limit(20)
       .all();
 
+    // CDATA 转义：拆分 ]]&gt; 防逃逸（用 split/join 而非正则，避免 esbuild 对 /]]>/g 的解析怪癖）
+    const cdata = (s: string) => `<![CDATA[${s.split(']]>').join(']]]]><![CDATA[>')]]>`;
+
     const items = list
       .map((p) => {
         const link = `${baseUrl}/post/${p.slug}`;
         return `<item>
-  <title><![CDATA[${p.title}]]></title>
+  <title>${cdata(p.title)}</title>
   <link>${link}</link>
   <guid>${link}</guid>
-  <description><![CDATA[${p.summary}]]></description>
+  <description>${cdata(p.summary)}</description>
   <pubDate>${new Date(p.createdAt).toUTCString()}</pubDate>
 </item>`;
       })
@@ -1699,8 +1702,8 @@ export function miscRoutes(ctx: Db) {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
 <channel>
-  <title><![CDATA[${siteName}]]></title>
-  <description><![CDATA[${siteDesc}]]></description>
+  <title>${cdata(siteName)}</title>
+  <description>${cdata(siteDesc)}</description>
   <link>${baseUrl}</link>
 ${items}
 </channel>
