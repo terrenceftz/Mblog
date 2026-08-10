@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
     { label: '归档', url: '/archive' },
     { label: '友链', url: '/friends' },
     { label: '项目', url: '/projects' },
+    { label: '影音', url: '/douban' },
     { label: 'RSS', url: '/api/rss' },
   ]),
   // 主题配置（JSON，空串 = 使用 CSS 内置默认）
@@ -27,6 +28,9 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // GitHub 项目展示
   github_enabled: '0',
   github_username: '',
+  // 豆瓣影音展示
+  douban_enabled: '0',
+  douban_uid: '',
 };
 
 export function getSetting(ctx: Db, key: string): string {
