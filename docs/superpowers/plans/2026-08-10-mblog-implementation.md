@@ -2626,12 +2626,17 @@ import { Hono } from 'hono';
 import { getSettings, setSetting, DEFAULT_SETTINGS } from '../../lib/settings';
 import type { Db } from '../../db';
 
+// 密文掩码约定：GET 返回占位符，PUT 收到占位符时保留原值
+const MASK = '********';
+
 export function settingsAdminRoutes(ctx: Db) {
   const app = new Hono();
 
   app.get('/settings', (c) => {
     const keys = Object.keys(DEFAULT_SETTINGS);
-    return c.json({ data: getSettings(ctx, keys) });
+    const data = getSettings(ctx, keys);
+    if (data.cos_secret_key) data.cos_secret_key = MASK;
+    return c.json({ data });
   });
 
   app.put('/settings', async (c) => {
@@ -2641,12 +2646,14 @@ export function settingsAdminRoutes(ctx: Db) {
     }
     const allowed = new Set(Object.keys(DEFAULT_SETTINGS));
     for (const [key, value] of Object.entries(body)) {
-      if (allowed.has(key) && typeof value === 'string') {
-        setSetting(ctx, key, value);
-      }
+      if (!allowed.has(key) || typeof value !== 'string') continue;
+      // 掩码占位符 → 保留已存密钥
+      if (key === 'cos_secret_key' && value === MASK) continue;
+      setSetting(ctx, key, value);
     }
-    const keys = Object.keys(DEFAULT_SETTINGS);
-    return c.json({ data: getSettings(ctx, keys) });
+    const data = getSettings(ctx, Object.keys(DEFAULT_SETTINGS));
+    if (data.cos_secret_key) data.cos_secret_key = MASK;
+    return c.json({ data });
   });
 
   return app;
@@ -5091,7 +5098,7 @@ async function save() {
             <input v-model="form.cos_secret_id" />
           </label>
           <label>SecretKey
-            <input v-model="form.cos_secret_key" type="password" />
+            <input v-model="form.cos_secret_key" type="password" placeholder="留空或 **** 表示保持不变" />
           </label>
           <label>Bucket
             <input v-model="form.cos_bucket" placeholder="my-blog-1250000000" />
@@ -5494,6 +5501,7 @@ git commit -m "docs: README 使用说明"
 - **规格覆盖**：设计文档全部需求均已落到任务 —— 双主题换肤（T26/33）、分类标签管理（T14/15/37）、文章管理+Markdown 图片/音频（T16/17/36）、评论与审核（T11/18/31/38）、友链申请审核（T12/19/32）、搜索（T9/30）、归档/RSS/阅读量（T9/13）、COS 存储（T20/21/39）、Lenis 平滑滚动（T26）、Docker 部署（T41-43）。
 - **占位符扫描**：全部步骤含完整代码与预期输出，无 TBD/TODO。
 - **类型一致性**：`createDb`/`ensureMigrated`/`getSetting`/`getStorage`/`admin*` API 命名在前后任务间一致；`admin/src/api/admin.ts` 导出与后台页面调用一一对应；site `lib/api.ts` 类型与 backend 响应一致。
+- **安全补充**：Task 22 的 settings GET/PUT 对 `cos_secret_key` 做掩码（`********` 占位符，PUT 收到占位符保留原值），Task 39 设置页提示"留空或 **** 表示保持不变"。
 - **遗留说明**：Task 7 第三条测试用例依赖 Task 9 路由就位后全绿；Task 17 列表查询已用 `and(...)` 修正；Task 29 的 CommentSection 引用到 Task 31 打开。
 
 
