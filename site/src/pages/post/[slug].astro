@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CommentSection from '../../components/CommentSection.vue';
+import { getPost } from '../../lib/api';
+
+const { slug } = Astro.params;
+let post;
+try {
+  post = await getPost(slug!);
+} catch {
+  return Astro.redirect('/404');
+}
+---
+<BaseLayout title={post.title} description={post.summary}>
+  <div class="post-detail">
+    <header class="post-head">
+      <h1>{post.title}</h1>
+      <div class="post-meta">
+        {post.category && <a href={`/category/${post.category.slug}`}>{post.category.name}</a>}
+        <span>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</span>
+        <span>👁 {post.viewCount}</span>
+      </div>
+      {post.tags.length > 0 && (
+        <div class="post-tags">
+          {post.tags.map((t) => <a class="tag" href={`/tag/${t.slug}`}>#{t.name}</a>)}
+        </div>
+      )}
+    </header>
+    {/* 后端已渲染并防 XSS 的 HTML */}
+    <article class="markdown-body" set:html={post.contentHtml} />
+    <CommentSection client:load postId={post.id} />
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .post-detail { max-width: var(--max-width); margin: 0 auto; }
+  .post-head { margin-bottom: 24px; }
+  .post-head h1 { font-size: 28px; margin: 0 0 12px; }
+  .post-tags { margin-top: 12px; display: flex; gap: 8px; }
+  .post-tags .tag { color: var(--color-primary); font-size: 13px; text-decoration: none; }
+</style>
