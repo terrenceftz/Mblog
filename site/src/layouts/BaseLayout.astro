@@ -9,13 +9,11 @@ import { getPublicSettings, type ThemeConfig } from '../lib/api';
 interface Props {
   title?: string;
   description?: string;
-  /** full = 侧栏布局（首页/列表页）；article = 窄列竖排品牌（文章页） */
+  /** full = 侧栏布局（首页/列表页）；article = 窄列竖排品牌 + 右侧目录（文章页） */
   layout?: 'full' | 'article';
-  /** 首页：侧栏品牌位显示 banner 图片 */
-  banner?: boolean;
 }
 
-const { title = '', description = '', layout = 'full', banner = false } = Astro.props;
+const { title = '', description = '', layout = 'full' } = Astro.props;
 // 服务端读取默认主题与导航菜单，直接注入 <html data-theme>，避免闪烁
 const settings = await getPublicSettings();
 const siteName = settings.siteName || '我的博客';
@@ -93,7 +91,7 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
     </header>
 
     {layout === 'article' ? (
-      <!-- 文章页：窄列竖排品牌 -->
+      <!-- 文章页：窄列竖排品牌 + 右侧目录 -->
       <div class="page-layout article-layout">
         <aside class="sidebar sidebar-vertical">
           <a class="brand-block" href="/" aria-label="返回首页">
@@ -101,16 +99,13 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
           </a>
         </aside>
         <main class="site-main"><slot /></main>
+        <slot name="toc" />
       </div>
     ) : (
       <div class="page-layout">
         <aside class="sidebar">
           <header class="brand-area">
-            {banner ? (
-              <a class="brand-banner" href="/" aria-label="首页"><img src="/banner.png" alt={siteName} /></a>
-            ) : (
-              <h1 class="brand-name"><a href="/">{siteName}</a><span class="brand-mark" aria-hidden="true"></span></h1>
-            )}
+            <a class="brand-banner" href="/" aria-label="首页"><img src="/banner.png" alt={siteName} /></a>
             {settings.siteDesc && <p class="bio">{settings.siteDesc}</p>}
           </header>
           <nav class="site-nav">

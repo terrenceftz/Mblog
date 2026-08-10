@@ -30,7 +30,7 @@ for (const post of data.list) {
   else yearGroups.push({ year: y, ganzhi: yearGanzhi(y), items: [post] });
 }
 ---
-<BaseLayout description={settings.siteDesc} banner>
+<BaseLayout description={settings.siteDesc}>
   <div class="content-stream">
     {yearGroups.map((g) => (
       <section class="year-group">

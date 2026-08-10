@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import CommentSection from '../../components/CommentSection.vue';
 import { getPost, type PostDetail } from '../../lib/api';
+import { withTocIds } from '../../lib/toc';
 
 const { slug } = Astro.params;
 let post: PostDetail;
@@ -10,6 +11,8 @@ try {
 } catch {
   return Astro.redirect('/404');
 }
+// 提取 h2/h3 生成目录锚点；返回带 id 的正文 HTML 与目录项
+const { html: contentHtml, toc } = withTocIds(post.contentHtml);
 ---
 <BaseLayout title={post.title} description={post.summary} layout="article">
   <article class="article-wrapper">
@@ -21,8 +24,8 @@ try {
         <span>{post.viewCount} 次阅读</span>
       </div>
     </header>
-    {/* 后端已渲染并防 XSS 的 HTML */}
-    <div class="article-content markdown-body" set:html={post.contentHtml} />
+    {/* 后端已渲染并防 XSS 的 HTML（前端注入标题锚点 id） */}
+    <div class="article-content markdown-body" set:html={contentHtml} />
     {post.tags.length > 0 && (
       <footer class="article-footer">
         <ul class="tags">
@@ -34,4 +37,16 @@ try {
     )}
     <CommentSection client:load postId={post.id} />
   </article>
+  {toc.length > 0 && (
+    <Fragment slot="toc">
+      <nav class="article-toc" aria-label="文章目录">
+        <p class="article-toc-title">目录</p>
+        <ul>
+          {toc.map((t) => (
+            <li><a class={t.level === 3 ? 'toc-h3' : undefined} href={`#${t.id}`}>{t.text}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </Fragment>
+  )}
 </BaseLayout>

@@ -166,3 +166,8 @@
 [data-theme='normal'] .site-header .theme-toggle:hover {
   color: var(--color-primary);
 }
+
+/* 正常主题为单栏阅读，隐藏右侧目录 */
+[data-theme='normal'] .article-toc {
+  display: none;
+}
