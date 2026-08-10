@@ -10,7 +10,7 @@ interface ThemeForm {
 // 与 CSS 内置默认一致的初始值（保存时全量写入，所见即所得）
 const DEFAULTS: Record<ThemeKey, ThemeForm> = {
   normal: { bg: '#f5f6f8', text: '#1f2328', muted: '#6b7280', primary: '#3b82f6', border: '#e5e7eb', fontSize: 16, homePageSize: 10 },
-  reader: { bg: '#f3f0e9', text: '#2e2c28', muted: '#9a968d', primary: '#5b6b7d', border: '#e7e1d5', fontSize: 17, homePageSize: 10 },
+  reader: { bg: '#f3f0e9', text: '#3a3837', muted: '#b0aba4', primary: '#8b3525', border: '#e5e1da', fontSize: 17, homePageSize: 10 },
 };
 
 const activeTab = ref<ThemeKey>('normal');
