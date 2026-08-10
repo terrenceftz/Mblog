@@ -68,6 +68,12 @@ export function adminPatchComment(id: number, status: CommentRow['status']) {
 export function adminDeleteComment(id: number) {
   return request<{ ok: true }>(`/admin/comments/${id}`, { method: 'DELETE' });
 }
+export function adminReplyComment(id: number, content: string) {
+  return request<{ ok: true }>(`/admin/comments/${id}/reply`, { method: 'POST', body: JSON.stringify({ content }) });
+}
+export function adminBatchComments(ids: number[], action: 'approve' | 'reject' | 'delete') {
+  return request<{ ok: true }>('/admin/comments/batch', { method: 'POST', body: JSON.stringify({ ids, action }) });
+}
 
 export function adminGetFriendLinks(params: { status?: string } = {}) {
   const qs = new URLSearchParams();
