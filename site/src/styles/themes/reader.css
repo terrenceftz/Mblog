@@ -1,17 +1,17 @@
 [data-theme='reader'] {
   --color-bg: rgb(243, 240, 233); /* 暖米白背景 */
   --color-surface: transparent;
-  --color-text: #33312e;
-  --color-text-muted: #8d8a85;
-  --color-primary: #4a6b8a; /* 黛青墨色强调，书卷气质 */
+  --color-text: #2e2c28;
+  --color-text-muted: #9a968d;
+  --color-primary: #5b6b7d; /* 沉静黛蓝，更柔和 */
   --color-primary-contrast: #ffffff;
-  --color-border: rgb(228, 222, 212); /* 与背景同色调的发丝边框 */
-  --color-code-bg: rgb(236, 232, 222); /* 与背景同色调的代码底色 */
-  --radius: 0;
+  --color-border: rgb(231, 225, 213); /* 与背景同色调的发丝边框 */
+  --color-code-bg: rgb(238, 234, 224); /* 与背景同色调的代码底色 */
+  --radius: 2px;
   --max-width: 820px;
   --shadow: none;
   --card-padding: 8px 0;
-  /* 思源宋体 + 系统中文字体回退（Google Fonts 不可用时依然有宋体观感） */
+  /* 思源宋体 + 系统中文字体回退 */
   --font-body: 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN',
     'Songti SC', 'Noto Serif CJK SC', 'SimSun', serif;
 }
@@ -19,18 +19,50 @@
 [data-theme='reader'] body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 18px;
-  line-height: 1.95;
-  letter-spacing: 0.01em;
+  font-size: 17px;
+  line-height: 1.9;
+  letter-spacing: 0.02em;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* ---------- banner：顶部留白，克制展示 ---------- */
+/* ---------- 顶部导航：简洁横排 ---------- */
+[data-theme='reader'] .site-header {
+  border-bottom: 1px solid var(--color-border);
+}
+[data-theme='reader'] .inner {
+  height: 52px;
+}
+[data-theme='reader'] .nav {
+  gap: 28px;
+}
+[data-theme='reader'] .nav a {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  transition: color 0.2s ease;
+}
+[data-theme='reader'] .nav a:hover {
+  color: var(--color-text);
+}
+[data-theme='reader'] .theme-toggle {
+  border-color: var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+[data-theme='reader'] .theme-toggle:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+/* ---------- banner：克制居中，上下留白 ---------- */
 [data-theme='reader'] .reader-banner {
   display: block;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 64px 24px 56px; /* 顶部留白 + 与年份列表之间的呼吸感 */
+  padding: 48px 24px 40px;
 }
 [data-theme='reader'] .reader-banner img {
   display: block;
@@ -40,95 +72,126 @@
 
 /* ---------- 年份分组文章列表 ---------- */
 [data-theme='reader'] .site-main {
-  padding-bottom: 80px;
+  padding-bottom: 100px;
 }
 [data-theme='reader'] .year-groups {
-  max-width: var(--max-width);
+  max-width: 760px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 32px;
 }
 [data-theme='reader'] .year-group {
   display: grid;
-  grid-template-columns: 112px 1fr;
-  gap: 16px;
-  padding: 26px 0;
+  grid-template-columns: 100px 1fr;
+  gap: 12px;
+  padding: 36px 0 32px;
   border-bottom: 1px solid var(--color-border);
 }
+[data-theme='reader'] .year-group:last-child {
+  border-bottom: none;
+}
+
+/* 年份：大写数字，首字加大，居中 */
 [data-theme='reader'] .year-label {
   display: flex;
   flex-direction: column;
-  align-items: center;   /* 水平居中 */
-  align-self: center;    /* 组内垂直居中 */
-  gap: 4px;
-  color: var(--color-text);
+  align-items: center;
+  align-self: start;
+  gap: 2px;
+  padding-top: 4px;
+  position: sticky;
+  top: 60px;
 }
 [data-theme='reader'] .year-label .year-first {
-  font-size: 34px;       /* 首字加大 */
-  font-weight: 600;
+  font-size: 40px;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.04em;
+  color: var(--color-text);
+  opacity: 0.88;
 }
 [data-theme='reader'] .year-label .year-rest {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text-muted);
-  letter-spacing: 0.18em; /* 大写数字排开 */
-  margin-left: 0.18em;    /* 补偿末字字距，视觉居中 */
+  letter-spacing: 0.2em;
+  margin-left: 0.2em;
+  opacity: 0.7;
 }
+
+/* 文章列表行 */
 [data-theme='reader'] .year-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 [data-theme='reader'] .year-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  padding: 14px 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--color-border) 60%, transparent);
+  transition: padding-left 0.25s ease;
+}
+[data-theme='reader'] .year-item:last-child {
+  border-bottom: none;
+}
+[data-theme='reader'] .year-item:hover {
+  padding-left: 8px;
 }
 [data-theme='reader'] .item-main {
   display: flex;
   align-items: baseline;
-  gap: 18px;
+  gap: 20px;
 }
 [data-theme='reader'] .item-date {
   color: var(--color-text-muted);
   font-size: 13px;
-  min-width: 52px;
+  min-width: 48px;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
 }
 [data-theme='reader'] .item-title {
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 500;
   color: var(--color-text);
   text-decoration: none;
+  transition: color 0.2s ease;
+  line-height: 1.5;
 }
 [data-theme='reader'] .item-title:hover {
   color: var(--color-primary);
 }
 [data-theme='reader'] .item-summary,
 [data-theme='reader'] .item-views {
-  display: none; /* 克制：极简列表只留日期与标题 */
+  display: none;
 }
 
-/* ---------- 阅读页面约束（文章正文保持阅读栏宽） ---------- */
+/* ---------- 文章详情页 ---------- */
 [data-theme='reader'] .post-detail {
   max-width: 680px;
   margin: 0 auto;
-  padding-top: 48px;
+  padding: 56px 24px;
+}
+[data-theme='reader'] .post-head h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  letter-spacing: 0.03em;
 }
 [data-theme='reader'] .post-list {
   max-width: 680px;
   margin: 0 auto;
 }
 
-/* ---------- 原有元素适配 ---------- */
+/* ---------- 通用适配 ---------- */
 [data-theme='reader'] .site-header,
 [data-theme='reader'] .site-footer {
   border-color: var(--color-border);
 }
-
+[data-theme='reader'] .site-footer {
+  font-size: 13px;
+  opacity: 0.5;
+}
 [data-theme='reader'] .post-card {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -137,36 +200,76 @@
   padding: 32px 0;
 }
 
-/* 链接：下划线强化书卷感 */
+/* 链接 */
 [data-theme='reader'] a {
   color: var(--color-primary);
-  text-underline-offset: 3px;
+  text-underline-offset: 4px;
+  transition: color 0.2s ease;
 }
-
 [data-theme='reader'] .markdown-body a {
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
   text-decoration-thickness: 1px;
 }
+[data-theme='reader'] .markdown-body a:hover {
+  color: var(--color-text);
+}
 
-/* 标题：思源宋体粗体，克制留白 */
+/* 标题 */
 [data-theme='reader'] h1,
 [data-theme='reader'] h2,
 [data-theme='reader'] h3,
-[data-theme='reader'] .post-title a,
-[data-theme='reader'] .post-head h1 {
+[data-theme='reader'] .post-title a {
   font-family: var(--font-body);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 
-[data-theme='reader'] .post-head h1 {
-  font-size: 26px;
-  margin-bottom: 14px;
+/* 正文：两端对齐 + 段间距 */
+[data-theme='reader'] .markdown-body {
+  font-size: 17px;
+  line-height: 2;
+}
+[data-theme='reader'] .markdown-body p {
+  margin: 1.2em 0;
+  text-align: justify;
+}
+[data-theme='reader'] .markdown-body h2 {
+  margin-top: 2em;
+  font-size: 20px;
+}
+[data-theme='reader'] .markdown-body h3 {
+  margin-top: 1.6em;
+  font-size: 17px;
+}
+[data-theme='reader'] .markdown-body blockquote {
+  border-left: 2px solid var(--color-primary);
+  padding-left: 16px;
+  margin: 1.4em 0;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+[data-theme='reader'] .markdown-body code {
+  background: var(--color-code-bg);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 0.88em;
+}
+[data-theme='reader'] .markdown-body pre {
+  background: var(--color-code-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  overflow-x: auto;
+}
+[data-theme='reader'] .markdown-body pre code {
+  background: transparent;
+  padding: 0;
 }
 
-/* 正文：两端对齐，更接近书籍排版 */
-[data-theme='reader'] .markdown-body p {
-  margin: 1em 0;
-  text-align: justify;
+/* 评论区：克制 */
+[data-theme='reader'] .comment-section {
+  border-top: 1px solid var(--color-border);
+  margin-top: 64px;
+  padding-top: 32px;
 }
