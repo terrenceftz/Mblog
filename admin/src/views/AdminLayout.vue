@@ -5,7 +5,7 @@ import { logout } from '../api/admin';
 const router = useRouter();
 function doLogout() {
   logout();
-  router.push('/admin/login');
+  router.push('/login');
 }
 </script>
 
@@ -14,20 +14,22 @@ function doLogout() {
     <aside class="admin-side">
       <div class="admin-brand">MBLOG 后台</div>
       <nav>
-        <router-link to="/admin/">仪表盘</router-link>
-        <router-link to="/admin/posts">文章</router-link>
-        <router-link to="/admin/categories">分类</router-link>
-        <router-link to="/admin/tags">标签</router-link>
-        <router-link to="/admin/comments">评论</router-link>
-        <router-link to="/admin/friends">友链</router-link>
-        <router-link to="/admin/settings">设置</router-link>
+        <!-- 路由 base=/admin/，to 使用不含 base 的内部路径（Vue Router 生成 href 时自动补 base） -->
+        <router-link to="/">仪表盘</router-link>
+        <router-link to="/posts">文章</router-link>
+        <router-link to="/categories">分类</router-link>
+        <router-link to="/tags">标签</router-link>
+        <router-link to="/comments">评论</router-link>
+        <router-link to="/friends">友链</router-link>
+        <router-link to="/settings">设置</router-link>
       </nav>
       <div class="admin-actions">
         <a href="/">← 查看站点</a>
         <button type="button" @click="doLogout">退出登录</button>
       </div>
     </aside>
-    <main class="admin-main"><slot /></main>
+    <!-- 路由父组件用 router-view 渲染子路由页面，不能用 slot -->
+    <main class="admin-main"><router-view /></main>
   </div>
 </template>
 

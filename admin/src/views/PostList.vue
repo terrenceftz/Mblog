@@ -25,7 +25,7 @@ onMounted(load);
   <div>
     <div class="toolbar">
       <h1 class="page-title">文章管理</h1>
-      <button class="btn primary" @click="router.push('/admin/posts/new')">＋ 新建文章</button>
+      <button class="btn primary" @click="router.push('/posts/new')">＋ 新建文章</button>
     </div>
     <select v-model="statusFilter" class="filter" @change="load">
       <option value="">全部状态</option>
@@ -38,12 +38,12 @@ onMounted(load);
       </thead>
       <tbody>
         <tr v-for="p in posts" :key="p.id">
-          <td><router-link :to="`/admin/posts/${p.id}`">{{ p.title }}</router-link></td>
+          <td><router-link :to="`/posts/${p.id}`">{{ p.title }}</router-link></td>
           <td><span class="badge" :class="p.status">{{ p.status === 'published' ? '已发布' : '草稿' }}</span></td>
           <td>{{ new Date(p.updatedAt).toLocaleDateString('zh-CN') }}</td>
           <td>{{ p.viewCount }}</td>
           <td>
-            <button class="link-btn" @click="router.push(`/admin/posts/${p.id}`)">编辑</button>
+            <button class="link-btn" @click="router.push(`/posts/${p.id}`)">编辑</button>
             <button class="link-btn danger" @click="remove(p.id)">删除</button>
           </td>
         </tr>

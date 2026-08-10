@@ -111,7 +111,7 @@ async function save(status: 'draft' | 'published') {
   try {
     if (editId) await adminUpdatePost(editId, payload);
     else await adminCreatePost(payload);
-    router.push('/admin/posts');
+    router.push('/posts');
   } catch (e) {
     error.value = e instanceof Error ? e.message : '保存失败';
   } finally {

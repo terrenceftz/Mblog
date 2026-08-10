@@ -15,7 +15,7 @@ async function submit() {
   try {
     const res = await login(username.value, password.value);
     localStorage.setItem('admin_token', res.token);
-    router.push('/admin/');
+    router.push('/'); // base=/admin/，内部路径 '/' → 实际 URL /admin/
   } catch (e) {
     error.value = e instanceof Error ? e.message : '登录失败';
   } finally {

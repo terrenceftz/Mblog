@@ -3639,6 +3639,8 @@ router.beforeEach((to) => {
 ```
 
 > 注：`views/*.vue` 页面在 M6 任务中创建，本任务提交时路由指向未创建文件不影响（Vue Router 懒加载按需引入）。
+>
+> **路由 base 陷阱（重要）**：`createWebHistory('/admin/')` 下，`router-link`/`router.push` 的 `to` 必须用**不含 base 的内部路径**（如 `/posts`、`/`），Vue Router 生成 href 时自动补 base → `/admin/posts`。若写 `/admin/posts` 会变成 `/admin/admin/posts`。且父路由组件（AdminLayout）必须用 `<router-view />` 渲染子页面，不能用 `<slot />`。
 
 - [ ] **Step 4: 创建 `admin/src/api/client.ts`**
 
@@ -4518,7 +4520,7 @@ async function submit() {
   try {
     const res = await login(username.value, password.value);
     localStorage.setItem('admin_token', res.token);
-    router.push('/admin/');
+    router.push('/'); // base=/admin/，内部路径 '/' → 实际 URL /admin/
   } catch (e) {
     error.value = e instanceof Error ? e.message : '登录失败';
   } finally {
@@ -4560,7 +4562,7 @@ import { logout } from '../api/admin';
 const router = useRouter();
 function doLogout() {
   logout();
-  router.push('/admin/login');
+  router.push('/login');
 }
 </script>
 
@@ -4569,20 +4571,22 @@ function doLogout() {
     <aside class="admin-side">
       <div class="admin-brand">MBLOG 后台</div>
       <nav>
-        <router-link to="/admin/">仪表盘</router-link>
-        <router-link to="/admin/posts">文章</router-link>
-        <router-link to="/admin/categories">分类</router-link>
-        <router-link to="/admin/tags">标签</router-link>
-        <router-link to="/admin/comments">评论</router-link>
-        <router-link to="/admin/friends">友链</router-link>
-        <router-link to="/admin/settings">设置</router-link>
+        <!-- 路由 base=/admin/，to 使用不含 base 的内部路径（Vue Router 生成 href 时自动补 base） -->
+        <router-link to="/">仪表盘</router-link>
+        <router-link to="/posts">文章</router-link>
+        <router-link to="/categories">分类</router-link>
+        <router-link to="/tags">标签</router-link>
+        <router-link to="/comments">评论</router-link>
+        <router-link to="/friends">友链</router-link>
+        <router-link to="/settings">设置</router-link>
       </nav>
       <div class="admin-actions">
         <a href="/">← 查看站点</a>
         <button type="button" @click="doLogout">退出登录</button>
       </div>
     </aside>
-    <main class="admin-main"><slot /></main>
+    <!-- 路由父组件用 router-view 渲染子路由页面，不能用 slot -->
+    <main class="admin-main"><router-view /></main>
   </div>
 </template>
 
