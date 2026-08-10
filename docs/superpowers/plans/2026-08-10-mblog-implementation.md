@@ -66,23 +66,36 @@ MBLOG/
 │       ├── posts.test.ts
 │       ├── comments.test.ts
 │       └── admin.test.ts
-├── frontend/                      # Vue 3 SPA
-│   ├── package.json / tsconfig.json / vite.config.ts / index.html
-│   ├── Dockerfile / nginx.conf / .dockerignore
+├── site/                          # Astro 5 前台（SSR + Vue islands）
+│   ├── package.json / astro.config.mjs / tsconfig.json
+│   ├── Dockerfile / .dockerignore
+│   └── src/
+│       ├── pages/
+│       │   ├── index.astro        # 首页（?page= 服务端分页）
+│       │   ├── post/[slug].astro  # 文章详情
+│       │   ├── category/[slug].astro / tag/[slug].astro
+│       │   ├── search.astro / archive.astro / friends.astro
+│       │   └── 404.astro
+│       ├── layouts/BaseLayout.astro   # html data-theme + 主题 CSS + Lenis
+│       ├── components/            # Vue islands
+│       │   ├── ThemeToggle.vue / CommentSection.vue / FriendLinkForm.vue
+│       ├── lib/api.ts             # 服务端 API 请求封装（API_BASE）
+│       ├── scripts/lenis.ts       # 平滑滚动（正常主题启用/阅读模式关闭）
+│       └── styles/                # themes/tokens.css normal.css reader.css
+├── admin/                         # Vue 3 SPA 后台（Vite，base=/admin/）
+│   ├── package.json / vite.config.ts / tsconfig.json / index.html
+│   ├── Dockerfile / .dockerignore
 │   └── src/
 │       ├── main.ts / App.vue
-│       ├── router/index.ts
-│       ├── api/client.ts / posts.ts / admin.ts
-│       ├── composables/useTheme.ts / useSettings.ts / useLenis.ts
-│       ├── assets/themes/tokens.css / normal.css / reader.css
-│       ├── layouts/NormalLayout.vue / ReaderLayout.vue
-│       ├── components/PostList.vue / CommentSection.vue / ThemeToggle.vue / Pagination.vue
+│       ├── router/index.ts        # base=/admin/，登录守卫
+│       ├── api/client.ts / admin.ts / posts.ts
 │       └── views/
-│           ├── Home.vue / PostDetail.vue / CategoryPage.vue / TagPage.vue
-│           ├── SearchPage.vue / ArchivePage.vue / FriendLinksPage.vue
-│           └── admin/Login.vue / AdminLayout.vue / Dashboard.vue / PostList.vue
-│               / PostEditor.vue / CategoryManager.vue / TagManager.vue
-│               / CommentManager.vue / FriendLinkManager.vue / SettingsPage.vue
+│           ├── Login.vue
+│           └── AdminLayout.vue / Dashboard.vue / PostList.vue / PostEditor.vue
+│               / CategoryManager.vue / TagManager.vue / CommentManager.vue
+│               / FriendLinkManager.vue / SettingsPage.vue
+├── deploy/nginx/                  # Nginx 入口（静态 admin + 反向代理）
+│   ├── Dockerfile / nginx.conf
 ├── docker-compose.yml
 ├── .env.example
 ├── .gitignore
@@ -2724,21 +2737,119 @@ git commit -m "test: 后端 M1-M3 验收回归"
 
 ---
 
-# M4 前端骨架
+# M4 前端骨架（Astro 前台 + Vue 后台）
 
-### Task 24: 初始化前端项目
+> 架构：`site/` = Astro 5 SSR 前台（Vue islands 做交互）；`admin/` = Vue 3 SPA 后台（Vite，base=/admin/）。后端 Hono API 不变，前后端经 REST 通信。前台服务端渲染页面由 Astro 直接 fetch Hono API（`API_BASE`），客户端交互（评论/主题切换/友链表单）用相对路径 `/api/*`（dev 由 Vite proxy 转发，prod 由 Nginx 转发）。
+
+### Task 24: 初始化 Astro 前台项目（site/）
 
 **Files:**
-- Create: `frontend/package.json`
-- Create: `frontend/tsconfig.json`
-- Create: `frontend/vite.config.ts`
-- Create: `frontend/index.html`
+- Create: `site/package.json`
+- Create: `site/astro.config.mjs`
+- Create: `site/tsconfig.json`
 
-- [ ] **Step 1: 创建 `frontend/package.json`**
+- [ ] **Step 1: 创建 `site/package.json`**
 
 ```json
 {
-  "name": "mblog-frontend",
+  "name": "mblog-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.0.0",
+    "@astrojs/vue": "^5.0.0",
+    "astro": "^5.1.0",
+    "highlight.js": "^11.10.0",
+    "lenis": "^1.3.25",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.7.2"
+  }
+}
+```
+
+- [ ] **Step 2: 创建 `site/astro.config.mjs`**
+
+```js
+import { defineConfig } from 'astro/config';
+import node from '@astrojs/node';
+import vue from '@astrojs/vue';
+
+export default defineConfig({
+  output: 'server',
+  adapter: node({ mode: 'standalone' }),
+  integrations: [vue()],
+  server: { port: 4321 },
+  // 开发环境：把 /api 与 /uploads 代理到本地 Hono 后端
+  vite: {
+    server: {
+      proxy: {
+        '/api': 'http://localhost:3000',
+        '/uploads': 'http://localhost:3000',
+      },
+    },
+  },
+});
+```
+
+- [ ] **Step 3: 创建 `site/tsconfig.json`**
+
+```json
+{
+  "extends": "astro/tsconfigs/base",
+  "include": [".astro/types.d.ts", "src/**/*"],
+  "exclude": ["dist"]
+}
+```
+
+- [ ] **Step 4: 创建最小页面验证可运行**
+
+创建 `site/src/pages/index.astro`（临时占位，后续 Task 28 覆盖）：
+```astro
+---
+const siteName = 'MBLOG';
+---
+<html lang="zh-CN">
+  <head><meta charset="UTF-8" /><title>{siteName}</title></head>
+  <body><h1>{siteName}</h1><p>Astro SSR 运行正常</p></body>
+</html>
+```
+
+Run: `cd site && npm install && npm run build`
+Expected: 构建成功，产物含 `dist/server/entry.mjs`（node standalone 入口）。
+
+Run: `cd site && npm run preview`
+Expected: 打开 `http://localhost:4321` 显示 "Astro SSR 运行正常"。验证后 Ctrl+C 停止。
+
+- [ ] **Step 5: 提交**
+
+```bash
+git add site/package.json site/package-lock.json site/astro.config.mjs site/tsconfig.json site/src/pages/index.astro
+git commit -m "chore: 初始化 Astro 前台项目（SSR + node adapter + vue integration）"
+```
+
+### Task 25: 初始化 Vue 后台项目（admin/）
+
+**Files:**
+- Create: `admin/package.json`
+- Create: `admin/vite.config.ts`
+- Create: `admin/tsconfig.json`
+- Create: `admin/index.html`
+
+- [ ] **Step 1: 创建 `admin/package.json`**
+
+```json
+{
+  "name": "mblog-admin",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -2750,7 +2861,6 @@ git commit -m "test: 后端 M1-M3 验收回归"
   },
   "dependencies": {
     "highlight.js": "^11.10.0",
-    "lenis": "^1.3.25",
     "vditor": "^3.10.9",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
@@ -2765,7 +2875,26 @@ git commit -m "test: 后端 M1-M3 验收回归"
 }
 ```
 
-- [ ] **Step 2: 创建 `frontend/tsconfig.json`**
+- [ ] **Step 2: 创建 `admin/vite.config.ts`（base=/admin/，与 Nginx 路由一致）**
+
+```ts
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+
+export default defineConfig({
+  base: '/admin/',
+  plugins: [vue()],
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': 'http://localhost:3000',
+      '/uploads': 'http://localhost:3000',
+    },
+  },
+});
+```
+
+- [ ] **Step 3: 创建 `admin/tsconfig.json`**
 
 ```json
 {
@@ -2785,25 +2914,7 @@ git commit -m "test: 后端 M1-M3 验收回归"
 }
 ```
 
-- [ ] **Step 3: 创建 `frontend/vite.config.ts`**
-
-```ts
-import { defineConfig } from 'vite';
-import vue from '@vitejs/plugin-vue';
-
-export default defineConfig({
-  plugins: [vue()],
-  server: {
-    port: 5173,
-    proxy: {
-      '/api': 'http://localhost:3000',
-      '/uploads': 'http://localhost:3000',
-    },
-  },
-});
-```
-
-- [ ] **Step 4: 创建 `frontend/index.html`**
+- [ ] **Step 4: 创建 `admin/index.html`**
 
 ```html
 <!doctype html>
@@ -2811,7 +2922,7 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>我的博客</title>
+    <title>MBLOG 后台</title>
   </head>
   <body>
     <div id="app"></div>
@@ -2822,25 +2933,27 @@ export default defineConfig({
 
 - [ ] **Step 5: 安装依赖并验证**
 
-Run: `cd frontend && npm install`
-Expected: 安装成功。
+Run: `cd admin && npm install`
+Expected: 安装成功，无报错。
 
 - [ ] **Step 6: 提交**
 
 ```bash
-git add frontend/package.json frontend/package-lock.json frontend/tsconfig.json frontend/vite.config.ts frontend/index.html
-git commit -m "chore: 初始化前端项目（Vite + Vue 3 + TS）"
+git add admin/package.json admin/package-lock.json admin/vite.config.ts admin/tsconfig.json admin/index.html
+git commit -m "chore: 初始化 Vue 后台项目（base=/admin/）"
 ```
 
-### Task 25: 主题系统（CSS 变量 + 双主题）
+### Task 26: 主题系统 + BaseLayout + ThemeToggle + Lenis
 
 **Files:**
-- Create: `frontend/src/assets/themes/tokens.css`
-- Create: `frontend/src/assets/themes/normal.css`
-- Create: `frontend/src/assets/themes/reader.css`
-- Create: `frontend/src/composables/useTheme.ts`
+- Create: `site/src/styles/themes/tokens.css`
+- Create: `site/src/styles/themes/normal.css`
+- Create: `site/src/styles/themes/reader.css`
+- Create: `site/src/layouts/BaseLayout.astro`
+- Create: `site/src/components/ThemeToggle.vue`
+- Create: `site/src/scripts/lenis.ts`
 
-- [ ] **Step 1: 创建 `frontend/src/assets/themes/tokens.css`**
+- [ ] **Step 1: 创建 `site/src/styles/themes/tokens.css`**
 
 ```css
 :root {
@@ -2852,7 +2965,7 @@ git commit -m "chore: 初始化前端项目（Vite + Vue 3 + TS）"
 }
 ```
 
-- [ ] **Step 2: 创建 `frontend/src/assets/themes/normal.css`**
+- [ ] **Step 2: 创建 `site/src/styles/themes/normal.css`**
 
 ```css
 [data-theme='normal'] {
@@ -2883,7 +2996,7 @@ git commit -m "chore: 初始化前端项目（Vite + Vue 3 + TS）"
 }
 ```
 
-- [ ] **Step 3: 创建 `frontend/src/assets/themes/reader.css`**
+- [ ] **Step 3: 创建 `site/src/styles/themes/reader.css`**
 
 ```css
 [data-theme='reader'] {
@@ -2908,6 +3021,11 @@ git commit -m "chore: 初始化前端项目（Vite + Vue 3 + TS）"
   line-height: 1.9;
 }
 
+[data-theme='reader'] .site-header,
+[data-theme='reader'] .site-footer {
+  border-color: var(--color-border);
+}
+
 [data-theme='reader'] .post-card {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -2917,239 +3035,144 @@ git commit -m "chore: 初始化前端项目（Vite + Vue 3 + TS）"
 }
 ```
 
-- [ ] **Step 4: 创建 `frontend/src/composables/useTheme.ts`**
+- [ ] **Step 4: 创建 `site/src/layouts/BaseLayout.astro`**
 
-```ts
-import { ref } from 'vue';
+```astro
+---
+import '../styles/themes/tokens.css';
+import '../styles/themes/normal.css';
+import '../styles/themes/reader.css';
+import 'highlight.js/styles/github.css';
+import ThemeToggle from '../components/ThemeToggle.vue';
+import { getPublicSettings } from '../lib/api';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = '', description = '' } = Astro.props;
+// 服务端读取默认主题，直接注入 <html data-theme>，避免闪烁
+const settings = await getPublicSettings();
+const siteName = settings.siteName || '我的博客';
+const defaultTheme = settings.theme || 'normal';
+const year = new Date().getFullYear();
+---
+<!doctype html>
+<html lang="zh-CN" data-theme={defaultTheme}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title ? `${title} · ${siteName}` : siteName}</title>
+    <meta name="description" content={description} />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="inner">
+        <a class="brand" href="/">{siteName}</a>
+        <nav class="nav">
+          <a href="/">首页</a>
+          <a href="/archive">归档</a>
+          <a href="/friends">友链</a>
+          <a href="/api/rss" target="_blank" rel="noopener">RSS</a>
+          <ThemeToggle client:load />
+        </nav>
+      </div>
+    </header>
+    <main class="site-main"><slot /></main>
+    <footer class="site-footer">
+      <span>© {year} {siteName}</span>
+      <span class="footer-right">Powered by MBLOG</span>
+    </footer>
+    <script>
+      import '../scripts/lenis.ts';
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--font-size);
+    line-height: var(--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--color-primary); }
+  .site-header { background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+  .inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  .brand { font-weight: 700; font-size: 18px; text-decoration: none; color: var(--color-text); }
+  .nav { display: flex; gap: 16px; align-items: center; }
+  .nav a { color: var(--color-text-muted); text-decoration: none; font-size: 14px; }
+  .nav a:hover { color: var(--color-primary); }
+  .site-main { min-height: calc(100vh - 120px); }
+  .site-footer {
+    border-top: 1px solid var(--color-border);
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+  /* markdown 正文排版 */
+  .markdown-body { line-height: var(--line-height); word-break: break-word; }
+  .markdown-body h1, .markdown-body h2, .markdown-body h3 { margin: 1.4em 0 0.6em; line-height: 1.4; }
+  .markdown-body p { margin: 0.8em 0; }
+  .markdown-body code { background: var(--color-code-bg); border-radius: 4px; padding: 2px 5px; font-family: var(--font-mono); font-size: 0.9em; }
+  .markdown-body pre { background: var(--color-code-bg); padding: 16px; border-radius: var(--radius); overflow-x: auto; }
+  .markdown-body pre code { background: transparent; padding: 0; }
+  .markdown-body img { max-width: 100%; border-radius: var(--radius); }
+  .markdown-body audio { max-width: 100%; margin: 0.8em 0; }
+  .markdown-body blockquote { margin: 0.8em 0; padding-left: 14px; border-left: 3px solid var(--color-border); color: var(--color-text-muted); }
+  .markdown-body table { border-collapse: collapse; margin: 0.8em 0; width: 100%; }
+  .markdown-body th, .markdown-body td { border: 1px solid var(--color-border); padding: 8px 12px; }
+  /* 文章列表卡片 */
+  .post-list { display: flex; flex-direction: column; gap: 16px; }
+  .post-card { padding: var(--card-padding); }
+  .post-card .post-title { margin: 0 0 8px; font-size: 20px; }
+  .post-card .post-title a { color: var(--color-text); text-decoration: none; }
+  .post-card .post-title a:hover { color: var(--color-primary); }
+  .post-card .post-summary { color: var(--color-text-muted); margin: 0 0 12px; font-size: 14px; line-height: 1.6; }
+  .post-meta { display: flex; gap: 16px; flex-wrap: wrap; color: var(--color-text-muted); font-size: 13px; align-items: center; }
+  .post-empty { text-align: center; color: var(--color-text-muted); padding: 48px 0; }
+</style>
+```
+
+- [ ] **Step 5: 创建 `site/src/components/ThemeToggle.vue`（Vue island）**
+
+```vue
+<script setup lang="ts">
+import { onMounted, ref } from 'vue';
 
 const THEME_KEY = 'mblog_theme';
-const current = ref<string>(localStorage.getItem(THEME_KEY) ?? 'normal');
+const current = ref('normal');
 
-function applyTheme(t: string): void {
+function apply(t: string) {
   current.value = t;
   localStorage.setItem(THEME_KEY, t);
   document.documentElement.setAttribute('data-theme', t);
 }
-
-export function useTheme() {
-  return { current, applyTheme };
-}
-```
-
-- [ ] **Step 5: 提交**
-
-```bash
-git add frontend/src/assets/themes frontend/src/composables/useTheme.ts
-git commit -m "feat: 双主题 CSS 变量系统与 useTheme"
-```
-
-### Task 26: 布局组件与 App 组装
-
-**Files:**
-- Create: `frontend/src/main.ts`
-- Create: `frontend/src/App.vue`
-- Create: `frontend/src/layouts/NormalLayout.vue`
-- Create: `frontend/src/layouts/ReaderLayout.vue`
-- Create: `frontend/src/components/ThemeToggle.vue`
-
-- [ ] **Step 1: 创建 `frontend/src/main.ts`**
-
-```ts
-import { createApp } from 'vue';
-import App from './App.vue';
-import { router } from './router';
-import './assets/themes/tokens.css';
-import './assets/themes/normal.css';
-import './assets/themes/reader.css';
-import 'highlight.js/styles/github.css';
-
-createApp(App).use(router).mount('#app');
-```
-
-- [ ] **Step 2: 创建 `frontend/src/App.vue`**
-
-```vue
-<script setup lang="ts">
-import { watchEffect } from 'vue';
-import { useTheme } from './composables/useTheme';
-import { useLenis } from './composables/useLenis';
-import NormalLayout from './layouts/NormalLayout.vue';
-import ReaderLayout from './layouts/ReaderLayout.vue';
-
-const { current } = useTheme();
-useLenis();
-watchEffect(() => {
-  document.documentElement.setAttribute('data-theme', current.value);
-});
-</script>
-
-<template>
-  <component :is="current === 'reader' ? ReaderLayout : NormalLayout">
-    <router-view />
-  </component>
-</template>
-```
-
-- [ ] **Step 3: 创建 `frontend/src/composables/useLenis.ts`（平滑滚动，随主题开关）**
-
-```ts
-import { watch, onBeforeUnmount } from 'vue';
-import Lenis from 'lenis';
-import { useTheme } from './useTheme';
-
-/**
- * Lenis 平滑滚动。
- * 正常主题启用平滑滚动；阅读模式（reader）恢复原生滚动，保持极简专注。
- */
-export function useLenis() {
-  const { current } = useTheme();
-  let lenis: Lenis | null = null;
-
-  watch(
-    () => current.value,
-    (theme) => {
-      if (theme === 'normal') {
-        if (!lenis) lenis = new Lenis({ autoRaf: true });
-        lenis.start();
-      } else {
-        lenis?.stop();
-      }
-    },
-    { immediate: true },
-  );
-
-  onBeforeUnmount(() => {
-    lenis?.destroy();
-    lenis = null;
-  });
-}
-```
-
-- [ ] **Step 4: 创建 `frontend/src/layouts/NormalLayout.vue`**
-
-```vue
-<script setup lang="ts">
-import ThemeToggle from '../components/ThemeToggle.vue';
-</script>
-
-<template>
-  <div class="layout">
-    <header class="layout-header">
-      <div class="inner">
-        <router-link class="brand" to="/">我的博客</router-link>
-        <nav class="nav">
-          <router-link to="/">首页</router-link>
-          <router-link to="/archive">归档</router-link>
-          <router-link to="/friends">友链</router-link>
-          <ThemeToggle />
-        </nav>
-      </div>
-    </header>
-    <main class="layout-main">
-      <div class="container"><slot /></div>
-    </main>
-    <footer class="layout-footer">
-      <span>© {{ new Date().getFullYear() }} 我的博客</span>
-      <a :href="'/api/rss'" target="_blank">RSS</a>
-    </footer>
-  </div>
-</template>
-
-<style scoped>
-.layout-header {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
-.inner {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 56px;
-}
-.brand { font-weight: 700; font-size: 18px; text-decoration: none; color: var(--color-text); }
-.nav { display: flex; gap: 16px; align-items: center; }
-.nav a { color: var(--color-text-muted); text-decoration: none; }
-.nav a.router-link-active { color: var(--color-primary); }
-.layout-main { min-height: calc(100vh - 120px); }
-.container { max-width: var(--max-width); margin: 0 auto; padding: 24px 20px 48px; }
-.layout-footer {
-  border-top: 1px solid var(--color-border);
-  padding: 20px;
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 14px;
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-}
-</style>
-```
-
-- [ ] **Step 5: 创建 `frontend/src/layouts/ReaderLayout.vue`**
-
-```vue
-<script setup lang="ts">
-import ThemeToggle from '../components/ThemeToggle.vue';
-</script>
-
-<template>
-  <div class="reader-layout">
-    <header class="reader-header">
-      <div class="inner">
-        <router-link class="brand" to="/">我的博客</router-link>
-        <ThemeToggle />
-      </div>
-    </header>
-    <main class="reader-main"><slot /></main>
-    <footer class="reader-footer">
-      <router-link to="/">首页</router-link>
-      <router-link to="/archive">归档</router-link>
-      <a :href="'/api/rss'" target="_blank">RSS</a>
-    </footer>
-  </div>
-</template>
-
-<style scoped>
-.reader-header {
-  border-bottom: 1px solid var(--color-border);
-}
-.inner {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0 20px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.brand { font-weight: 600; text-decoration: none; color: var(--color-text); }
-.reader-main { max-width: var(--max-width); margin: 0 auto; padding: 40px 20px 80px; min-height: calc(100vh - 120px); }
-.reader-footer {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 24px 20px 48px;
-  display: flex;
-  gap: 20px;
-  color: var(--color-text-muted);
-  border-top: 1px solid var(--color-border);
-}
-.reader-footer a { color: var(--color-text-muted); text-decoration: none; }
-</style>
-```
-
-- [ ] **Step 6: 创建 `frontend/src/components/ThemeToggle.vue`**
-
-```vue
-<script setup lang="ts">
-import { useTheme } from '../composables/useTheme';
-
-const { current, applyTheme } = useTheme();
 function toggle() {
-  applyTheme(current.value === 'normal' ? 'reader' : 'normal');
+  apply(current.value === 'normal' ? 'reader' : 'normal');
 }
+// onMounted 内读 localStorage，避免 SSR 期访问 window
+onMounted(() => {
+  current.value =
+    localStorage.getItem(THEME_KEY) ??
+    document.documentElement.getAttribute('data-theme') ??
+    'normal';
+});
 </script>
 
 <template>
@@ -3172,54 +3195,155 @@ function toggle() {
 </style>
 ```
 
-- [ ] **Step 7: 提交**
+- [ ] **Step 6: 创建 `site/src/scripts/lenis.ts`（平滑滚动，随主题开关）**
 
-```bash
-git add frontend/src/main.ts frontend/src/App.vue frontend/src/layouts frontend/src/components/ThemeToggle.vue frontend/src/composables/useLenis.ts
-git commit -m "feat: 布局组件、主题切换与 Lenis 平滑滚动"
+```ts
+import Lenis from 'lenis';
+
+/**
+ * Lenis 平滑滚动：正常主题启用；阅读模式（data-theme=reader）恢复原生滚动。
+ */
+function init() {
+  const html = document.documentElement;
+  let lenis: Lenis | null = null;
+
+  function apply() {
+    if (html.dataset.theme === 'normal') {
+      if (!lenis) lenis = new Lenis({ autoRaf: true });
+      lenis.start();
+    } else {
+      lenis?.stop();
+    }
+  }
+
+  apply();
+  const observer = new MutationObserver(apply);
+  observer.observe(html, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
+init();
 ```
 
-### Task 27: 路由与 API 客户端
+- [ ] **Step 7: 创建 `site/src/lib/api.ts`（服务端 API 封装，供页面/布局使用）**
+
+```ts
+// 服务端渲染时使用；生产容器内经环境变量指向 mblog-api 服务
+const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
+
+export interface PostListItem {
+  id: number; title: string; slug: string; summary: string; cover: string;
+  viewCount: number; categoryId: number | null; createdAt: number;
+}
+export interface PostDetail extends PostListItem {
+  contentHtml: string;
+  tags: { name: string; slug: string }[];
+  category: { id: number; name: string; slug: string } | null;
+}
+export interface Page<T> { list: T[]; total: number }
+export interface PublicSettings { siteName: string; siteDesc: string; theme: string; friendLinkEnabled: boolean }
+export interface Category { id: number; name: string; slug: string; postCount: number }
+export interface Tag { id: number; name: string; slug: string; postCount: number }
+export interface ArchiveGroup { month: string; items: { createdAt: number; title: string; slug: string }[] }
+export interface CommentItem {
+  id: number; postId: number; author: string; email: string; content: string;
+  status: string; parentId: number | null; createdAt: number;
+}
+export interface FriendLink { id: number; name: string; url: string; description: string; avatar: string }
+
+async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}/api${path}`, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`API ${path} -> ${res.status}`);
+  const body = (await res.json()) as { data: T };
+  return body.data;
+}
+
+export function getPublicSettings(): Promise<PublicSettings> {
+  return get<PublicSettings>('/settings/public').catch(() => ({
+    siteName: '我的博客', siteDesc: '', theme: 'normal', friendLinkEnabled: true,
+  }));
+}
+
+export function getPosts(params: { page?: number; category?: string; tag?: string; q?: string } = {}) {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set('page', String(params.page));
+  if (params.category) qs.set('category', params.category);
+  if (params.tag) qs.set('tag', params.tag);
+  if (params.q) qs.set('q', params.q);
+  return get<Page<PostListItem>>(`/posts?${qs.toString()}`);
+}
+export const getPost = (slug: string) => get<PostDetail>(`/posts/${slug}`);
+export const getCategories = () => get<Category[]>('/categories');
+export const getTags = () => get<Tag[]>('/tags');
+export const getArchive = () => get<ArchiveGroup[]>('/archive');
+export const getApprovedComments = (postId: number) => get<CommentItem[]>(`/comments?post_id=${postId}`);
+export const getFriendLinks = () => get<FriendLink[]>('/friend-links');
+```
+
+- [ ] **Step 8: 构建验证**
+
+Run: `cd site && npm run build`
+Expected: 构建成功（`getPublicSettings` 有 catch 兜底，API 不在线也能构建）。
+
+- [ ] **Step 9: 提交**
+
+```bash
+git add site/src/styles site/src/layouts site/src/components/ThemeToggle.vue site/src/scripts site/src/lib
+git commit -m "feat: 双主题 CSS + BaseLayout（服务端默认主题）+ ThemeToggle island + Lenis"
+```
+
+### Task 27: 后台路由与 API 客户端
 
 **Files:**
-- Create: `frontend/src/router/index.ts`
-- Create: `frontend/src/api/client.ts`
-- Create: `frontend/src/api/posts.ts`
-- Create: `frontend/src/api/admin.ts`
+- Create: `admin/src/main.ts`
+- Create: `admin/src/App.vue`
+- Create: `admin/src/router/index.ts`
+- Create: `admin/src/api/client.ts`
+- Create: `admin/src/api/posts.ts`
+- Create: `admin/src/api/admin.ts`
 
-- [ ] **Step 1: 创建 `frontend/src/router/index.ts`**
+- [ ] **Step 1: 创建 `admin/src/main.ts`**
+
+```ts
+import { createApp } from 'vue';
+import App from './App.vue';
+import { router } from './router';
+
+createApp(App).use(router).mount('#app');
+```
+
+- [ ] **Step 2: 创建 `admin/src/App.vue`**
+
+```vue
+<template>
+  <router-view />
+</template>
+```
+
+- [ ] **Step 3: 创建 `admin/src/router/index.ts`（base=/admin/ + 登录守卫）**
 
 ```ts
 import { createRouter, createWebHistory } from 'vue-router';
 
 export const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', name: 'home', component: () => import('../views/Home.vue') },
-    { path: '/post/:slug', name: 'post', component: () => import('../views/PostDetail.vue') },
-    { path: '/category/:slug', name: 'category', component: () => import('../views/CategoryPage.vue') },
-    { path: '/tag/:slug', name: 'tag', component: () => import('../views/TagPage.vue') },
-    { path: '/search', name: 'search', component: () => import('../views/SearchPage.vue') },
-    { path: '/archive', name: 'archive', component: () => import('../views/ArchivePage.vue') },
-    { path: '/friends', name: 'friends', component: () => import('../views/FriendLinksPage.vue') },
-    { path: '/login', name: 'login', component: () => import('../views/admin/Login.vue') },
+    { path: '/login', name: 'login', component: () => import('../views/Login.vue') },
     {
-      path: '/admin',
-      component: () => import('../views/admin/AdminLayout.vue'),
+      path: '/',
+      component: () => import('../views/AdminLayout.vue'),
       meta: { requiresAuth: true },
       children: [
-        { path: '', name: 'dashboard', component: () => import('../views/admin/Dashboard.vue') },
-        { path: 'posts', name: 'admin-posts', component: () => import('../views/admin/PostList.vue') },
-        { path: 'posts/new', name: 'admin-post-new', component: () => import('../views/admin/PostEditor.vue') },
-        { path: 'posts/:id', name: 'admin-post-edit', component: () => import('../views/admin/PostEditor.vue') },
-        { path: 'categories', name: 'admin-categories', component: () => import('../views/admin/CategoryManager.vue') },
-        { path: 'tags', name: 'admin-tags', component: () => import('../views/admin/TagManager.vue') },
-        { path: 'comments', name: 'admin-comments', component: () => import('../views/admin/CommentManager.vue') },
-        { path: 'friends', name: 'admin-friends', component: () => import('../views/admin/FriendLinkManager.vue') },
-        { path: 'settings', name: 'admin-settings', component: () => import('../views/admin/SettingsPage.vue') },
+        { path: '', name: 'dashboard', component: () => import('../views/Dashboard.vue') },
+        { path: 'posts', name: 'admin-posts', component: () => import('../views/PostList.vue') },
+        { path: 'posts/new', name: 'admin-post-new', component: () => import('../views/PostEditor.vue') },
+        { path: 'posts/:id', name: 'admin-post-edit', component: () => import('../views/PostEditor.vue') },
+        { path: 'categories', name: 'admin-categories', component: () => import('../views/CategoryManager.vue') },
+        { path: 'tags', name: 'admin-tags', component: () => import('../views/TagManager.vue') },
+        { path: 'comments', name: 'admin-comments', component: () => import('../views/CommentManager.vue') },
+        { path: 'friends', name: 'admin-friends', component: () => import('../views/FriendLinkManager.vue') },
+        { path: 'settings', name: 'admin-settings', component: () => import('../views/SettingsPage.vue') },
       ],
     },
-    { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 });
 
@@ -3230,7 +3354,9 @@ router.beforeEach((to) => {
 });
 ```
 
-- [ ] **Step 2: 创建 `frontend/src/api/client.ts`**
+> 注：`views/*.vue` 页面在 M6 任务中创建，本任务提交时路由指向未创建文件不影响（Vue Router 懒加载按需引入）。
+
+- [ ] **Step 4: 创建 `admin/src/api/client.ts`**
 
 ```ts
 const BASE = '/api';
@@ -3258,66 +3384,24 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 }
 ```
 
-- [ ] **Step 3: 创建 `frontend/src/api/posts.ts`**
+- [ ] **Step 5: 创建 `admin/src/api/posts.ts`（公开类型，供 admin 复用）**
 
 ```ts
-import { request } from './client';
-
 export interface PostListItem {
-  id: number;
-  title: string;
-  slug: string;
-  summary: string;
-  cover: string;
-  viewCount: number;
-  categoryId: number | null;
-  createdAt: number;
+  id: number; title: string; slug: string; summary: string; cover: string;
+  viewCount: number; categoryId: number | null; createdAt: number;
 }
-
 export interface PostDetail extends PostListItem {
   contentMd: string;
   contentHtml: string;
   status: 'draft' | 'published';
-  tags: { name: string; slug: string }[];
+  tags: { id: number; name: string; slug: string }[];
   category: { id: number; name: string; slug: string } | null;
 }
-
-export interface Page<T> {
-  list: T[];
-  total: number;
-}
-
-export async function getPosts(params: { page?: number; category?: string; tag?: string; q?: string } = {}): Promise<Page<PostListItem>> {
-  const qs = new URLSearchParams();
-  if (params.page) qs.set('page', String(params.page));
-  if (params.category) qs.set('category', params.category);
-  if (params.tag) qs.set('tag', params.tag);
-  if (params.q) qs.set('q', params.q);
-  return request<Page<PostListItem>>(`/posts?${qs.toString()}`);
-}
-
-export async function getPost(slug: string): Promise<PostDetail> {
-  return request<PostDetail>(`/posts/${slug}`);
-}
-
-export async function getCategories(): Promise<{ id: number; name: string; slug: string; postCount: number }[]> {
-  return request('/categories');
-}
-
-export async function getTags(): Promise<{ id: number; name: string; slug: string; postCount: number }[]> {
-  return request('/tags');
-}
-
-export async function getArchive(): Promise<{ month: string; items: { createdAt: number; title: string; slug: string }[] }[]> {
-  return request('/archive');
-}
-
-export async function getPublicSettings(): Promise<{ siteName: string; siteDesc: string; theme: string; friendLinkEnabled: boolean }> {
-  return request('/settings/public');
-}
+export interface Page<T> { list: T[]; total: number }
 ```
 
-- [ ] **Step 4: 创建 `frontend/src/api/admin.ts`**
+- [ ] **Step 6: 创建 `admin/src/api/admin.ts`**
 
 ```ts
 import { request } from './client';
@@ -3333,12 +3417,10 @@ export interface FriendLinkRow {
   id: number; name: string; url: string; description: string; avatar: string;
   status: 'pending' | 'approved' | 'rejected'; createdAt: number;
 }
-
 export interface AdminPostRow {
   id: number; title: string; slug: string; status: 'draft' | 'published';
   categoryId: number | null; viewCount: number; createdAt: number; updatedAt: number;
 }
-
 export interface AdminPostDetail extends Omit<PostDetail, 'tags'> {
   tags: { id: number; name: string; slug: string }[];
 }
@@ -3348,6 +3430,9 @@ export function login(username: string, password: string) {
     method: 'POST',
     body: JSON.stringify({ username, password }),
   });
+}
+export function logout() {
+  localStorage.removeItem('admin_token');
 }
 
 export function getStats() {
@@ -3361,24 +3446,19 @@ export function adminGetPosts(params: { page?: number; status?: string; category
   if (params.categoryId) qs.set('categoryId', String(params.categoryId));
   return request<Page<AdminPostRow>>(`/admin/posts?${qs.toString()}`);
 }
-
 export function adminGetPost(id: number) {
   return request<AdminPostDetail>(`/admin/posts/${id}`);
 }
-
 export interface PostPayload {
   title: string; slug?: string; contentMd: string; summary?: string; cover?: string;
   categoryId?: number | null; status?: 'draft' | 'published'; tagIds?: number[];
 }
-
 export function adminCreatePost(payload: PostPayload) {
   return request<{ id: number }>('/admin/posts', { method: 'POST', body: JSON.stringify(payload) });
 }
-
 export function adminUpdatePost(id: number, payload: PostPayload) {
   return request<{ id: number }>(`/admin/posts/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
 }
-
 export function adminDeletePost(id: number) {
   return request<{ ok: true }>(`/admin/posts/${id}`, { method: 'DELETE' });
 }
@@ -3388,11 +3468,9 @@ export function adminGetComments(params: { status?: string } = {}) {
   if (params.status) qs.set('status', params.status);
   return request<CommentRow[]>(`/admin/comments?${qs.toString()}`);
 }
-
 export function adminPatchComment(id: number, status: CommentRow['status']) {
   return request<{ id: number; status: string }>(`/admin/comments/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
 }
-
 export function adminDeleteComment(id: number) {
   return request<{ ok: true }>(`/admin/comments/${id}`, { method: 'DELETE' });
 }
@@ -3402,11 +3480,9 @@ export function adminGetFriendLinks(params: { status?: string } = {}) {
   if (params.status) qs.set('status', params.status);
   return request<FriendLinkRow[]>(`/admin/friend-links?${qs.toString()}`);
 }
-
 export function adminPutFriendLink(id: number, payload: Partial<FriendLinkRow>) {
   return request<{ id: number }>(`/admin/friend-links/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
 }
-
 export function adminDeleteFriendLink(id: number) {
   return request<{ ok: true }>(`/admin/friend-links/${id}`, { method: 'DELETE' });
 }
@@ -3443,429 +3519,321 @@ export function uploadFile(file: File): Promise<{ url: string; key: string }> {
   form.append('file', file);
   return request('/admin/upload', { method: 'POST', body: form });
 }
-
-export function logout() {
-  localStorage.removeItem('admin_token');
-}
 ```
 
-- [ ] **Step 5: 提交**
+- [ ] **Step 7: 提交**
 
 ```bash
-git add frontend/src/router/index.ts frontend/src/api
-git commit -m "feat: 路由与 API 客户端封装"
+git add admin/src/main.ts admin/src/App.vue admin/src/router admin/src/api
+git commit -m "feat: 后台路由（登录守卫）与 API 客户端"
 ```
 
 ---
 
-# M5 前台页面
+# M5 前台页面（Astro）
 
 ### Task 28: 首页文章列表
 
 **Files:**
-- Create: `frontend/src/components/PostList.vue`
-- Create: `frontend/src/components/Pagination.vue`
-- Create: `frontend/src/views/Home.vue`
+- Create: `site/src/components/PostList.astro`
+- Modify: `site/src/pages/index.astro`（覆盖 Task 24 占位）
 
-- [ ] **Step 1: 创建 `frontend/src/components/PostList.vue`**
+- [ ] **Step 1: 创建 `site/src/components/PostList.astro`（服务端渲染的文章列表）**
 
-```vue
-<script setup lang="ts">
-import type { PostListItem } from '../api/posts';
-
-defineProps<{ posts: PostListItem[] }>();
-</script>
-
-<template>
-  <div class="post-list">
-    <article v-for="post in posts" :key="post.id" class="post-card">
-      <h2 class="post-title">
-        <router-link :to="`/post/${post.slug}`">{{ post.title }}</router-link>
-      </h2>
-      <p v-if="post.summary" class="post-summary">{{ post.summary }}</p>
-      <div class="post-meta">
-        <span>{{ new Date(post.createdAt).toLocaleDateString('zh-CN') }}</span>
-        <span>👁 {{ post.viewCount }}</span>
-      </div>
-    </article>
-    <p v-if="posts.length === 0" class="post-empty">暂无文章</p>
-  </div>
-</template>
-
-<style scoped>
-.post-list { display: flex; flex-direction: column; gap: 16px; }
-.post-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--card-padding); }
-.post-title { margin: 0 0 8px; font-size: 20px; }
-.post-title a { color: var(--color-text); text-decoration: none; }
-.post-title a:hover { color: var(--color-primary); }
-.post-summary { color: var(--color-text-muted); margin: 0 0 12px; font-size: 14px; line-height: 1.6; }
-.post-meta { display: flex; gap: 16px; color: var(--color-text-muted); font-size: 13px; }
-.post-empty { text-align: center; color: var(--color-text-muted); padding: 48px 0; }
-</style>
+```astro
+---
+interface PostRow {
+  title: string;
+  slug: string;
+  summary: string;
+  createdAt: number;
+  viewCount: number;
+}
+interface Props {
+  posts: PostRow[];
+}
+const { posts } = Astro.props;
+---
+{
+  posts.length > 0 ? (
+    <div class="post-list">
+      {posts.map((post) => (
+        <article class="post-card">
+          <h2 class="post-title">
+            <a href={`/post/${post.slug}`}>{post.title}</a>
+          </h2>
+          {post.summary && <p class="post-summary">{post.summary}</p>}
+          <div class="post-meta">
+            <span>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</span>
+            <span>👁 {post.viewCount}</span>
+          </div>
+        </article>
+      ))}
+    </div>
+  ) : (
+    <p class="post-empty">暂无文章</p>
+  )
+}
 ```
 
-- [ ] **Step 2: 创建 `frontend/src/components/Pagination.vue`**
+> 样式沿用 BaseLayout 中 `.post-card` / `.post-summary` / `.post-meta` 的全局定义，无需额外 CSS。
 
-```vue
-<script setup lang="ts">
-defineProps<{ page: number; total: number; pageSize: number }>();
-const emit = defineEmits<{ (e: 'change', page: number): void }>();
-</script>
+- [ ] **Step 2: 覆盖 `site/src/pages/index.astro`（首页 + 服务端分页）**
 
-<template>
-  <div v-if="total > pageSize" class="pagination">
-    <button :disabled="page <= 1" @click="emit('change', page - 1)">上一页</button>
-    <span class="page-info">{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
-    <button :disabled="page * pageSize >= total" @click="emit('change', page + 1)">下一页</button>
-  </div>
-</template>
-
-<style scoped>
-.pagination { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 24px 0; }
-.pagination button { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); border-radius: var(--radius); padding: 6px 14px; cursor: pointer; }
-.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-info { color: var(--color-text-muted); font-size: 14px; }
-</style>
-```
-
-- [ ] **Step 3: 创建 `frontend/src/views/Home.vue`**
-
-```vue
-<script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { getPosts, type PostListItem } from '../api/posts';
-import PostList from '../components/PostList.vue';
-import Pagination from '../components/Pagination.vue';
+```astro
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostList from '../components/PostList.astro';
+import { getPosts } from '../lib/api';
 
 const pageSize = 10;
-const page = ref(1);
-const total = ref(0);
-const posts = ref<PostListItem[]>([]);
-const loading = ref(false);
+const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
+const data = await getPosts({ page });
+const total = data.total;
+const totalPages = Math.max(1, Math.ceil(total / pageSize));
+---
+<BaseLayout description="我的个人博客">
+  <PostList posts={data.list} />
+  {totalPages > 1 && (
+    <nav class="pagination">
+      {page > 1 && <a href={`/?page=${page - 1}`}>← 上一页</a>}
+      <span class="page-info">{page} / {totalPages}</span>
+      {page < totalPages && <a href={`/?page=${page + 1}`}>下一页 →</a>}
+    </nav>
+  )}
+</BaseLayout>
 
-async function load() {
-  loading.value = true;
-  try {
-    const data = await getPosts({ page: page.value });
-    posts.value = data.list;
-    total.value = data.total;
-  } finally {
-    loading.value = false;
+<style is:global>
+  .pagination {
+    display: flex; gap: 16px; align-items: center; justify-content: center;
+    padding: 24px 0; max-width: var(--max-width); margin: 0 auto;
   }
-}
-function changePage(p: number) {
-  page.value = p;
-  load();
-}
-onMounted(load);
-</script>
-
-<template>
-  <div>
-    <p v-if="loading" class="loading">加载中…</p>
-    <PostList :posts="posts" />
-    <Pagination :page="page" :total="total" :page-size="pageSize" @change="changePage" />
-  </div>
-</template>
-
-<style scoped>
-.loading { text-align: center; color: var(--color-text-muted); }
+  .pagination a { color: var(--color-text); text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 6px 14px; background: var(--color-surface); }
+  .pagination a:hover { color: var(--color-primary); border-color: var(--color-primary); }
+  .page-info { color: var(--color-text-muted); font-size: 14px; }
 </style>
 ```
 
-- [ ] **Step 4: 手动验证**
+- [ ] **Step 3: 手动验证**
 
-Run: `cd frontend && npm run dev`（另开终端 `cd backend && npm run dev`）
-Expected: 浏览器打开 `http://localhost:5173`，首页渲染文章卡片列表。
+Run: 终端1 `cd backend && npm run dev`；终端2 `cd site && npm run dev`
+Expected: 打开 `http://localhost:4321` 首页展示文章列表；文章多于一页时可翻页（`?page=2`）。
 
-- [ ] **Step 5: 提交**
+- [ ] **Step 4: 提交**
 
 ```bash
-git add frontend/src/components/PostList.vue frontend/src/components/Pagination.vue frontend/src/views/Home.vue
-git commit -m "feat: 首页文章列表与分页"
+git add site/src/components/PostList.astro site/src/pages/index.astro
+git commit -m "feat: 首页文章列表（服务端渲染 + 分页）"
 ```
 
-### Task 29: 文章详情页（渲染 + 阅读模式按钮）
+### Task 29: 文章详情页
 
 **Files:**
-- Create: `frontend/src/views/PostDetail.vue`
+- Create: `site/src/pages/post/[slug].astro`
 
-- [ ] **Step 1: 创建 `frontend/src/views/PostDetail.vue`**
+- [ ] **Step 1: 创建 `site/src/pages/post/[slug].astro`**
 
-```vue
-<script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { getPost, type PostDetail } from '../api/posts';
-import { useTheme } from '../composables/useTheme';
-import CommentSection from '../components/CommentSection.vue';
+```astro
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CommentSection from '../../components/CommentSection.vue';
+import { getPost } from '../../lib/api';
 
-const route = useRoute();
-const { current, applyTheme } = useTheme();
-const post = ref<PostDetail | null>(null);
-const notFound = ref(false);
-
-async function load() {
-  try {
-    post.value = await getPost(String(route.params.slug));
-  } catch {
-    notFound.value = true;
-  }
+const { slug } = Astro.params;
+let post;
+try {
+  post = await getPost(slug!);
+} catch {
+  return Astro.redirect('/404');
 }
-onMounted(load);
-
-function toggleReadMode() {
-  applyTheme(current.value === 'normal' ? 'reader' : 'normal');
-}
-</script>
-
-<template>
-  <div v-if="post" class="post-detail">
-    <div class="post-head">
-      <h1>{{ post.title }}</h1>
+---
+<BaseLayout title={post.title} description={post.summary}>
+  <div class="post-detail">
+    <header class="post-head">
+      <h1>{post.title}</h1>
       <div class="post-meta">
-        <span v-if="post.category">
-          <router-link :to="`/category/${post.category.slug}`">{{ post.category.name }}</router-link>
-        </span>
-        <span>{{ new Date(post.createdAt).toLocaleDateString('zh-CN') }}</span>
-        <span>👁 {{ post.viewCount }}</span>
-        <button class="read-toggle" type="button" @click="toggleReadMode">
-          {{ current === 'normal' ? '📖 阅读模式' : '🌐 退出阅读模式' }}
-        </button>
+        {post.category && <a href={`/category/${post.category.slug}`}>{post.category.name}</a>}
+        <span>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</span>
+        <span>👁 {post.viewCount}</span>
       </div>
-      <div v-if="post.tags.length" class="post-tags">
-        <router-link v-for="t in post.tags" :key="t.slug" :to="`/tag/${t.slug}`" class="tag">#{{ t.name }}</router-link>
-      </div>
-    </div>
-    <!-- 后端已渲染并防 XSS 的 HTML -->
-    <article class="markdown-body" v-html="post.contentHtml" />
-    <CommentSection :post-id="post.id" />
+      {post.tags.length > 0 && (
+        <div class="post-tags">
+          {post.tags.map((t) => <a class="tag" href={`/tag/${t.slug}`}>#{t.name}</a>)}
+        </div>
+      )}
+    </header>
+    {/* 后端已渲染并防 XSS 的 HTML */}
+    <article class="markdown-body" set:html={post.contentHtml} />
+    <CommentSection client:load postId={post.id} />
   </div>
-  <p v-else-if="notFound" class="not-found">文章不存在或已下线</p>
-  <p v-else class="loading">加载中…</p>
-</template>
+</BaseLayout>
 
-<style scoped>
-.post-detail { max-width: var(--max-width); margin: 0 auto; }
-.post-head { margin-bottom: 24px; }
-.post-head h1 { font-size: 28px; margin: 0 0 12px; }
-.post-meta { display: flex; gap: 16px; flex-wrap: wrap; color: var(--color-text-muted); font-size: 13px; align-items: center; }
-.post-meta a { color: var(--color-primary); text-decoration: none; }
-.read-toggle { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); border-radius: var(--radius); padding: 4px 10px; cursor: pointer; font-size: 13px; }
-.read-toggle:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.post-tags { margin-top: 12px; display: flex; gap: 8px; }
-.tag { color: var(--color-primary); font-size: 13px; text-decoration: none; }
-.not-found, .loading { text-align: center; color: var(--color-text-muted); padding: 48px 0; }
-</style>
-
-<style>
-/* markdown 正文排版（非 scoped，作用于后端渲染的 HTML） */
-.markdown-body { line-height: var(--line-height); word-break: break-word; }
-.markdown-body h1, .markdown-body h2, .markdown-body h3 { margin: 1.4em 0 0.6em; line-height: 1.4; }
-.markdown-body p { margin: 0.8em 0; }
-.markdown-body code { background: var(--color-code-bg); border-radius: 4px; padding: 2px 5px; font-family: var(--font-mono); font-size: 0.9em; }
-.markdown-body pre { background: var(--color-code-bg); padding: 16px; border-radius: var(--radius); overflow-x: auto; }
-.markdown-body pre code { background: transparent; padding: 0; }
-.markdown-body img { max-width: 100%; border-radius: var(--radius); }
-.markdown-body audio { max-width: 100%; margin: 0.8em 0; }
-.markdown-body blockquote { margin: 0.8em 0; padding-left: 14px; border-left: 3px solid var(--color-border); color: var(--color-text-muted); }
-.markdown-body table { border-collapse: collapse; margin: 0.8em 0; width: 100%; }
-.markdown-body th, .markdown-body td { border: 1px solid var(--color-border); padding: 8px 12px; }
+<style is:global>
+  .post-detail { max-width: var(--max-width); margin: 0 auto; }
+  .post-head { margin-bottom: 24px; }
+  .post-head h1 { font-size: 28px; margin: 0 0 12px; }
+  .post-tags { margin-top: 12px; display: flex; gap: 8px; }
+  .post-tags .tag { color: var(--color-primary); font-size: 13px; text-decoration: none; }
 </style>
 ```
-
-> 注：`CommentSection.vue` 在 Task 31 创建，提交前先不提交 PostDetail.vue 的引用即可，或一并留到 Task 31 后运行验证。
 
 - [ ] **Step 2: 手动验证**
 
-Run: 打开 `http://localhost:5173/post/<slug>`
-Expected: 文章正文渲染、代码高亮、可点击"阅读模式"切换主题。
+Run: 打开 `http://localhost:4321/post/<slug>`
+Expected: 标题/分类/标签/正文渲染、代码高亮、评论 island 加载。
+
+> 注：`CommentSection.vue` 在 Task 31 创建；本任务先创建页面，构建时若引用了不存在的组件会失败——把 `<CommentSection .../>` 暂时注释，Task 31 再打开；或直接一并等到 Task 31 验证。实施时二选一，保持构建通过。
 
 - [ ] **Step 3: 提交**
 
 ```bash
-git add frontend/src/views/PostDetail.vue
-git commit -m "feat: 文章详情页（渲染+阅读模式）"
+git add site/src/pages/post
+git commit -m "feat: 文章详情页（SSR + 阅读模式按钮在 header）"
 ```
 
 ### Task 30: 分类 / 标签 / 搜索 / 归档页
 
 **Files:**
-- Create: `frontend/src/views/CategoryPage.vue`
-- Create: `frontend/src/views/TagPage.vue`
-- Create: `frontend/src/views/SearchPage.vue`
-- Create: `frontend/src/views/ArchivePage.vue`
+- Create: `site/src/pages/category/[slug].astro`
+- Create: `site/src/pages/tag/[slug].astro`
+- Create: `site/src/pages/search.astro`
+- Create: `site/src/pages/archive.astro`
 
-- [ ] **Step 1: 创建 `frontend/src/views/CategoryPage.vue`**
+- [ ] **Step 1: 创建 `site/src/pages/category/[slug].astro`**
 
-```vue
-<script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { getPosts, type PostListItem } from '../api/posts';
-import PostList from '../components/PostList.vue';
+```astro
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostList from '../../components/PostList.astro';
+import { getPosts, getCategories } from '../../lib/api';
 
-const route = useRoute();
-const posts = ref<PostListItem[]>([]);
-const categoryName = ref('');
+const { slug } = Astro.params;
+const [data, categories] = await Promise.all([getPosts({ category: slug }), getCategories()]);
+const name = categories.find((c) => c.slug === slug)?.name ?? String(slug);
+---
+<BaseLayout title={`分类：${name}`}>
+  <h1 class="page-title">分类：{name}</h1>
+  <PostList posts={data.list} />
+</BaseLayout>
 
-onMounted(async () => {
-  const data = await getPosts({ category: String(route.params.slug) });
-  posts.value = data.list;
-  const cats = await import('../api/posts').then((m) => m.getCategories());
-  categoryName.value = cats.find((c) => c.slug === route.params.slug)?.name ?? String(route.params.slug);
-});
-</script>
-
-<template>
-  <div>
-    <h1 class="page-title">分类：{{ categoryName }}</h1>
-    <PostList :posts="posts" />
-  </div>
-</template>
-
-<style scoped>
-.page-title { font-size: 22px; margin-bottom: 20px; }
+<style is:global>
+  .page-title { font-size: 22px; margin-bottom: 20px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
 </style>
 ```
 
-- [ ] **Step 2: 创建 `frontend/src/views/TagPage.vue`**
+- [ ] **Step 2: 创建 `site/src/pages/tag/[slug].astro`**
 
-```vue
-<script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { getPosts, type PostListItem } from '../api/posts';
-import PostList from '../components/PostList.vue';
+```astro
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostList from '../../components/PostList.astro';
+import { getPosts, getTags } from '../../lib/api';
 
-const route = useRoute();
-const posts = ref<PostListItem[]>([]);
-const tagName = ref('');
+const { slug } = Astro.params;
+const [data, tags] = await Promise.all([getPosts({ tag: slug }), getTags()]);
+const name = tags.find((t) => t.slug === slug)?.name ?? String(slug);
+---
+<BaseLayout title={`标签：${name}`}>
+  <h1 class="page-title">标签：# {name}</h1>
+  <PostList posts={data.list} />
+</BaseLayout>
 
-onMounted(async () => {
-  const data = await getPosts({ tag: String(route.params.slug) });
-  posts.value = data.list;
-  const tags = await import('../api/posts').then((m) => m.getTags());
-  tagName.value = tags.find((t) => t.slug === route.params.slug)?.name ?? String(route.params.slug);
-});
-</script>
-
-<template>
-  <div>
-    <h1 class="page-title">标签：#{{ tagName }}</h1>
-    <PostList :posts="posts" />
-  </div>
-</template>
-
-<style scoped>
-.page-title { font-size: 22px; margin-bottom: 20px; }
+<style is:global>
+  .page-title { font-size: 22px; margin-bottom: 20px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
 </style>
 ```
 
-- [ ] **Step 3: 创建 `frontend/src/views/SearchPage.vue`**
+- [ ] **Step 3: 创建 `site/src/pages/search.astro`**
 
-```vue
-<script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { getPosts, type PostListItem } from '../api/posts';
-import PostList from '../components/PostList.vue';
+```astro
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostList from '../components/PostList.astro';
+import { getPosts } from '../lib/api';
 
-const router = useRouter();
-const keyword = ref('');
-const posts = ref<PostListItem[]>([]);
-const searched = ref(false);
+const q = Astro.url.searchParams.get('q')?.trim() ?? '';
+const results = q ? await getPosts({ q }) : null;
+---
+<BaseLayout title={q ? `搜索：${q}` : '搜索'}>
+  <form class="search-form" action="/search" method="get">
+    <input name="q" value={q} placeholder="搜索文章标题或正文…" />
+    <button type="submit">搜索</button>
+  </form>
+  {results && (
+    <>
+      <p class="result-info">共找到 {results.total} 篇相关文章</p>
+      <PostList posts={results.list} />
+    </>
+  )}
+</BaseLayout>
 
-function doSearch() {
-  if (!keyword.value.trim()) return;
-  router.replace({ path: '/search', query: { q: keyword.value } });
-}
-
-onMounted(async () => {
-  const q = router.currentRoute.value.query.q as string | undefined;
-  if (q) {
-    keyword.value = q;
-    const data = await getPosts({ q });
-    posts.value = data.list;
-    searched.value = true;
+<style is:global>
+  .search-form {
+    display: flex; gap: 8px; max-width: var(--max-width); margin: 0 auto 20px;
   }
-});
-</script>
-
-<template>
-  <div>
-    <form class="search-form" @submit.prevent="doSearch">
-      <input v-model="keyword" placeholder="搜索文章标题或正文…" />
-      <button type="submit">搜索</button>
-    </form>
-    <p v-if="searched" class="result-info">共找到 {{ posts.length }} 篇相关文章</p>
-    <PostList :posts="posts" />
-  </div>
-</template>
-
-<style scoped>
-.search-form { display: flex; gap: 8px; margin-bottom: 20px; }
-.search-form input { flex: 1; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 8px 12px; background: var(--color-surface); color: var(--color-text); }
-.search-form button { border: none; background: var(--color-primary); color: var(--color-primary-contrast); border-radius: var(--radius); padding: 8px 16px; cursor: pointer; }
-.result-info { color: var(--color-text-muted); font-size: 14px; margin-bottom: 16px; }
+  .search-form input {
+    flex: 1; border: 1px solid var(--color-border); border-radius: var(--radius);
+    padding: 8px 12px; background: var(--color-surface); color: var(--color-text);
+  }
+  .search-form button {
+    border: none; background: var(--color-primary); color: var(--color-primary-contrast);
+    border-radius: var(--radius); padding: 8px 16px; cursor: pointer;
+  }
+  .result-info { color: var(--color-text-muted); font-size: 14px; margin: 0 0 16px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
 </style>
 ```
 
-- [ ] **Step 4: 创建 `frontend/src/views/ArchivePage.vue`**
+- [ ] **Step 4: 创建 `site/src/pages/archive.astro`**
 
-```vue
-<script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { getArchive } from '../api/posts';
+```astro
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getArchive } from '../lib/api';
 
-const groups = ref<Awaited<ReturnType<typeof getArchive>>>([]);
-
-onMounted(async () => {
-  groups.value = await getArchive();
-});
-</script>
-
-<template>
-  <div>
-    <h1 class="page-title">归档</h1>
-    <section v-for="g in groups" :key="g.month" class="archive-group">
-      <h2 class="month">{{ g.month }}</h2>
+const groups = await getArchive();
+---
+<BaseLayout title="归档">
+  <h1 class="page-title">归档</h1>
+  {groups.map((g) => (
+    <section class="archive-group">
+      <h2 class="month">{g.month}</h2>
       <ul>
-        <li v-for="item in g.items" :key="item.slug">
-          <span class="date">{{ new Date(item.createdAt).toLocaleDateString('zh-CN') }}</span>
-          <router-link :to="`/post/${item.slug}`">{{ item.title }}</router-link>
-        </li>
+        {g.items.map((item) => (
+          <li>
+            <span class="date">{new Date(item.createdAt).toLocaleDateString('zh-CN')}</span>
+            <a href={`/post/${item.slug}`}>{item.title}</a>
+          </li>
+        ))}
       </ul>
     </section>
-  </div>
-</template>
+  ))}
+</BaseLayout>
 
-<style scoped>
-.page-title { font-size: 22px; margin-bottom: 20px; }
-.archive-group { margin-bottom: 24px; }
-.month { font-size: 16px; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; }
-.archive-group ul { list-style: none; padding: 0; }
-.archive-group li { padding: 6px 0; display: flex; gap: 12px; }
-.date { color: var(--color-text-muted); font-size: 13px; min-width: 90px; }
-.archive-group a { color: var(--color-text); text-decoration: none; }
-.archive-group a:hover { color: var(--color-primary); }
+<style is:global>
+  .archive-group { margin-bottom: 24px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
+  .month { font-size: 16px; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; }
+  .archive-group ul { list-style: none; padding: 0; }
+  .archive-group li { padding: 6px 0; display: flex; gap: 12px; }
+  .date { color: var(--color-text-muted); font-size: 13px; min-width: 90px; }
+  .archive-group a { color: var(--color-text); text-decoration: none; }
+  .archive-group a:hover { color: var(--color-primary); }
 </style>
 ```
 
 - [ ] **Step 5: 提交**
 
 ```bash
-git add frontend/src/views/CategoryPage.vue frontend/src/views/TagPage.vue frontend/src/views/SearchPage.vue frontend/src/views/ArchivePage.vue
-git commit -m "feat: 分类/标签/搜索/归档页面"
+git add site/src/pages/category site/src/pages/tag site/src/pages/search.astro site/src/pages/archive.astro
+git commit -m "feat: 分类/标签/搜索/归档页"
 ```
 
-### Task 31: 评论组件（列表 + 发表）
+### Task 31: 评论组件（Vue island，含回复树）
 
 **Files:**
-- Create: `frontend/src/components/CommentSection.vue`
-- Modify: `frontend/src/views/PostDetail.vue`（打开注释引用）
+- Create: `site/src/components/CommentSection.vue`
+- Modify: `site/src/pages/post/[slug].astro`（确认 CommentSection 引用已打开）
 
-- [ ] **Step 1: 创建 `frontend/src/components/CommentSection.vue`**
+- [ ] **Step 1: 创建 `site/src/components/CommentSection.vue`**
 
 ```vue
 <script setup lang="ts">
@@ -3891,7 +3859,7 @@ const loaded = ref(false);
 const replyTo = ref<{ id: number; author: string } | null>(null);
 const replyContent = ref('');
 
-// 顶层评论 + 挂在其下的子评论（回复树，仅一层缩进）
+// 顶层评论 + 挂在其下的子评论（回复树，一层缩进）
 const threads = computed(() => {
   const top = list.value.filter((c) => c.parentId === null);
   return top.map((c) => ({
@@ -4038,46 +4006,96 @@ onMounted(load);
 </style>
 ```
 
-- [ ] **Step 2: 更新 `frontend/src/views/PostDetail.vue` 移除注释**
+- [ ] **Step 2: 更新 `site/src/pages/post/[slug].astro`**
 
-确认 PostDetail.vue 中 `import CommentSection from '../components/CommentSection.vue';` 与 `<CommentSection :post-id="post.id" />` 已存在且未注释。
+确认 `import CommentSection from '../../components/CommentSection.vue';` 与 `<CommentSection client:load postId={post.id} />` 存在（若 Task 29 时注释了，现在打开）。
 
 - [ ] **Step 3: 手动验证**
 
-Run: 打开 `http://localhost:5173/post/<slug>`，滚动到底部
-Expected: 评论列表加载、可提交评论并提示"等待审核"。
+Run: 打开 `http://localhost:4321/post/<slug>`，滚动到底部
+Expected: 评论列表、发表评论（提示"等待审核"）、点"回复"出现回复表单。
 
 - [ ] **Step 4: 提交**
 
 ```bash
-git add frontend/src/components/CommentSection.vue frontend/src/views/PostDetail.vue
-git commit -m "feat: 评论组件（列表+发表）"
+git add site/src/components/CommentSection.vue site/src/pages/post
+git commit -m "feat: 评论组件（Vue island，回复树）"
 ```
 
-### Task 32: 友链页（列表 + 申请）
+### Task 32: 友链页
 
 **Files:**
-- Create: `frontend/src/views/FriendLinksPage.vue`
+- Create: `site/src/pages/friends.astro`
+- Create: `site/src/components/FriendLinkForm.vue`
 
-- [ ] **Step 1: 创建 `frontend/src/views/FriendLinksPage.vue`**
+- [ ] **Step 1: 创建 `site/src/pages/friends.astro`**
+
+```astro
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FriendLinkForm from '../components/FriendLinkForm.vue';
+import { getFriendLinks } from '../lib/api';
+
+const links = await getFriendLinks();
+---
+<BaseLayout title="友情链接">
+  <h1 class="page-title">友情链接</h1>
+  {links.length > 0 ? (
+    <div class="link-grid">
+      {links.map((l) => (
+        <a class="link-card" href={l.url} target="_blank" rel="noopener">
+          <div class="link-avatar">{l.name.slice(0, 1)}</div>
+          <div>
+            <div class="link-name">{l.name}</div>
+            {l.description && <div class="link-desc">{l.description}</div>}
+          </div>
+        </a>
+      ))}
+    </div>
+  ) : (
+    <p class="link-empty">暂无友链</p>
+  )}
+  <FriendLinkForm client:load />
+</BaseLayout>
+
+<style is:global>
+  .page-title { font-size: 22px; margin-bottom: 20px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
+  .link-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+    max-width: var(--max-width); margin: 0 auto;
+  }
+  .link-card {
+    display: flex; gap: 12px; align-items: center; padding: 14px;
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius); box-shadow: var(--shadow); text-decoration: none; color: var(--color-text);
+  }
+  .link-card:hover { border-color: var(--color-primary); }
+  .link-avatar {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary);
+    color: var(--color-primary-contrast); display: flex; align-items: center; justify-content: center; font-weight: 700;
+  }
+  .link-name { font-weight: 600; }
+  .link-desc { color: var(--color-text-muted); font-size: 13px; margin-top: 2px; }
+  .link-empty { color: var(--color-text-muted); padding: 24px 0; text-align: center; }
+</style>
+```
+
+- [ ] **Step 2: 创建 `site/src/components/FriendLinkForm.vue`（Vue island）**
 
 ```vue
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { getPublicSettings } from '../api/posts';
 
-interface FriendLink { id: number; name: string; url: string; description: string; avatar: string }
-const links = ref<FriendLink[]>([]);
 const enabled = ref(true);
 const form = ref({ name: '', url: '', description: '' });
 const message = ref('');
 const submitting = ref(false);
 
-async function load() {
-  const [linkRes, settings] = await Promise.all([fetch('/api/friend-links'), getPublicSettings()]);
-  links.value = (await linkRes.json()).data;
-  enabled.value = settings.friendLinkEnabled;
-}
+onMounted(async () => {
+  const res = await fetch('/api/settings/public');
+  const body = await res.json();
+  enabled.value = body.data.friendLinkEnabled;
+});
 
 async function submit() {
   submitting.value = true;
@@ -4098,182 +4116,111 @@ async function submit() {
     submitting.value = false;
   }
 }
-
-onMounted(load);
 </script>
 
 <template>
-  <div>
-    <h1 class="page-title">友情链接</h1>
-
-    <div v-if="links.length" class="link-grid">
-      <a v-for="l in links" :key="l.id" class="link-card" :href="l.url" target="_blank" rel="noopener">
-        <div class="link-avatar">{{ l.name.slice(0, 1) }}</div>
-        <div>
-          <div class="link-name">{{ l.name }}</div>
-          <div v-if="l.description" class="link-desc">{{ l.description }}</div>
-        </div>
-      </a>
+  <form v-if="enabled" class="link-form" @submit.prevent="submit">
+    <h2>申请友链</h2>
+    <input v-model="form.name" placeholder="站点名称 *" maxlength="50" />
+    <input v-model="form.url" placeholder="站点网址（https://…） *" maxlength="300" />
+    <input v-model="form.description" placeholder="一句话简介" maxlength="200" />
+    <div class="row end">
+      <p v-if="message" class="link-message">{{ message }}</p>
+      <button type="submit" :disabled="submitting">{{ submitting ? '提交中…' : '提交申请' }}</button>
     </div>
-    <p v-else class="link-empty">暂无友链</p>
-
-    <form v-if="enabled" class="link-form" @submit.prevent="submit">
-      <h2>申请友链</h2>
-      <input v-model="form.name" placeholder="站点名称 *" maxlength="50" />
-      <input v-model="form.url" placeholder="站点网址（https://…） *" maxlength="300" />
-      <input v-model="form.description" placeholder="一句话简介" maxlength="200" />
-      <div class="row end">
-        <p v-if="message" class="link-message">{{ message }}</p>
-        <button type="submit" :disabled="submitting">{{ submitting ? '提交中…' : '提交申请' }}</button>
-      </div>
-    </form>
-    <p v-else class="link-empty">友链申请已关闭</p>
-  </div>
+  </form>
+  <p v-else class="link-form-disabled">友链申请已关闭</p>
 </template>
 
 <style scoped>
-.page-title { font-size: 22px; margin-bottom: 20px; }
-.link-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.link-card {
-  display: flex; gap: 12px; align-items: center; padding: 14px;
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius); box-shadow: var(--shadow); text-decoration: none; color: var(--color-text);
-}
-.link-card:hover { border-color: var(--color-primary); }
-.link-avatar {
-  width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary);
-  color: var(--color-primary-contrast); display: flex; align-items: center; justify-content: center; font-weight: 700;
-}
-.link-name { font-weight: 600; }
-.link-desc { color: var(--color-text-muted); font-size: 13px; margin-top: 2px; }
-.link-empty { color: var(--color-text-muted); padding: 24px 0; }
-.link-form { margin-top: 32px; display: flex; flex-direction: column; gap: 10px; max-width: 480px; }
+.link-form { margin: 32px auto 0; display: flex; flex-direction: column; gap: 10px; max-width: 480px; }
 .link-form h2 { font-size: 16px; margin: 0 0 4px; }
-.link-form input { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 8px 12px; background: var(--color-surface); color: var(--color-text); }
+.link-form input {
+  border: 1px solid var(--color-border); border-radius: var(--radius);
+  padding: 8px 12px; background: var(--color-surface); color: var(--color-text);
+}
 .row.end { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
-.link-form button { border: none; background: var(--color-primary); color: var(--color-primary-contrast); border-radius: var(--radius); padding: 8px 18px; cursor: pointer; }
+.link-form button {
+  border: none; background: var(--color-primary); color: var(--color-primary-contrast);
+  border-radius: var(--radius); padding: 8px 18px; cursor: pointer;
+}
 .link-form button:disabled { opacity: 0.6; }
 .link-message { color: var(--color-text-muted); font-size: 13px; }
+.link-form-disabled { color: var(--color-text-muted); text-align: center; padding: 24px 0; }
 </style>
 ```
 
-- [ ] **Step 2: 提交**
+- [ ] **Step 3: 提交**
 
 ```bash
-git add frontend/src/views/FriendLinksPage.vue
-git commit -m "feat: 友链页（列表+申请）"
+git add site/src/pages/friends.astro site/src/components/FriendLinkForm.vue
+git commit -m "feat: 友链页（列表 + 申请表单 island）"
 ```
 
-### Task 33: 站点设置注入与前台验收
+### Task 33: 前台验收
 
 **Files:**
-- Create: `frontend/src/composables/useSettings.ts`
-- Modify: `frontend/src/main.ts`
+- Create: `site/src/pages/404.astro`
 
-- [ ] **Step 1: 创建 `frontend/src/composables/useSettings.ts`**
+- [ ] **Step 1: 创建 `site/src/pages/404.astro`**
 
-```ts
-import { ref } from 'vue';
-import { getPublicSettings } from '../api/posts';
+```astro
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="页面不存在">
+  <div class="not-found">
+    <h1>404</h1>
+    <p>页面不存在或已下线</p>
+    <a href="/">返回首页</a>
+  </div>
+</BaseLayout>
 
-const settings = ref<{ siteName: string; siteDesc: string; theme: string; friendLinkEnabled: boolean } | null>(null);
-
-export async function loadSettings() {
-  try {
-    settings.value = await getPublicSettings();
-  } catch {
-    settings.value = { siteName: '我的博客', siteDesc: '', theme: 'normal', friendLinkEnabled: true };
-  }
-  return settings.value;
-}
-
-export function useSettings() {
-  return { settings, loadSettings };
-}
+<style is:global>
+  .not-found { text-align: center; padding: 80px 0; }
+  .not-found h1 { font-size: 48px; margin: 0 0 12px; }
+  .not-found p { color: var(--color-text-muted); }
+</style>
 ```
 
-- [ ] **Step 2: 更新 `frontend/src/main.ts`**
+- [ ] **Step 2: 类型检查与构建**
 
-```ts
-import { createApp } from 'vue';
-import App from './App.vue';
-import { router } from './router';
-import { loadSettings } from './composables/useSettings';
-import './assets/themes/tokens.css';
-import './assets/themes/normal.css';
-import './assets/themes/reader.css';
-import 'highlight.js/styles/github.css';
+Run: `cd site && npm run check && npm run build`
+Expected: 通过；`dist/server/entry.mjs` 生成。
 
-async function bootstrap() {
-  await loadSettings(); // 先拉取站点设置（含默认主题）
-  createApp(App).use(router).mount('#app');
-}
-void bootstrap();
-```
+- [ ] **Step 3: 全站手动验收（两个终端：backend + site）**
 
-- [ ] **Step 3: 更新 `frontend/src/App.vue` 使用后端默认主题**
+1. 首页列表与分页；文章详情（正文/高亮/评论/回复）
+2. 分类页、标签页、搜索（`/search?q=关键词`）、归档页
+3. 主题切换按钮（导航栏）→ 阅读模式（Lenis 停止，原生滚动）
+4. RSS：`http://localhost:4321/api/rss`（经 Vite proxy 转发到后端）
+5. 404 页（访问不存在的 URL）
+6. 友链页：列表 + 申请表单（提交后提示待审核）
 
-```vue
-<script setup lang="ts">
-import { watchEffect, onMounted } from 'vue';
-import { useTheme } from './composables/useTheme';
-import { useSettings } from './composables/useSettings';
-import NormalLayout from './layouts/NormalLayout.vue';
-import ReaderLayout from './layouts/ReaderLayout.vue';
-
-const { current, applyTheme } = useTheme();
-const { settings } = useSettings();
-
-onMounted(() => {
-  if (!localStorage.getItem('mblog_theme') && settings.value?.theme) {
-    applyTheme(settings.value.theme);
-  }
-});
-
-watchEffect(() => {
-  document.documentElement.setAttribute('data-theme', current.value);
-});
-</script>
-
-<template>
-  <component :is="current === 'reader' ? ReaderLayout : NormalLayout">
-    <router-view />
-  </component>
-</template>
-```
-
-- [ ] **Step 4: 前台手动验收**
-
-Run: 两个终端分别启动前后端，浏览器逐一检查：
-- 首页列表、详情、代码高亮、评论发表
-- 主题切换（导航栏按钮 + 文章页阅读模式按钮）
-- 分类 / 标签 / 搜索 / 归档 / 友链申请
-- RSS：`http://localhost:5173/api/rss`（经 vite 代理）
-
-- [ ] **Step 5: 提交**
+- [ ] **Step 4: 提交（如有修复）**
 
 ```bash
-git add frontend/src/composables/useSettings.ts frontend/src/main.ts frontend/src/App.vue
-git commit -m "feat: 站点设置注入（默认主题/站点名）"
+git add -A
+git commit -m "fix: 前台验收问题修复"
 ```
 
 ---
 
-# M6 后台页面
+# M6 后台页面（Vue SPA）
 
 ### Task 34: 登录页与后台布局
 
 **Files:**
-- Create: `frontend/src/views/admin/Login.vue`
-- Create: `frontend/src/views/admin/AdminLayout.vue`
+- Create: `admin/src/views/Login.vue`
+- Create: `admin/src/views/AdminLayout.vue`
 
-- [ ] **Step 1: 创建 `frontend/src/views/admin/Login.vue`**
+- [ ] **Step 1: 创建 `admin/src/views/Login.vue`**
 
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { login } from '../../api/admin';
+import { login } from '../api/admin';
 
 const router = useRouter();
 const username = ref('');
@@ -4287,7 +4234,7 @@ async function submit() {
   try {
     const res = await login(username.value, password.value);
     localStorage.setItem('admin_token', res.token);
-    router.push('/admin');
+    router.push('/admin/');
   } catch (e) {
     error.value = e instanceof Error ? e.message : '登录失败';
   } finally {
@@ -4299,7 +4246,7 @@ async function submit() {
 <template>
   <div class="login-page">
     <form class="login-card" @submit.prevent="submit">
-      <h1>管理后台</h1>
+      <h1>MBLOG 管理后台</h1>
       <input v-model="username" placeholder="用户名" autocomplete="username" />
       <input v-model="password" type="password" placeholder="密码" autocomplete="current-password" />
       <p v-if="error" class="error">{{ error }}</p>
@@ -4309,27 +4256,27 @@ async function submit() {
 </template>
 
 <style scoped>
-.login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--color-bg); }
-.login-card { width: 320px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 32px 24px; display: flex; flex-direction: column; gap: 12px; }
+.login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f6f8; }
+.login-card { width: 320px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 32px 24px; display: flex; flex-direction: column; gap: 12px; }
 .login-card h1 { font-size: 20px; margin: 0 0 8px; text-align: center; }
-.login-card input { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 10px 12px; }
-.login-card button { border: none; background: var(--color-primary); color: var(--color-primary-contrast); border-radius: var(--radius); padding: 10px; cursor: pointer; font-size: 15px; }
+.login-card input { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; }
+.login-card button { border: none; background: #3b82f6; color: #fff; border-radius: 8px; padding: 10px; cursor: pointer; font-size: 15px; }
 .login-card button:disabled { opacity: 0.6; }
 .error { color: #dc2626; font-size: 13px; margin: 0; }
 </style>
 ```
 
-- [ ] **Step 2: 创建 `frontend/src/views/admin/AdminLayout.vue`**
+- [ ] **Step 2: 创建 `admin/src/views/AdminLayout.vue`**
 
 ```vue
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { logout } from '../../api/admin';
+import { logout } from '../api/admin';
 
 const router = useRouter();
 function doLogout() {
   logout();
-  router.push('/');
+  router.push('/admin/login');
 }
 </script>
 
@@ -4338,7 +4285,7 @@ function doLogout() {
     <aside class="admin-side">
       <div class="admin-brand">MBLOG 后台</div>
       <nav>
-        <router-link to="/admin">仪表盘</router-link>
+        <router-link to="/admin/">仪表盘</router-link>
         <router-link to="/admin/posts">文章</router-link>
         <router-link to="/admin/categories">分类</router-link>
         <router-link to="/admin/tags">标签</router-link>
@@ -4347,7 +4294,7 @@ function doLogout() {
         <router-link to="/admin/settings">设置</router-link>
       </nav>
       <div class="admin-actions">
-        <router-link to="/">← 查看站点</router-link>
+        <a href="/">← 查看站点</a>
         <button type="button" @click="doLogout">退出登录</button>
       </div>
     </aside>
@@ -4371,27 +4318,27 @@ function doLogout() {
 
 - [ ] **Step 3: 手动验证**
 
-Run: 打开 `http://localhost:5173/login`，用 `admin / admin123` 登录
-Expected: 跳转 `/admin`，侧边导航可用，未登录访问 `/admin` 自动跳回登录页。
+Run: 终端1 `cd backend && npm run dev`；终端2 `cd admin && npm run dev`
+Expected: 打开 `http://localhost:5173/admin/login`（admin dev server 上 base=/admin/），用 admin/admin123 登录跳转 `/admin/`；未登录访问 `/admin/` 自动跳登录页。
 
 - [ ] **Step 4: 提交**
 
 ```bash
-git add frontend/src/views/admin/Login.vue frontend/src/views/admin/AdminLayout.vue
+git add admin/src/views/Login.vue admin/src/views/AdminLayout.vue
 git commit -m "feat: 后台登录页与布局"
 ```
 
 ### Task 35: 仪表盘
 
 **Files:**
-- Create: `frontend/src/views/admin/Dashboard.vue`
+- Create: `admin/src/views/Dashboard.vue`
 
-- [ ] **Step 1: 创建 `frontend/src/views/admin/Dashboard.vue`**
+- [ ] **Step 1: 创建 `admin/src/views/Dashboard.vue`**
 
 ```vue
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { getStats } from '../../api/admin';
+import { getStats } from '../api/admin';
 
 const stats = ref<Awaited<ReturnType<typeof getStats>> | null>(null);
 
@@ -4428,23 +4375,23 @@ onMounted(async () => {
 - [ ] **Step 2: 提交**
 
 ```bash
-git add frontend/src/views/admin/Dashboard.vue
+git add admin/src/views/Dashboard.vue
 git commit -m "feat: 后台仪表盘"
 ```
 
 ### Task 36: 文章列表与 Markdown 编辑器
 
 **Files:**
-- Create: `frontend/src/views/admin/PostList.vue`
-- Create: `frontend/src/views/admin/PostEditor.vue`
+- Create: `admin/src/views/PostList.vue`
+- Create: `admin/src/views/PostEditor.vue`
 
-- [ ] **Step 1: 创建 `frontend/src/views/admin/PostList.vue`**
+- [ ] **Step 1: 创建 `admin/src/views/PostList.vue`**
 
 ```vue
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { adminGetPosts, adminDeletePost, type AdminPostRow } from '../../api/admin';
+import { adminGetPosts, adminDeletePost, type AdminPostRow } from '../api/admin';
 
 const router = useRouter();
 const posts = ref<AdminPostRow[]>([]);
@@ -4483,7 +4430,7 @@ onMounted(load);
         <tr v-for="p in posts" :key="p.id">
           <td><router-link :to="`/admin/posts/${p.id}`">{{ p.title }}</router-link></td>
           <td><span class="badge" :class="p.status">{{ p.status === 'published' ? '已发布' : '草稿' }}</span></td>
-          <td>{{ new Date(p.updatedAt ?? p.createdAt).toLocaleDateString('zh-CN') }}</td>
+          <td>{{ new Date(p.updatedAt).toLocaleDateString('zh-CN') }}</td>
           <td>{{ p.viewCount }}</td>
           <td>
             <button class="link-btn" @click="router.push(`/admin/posts/${p.id}`)">编辑</button>
@@ -4514,7 +4461,7 @@ onMounted(load);
 </style>
 ```
 
-- [ ] **Step 2: 创建 `frontend/src/views/admin/PostEditor.vue`**
+- [ ] **Step 2: 创建 `admin/src/views/PostEditor.vue`（Vditor + 图片/音频上传）**
 
 ```vue
 <script setup lang="ts">
@@ -4525,7 +4472,7 @@ import 'vditor/dist/index.css';
 import {
   adminGetPost, adminCreatePost, adminUpdatePost,
   adminGetCategories, adminGetTags, uploadFile,
-} from '../../api/admin';
+} from '../api/admin';
 
 const route = useRoute();
 const router = useRouter();
@@ -4701,26 +4648,26 @@ async function save(status: 'draft' | 'published') {
 </style>
 ```
 
-> 说明：Vditor 上传配置中 `fieldName`/`fileVal`/`filename` 指向同一个字段名 `file`，与后端 `body.file` 对应。若实测上传 400，检查字段名一致性。
+> 说明：Vditor 上传配置中 `fieldName`/`fileVal`/`filename` 指向同一字段 `file`，与后端 `body.file` 对应。若实测上传 400，检查字段名一致性。
 
 - [ ] **Step 3: 手动验证**
 
-Run: `/admin/posts/new` 打开编辑器，测试：输入标题与 Markdown、点上传插入图片、点"♪ 插入音频"按钮上传音频、存草稿、发布、再编辑回显。
+Run: `/admin/posts/new` 打开编辑器，测试：输入标题与 Markdown、上传图片、点"♪ 插入音频"上传音频、存草稿、发布、再编辑回显。
 
 - [ ] **Step 4: 提交**
 
 ```bash
-git add frontend/src/views/admin/PostList.vue frontend/src/views/admin/PostEditor.vue
+git add admin/src/views/PostList.vue admin/src/views/PostEditor.vue
 git commit -m "feat: 后台文章列表与 Vditor 编辑器（图片/音频上传）"
 ```
 
 ### Task 37: 分类与标签管理页
 
 **Files:**
-- Create: `frontend/src/views/admin/CategoryManager.vue`
-- Create: `frontend/src/views/admin/TagManager.vue`
+- Create: `admin/src/views/CategoryManager.vue`
+- Create: `admin/src/views/TagManager.vue`
 
-- [ ] **Step 1: 创建 `frontend/src/views/admin/CategoryManager.vue`**
+- [ ] **Step 1: 创建 `admin/src/views/CategoryManager.vue`**
 
 ```vue
 <script setup lang="ts">
@@ -4728,7 +4675,7 @@ import { onMounted, ref } from 'vue';
 import {
   adminGetCategories, adminCreateCategory, adminUpdateCategory, adminDeleteCategory,
   type CategoryRow,
-} from '../../api/admin';
+} from '../api/admin';
 
 const list = ref<CategoryRow[]>([]);
 const name = ref('');
@@ -4802,14 +4749,14 @@ onMounted(load);
 </style>
 ```
 
-- [ ] **Step 2: 创建 `frontend/src/views/admin/TagManager.vue`**
+- [ ] **Step 2: 创建 `admin/src/views/TagManager.vue`**
 
 ```vue
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import {
   adminGetTags, adminCreateTag, adminUpdateTag, adminDeleteTag, type TagRow,
-} from '../../api/admin';
+} from '../api/admin';
 
 const list = ref<TagRow[]>([]);
 const name = ref('');
@@ -4877,22 +4824,22 @@ onMounted(load);
 - [ ] **Step 3: 提交**
 
 ```bash
-git add frontend/src/views/admin/CategoryManager.vue frontend/src/views/admin/TagManager.vue
+git add admin/src/views/CategoryManager.vue admin/src/views/TagManager.vue
 git commit -m "feat: 后台分类/标签管理"
 ```
 
 ### Task 38: 评论与友链管理页
 
 **Files:**
-- Create: `frontend/src/views/admin/CommentManager.vue`
-- Create: `frontend/src/views/admin/FriendLinkManager.vue`
+- Create: `admin/src/views/CommentManager.vue`
+- Create: `admin/src/views/FriendLinkManager.vue`
 
-- [ ] **Step 1: 创建 `frontend/src/views/admin/CommentManager.vue`**
+- [ ] **Step 1: 创建 `admin/src/views/CommentManager.vue`**
 
 ```vue
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { adminGetComments, adminPatchComment, adminDeleteComment, type CommentRow } from '../../api/admin';
+import { adminGetComments, adminPatchComment, adminDeleteComment, type CommentRow } from '../api/admin';
 
 const list = ref<CommentRow[]>([]);
 const filter = ref('');
@@ -4962,14 +4909,14 @@ onMounted(load);
 </style>
 ```
 
-- [ ] **Step 2: 创建 `frontend/src/views/admin/FriendLinkManager.vue`**
+- [ ] **Step 2: 创建 `admin/src/views/FriendLinkManager.vue`**
 
 ```vue
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import {
   adminGetFriendLinks, adminPutFriendLink, adminDeleteFriendLink, type FriendLinkRow,
-} from '../../api/admin';
+} from '../api/admin';
 
 const list = ref<FriendLinkRow[]>([]);
 const filter = ref('');
@@ -5043,21 +4990,21 @@ onMounted(load);
 - [ ] **Step 3: 提交**
 
 ```bash
-git add frontend/src/views/admin/CommentManager.vue frontend/src/views/admin/FriendLinkManager.vue
+git add admin/src/views/CommentManager.vue admin/src/views/FriendLinkManager.vue
 git commit -m "feat: 后台评论/友链管理"
 ```
 
-### Task 39: 设置页（站点/主题/存储）
+### Task 39: 设置页
 
 **Files:**
-- Create: `frontend/src/views/admin/SettingsPage.vue`
+- Create: `admin/src/views/SettingsPage.vue`
 
-- [ ] **Step 1: 创建 `frontend/src/views/admin/SettingsPage.vue`**
+- [ ] **Step 1: 创建 `admin/src/views/SettingsPage.vue`**
 
 ```vue
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { adminGetSettings, adminPutSettings } from '../../api/admin';
+import { adminGetSettings, adminPutSettings } from '../api/admin';
 
 const form = ref<Record<string, string>>({});
 const saved = ref(false);
@@ -5166,12 +5113,12 @@ input, select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px
 
 - [ ] **Step 2: 手动验证**
 
-Run: `/admin/settings` 修改站点名与默认主题、切 COS 填配置 → 保存，刷新前台站点名/主题生效。
+Run: `/admin/settings` 修改站点名与默认主题、切 COS 填配置 → 保存；刷新前台站点名/默认主题生效。
 
 - [ ] **Step 3: 提交**
 
 ```bash
-git add frontend/src/views/admin/SettingsPage.vue
+git add admin/src/views/SettingsPage.vue
 git commit -m "feat: 后台设置页（站点/主题/存储）"
 ```
 
@@ -5179,28 +5126,23 @@ git commit -m "feat: 后台设置页（站点/主题/存储）"
 
 **Files:** 无新文件
 
-- [ ] **Step 1: 类型检查**
+- [ ] **Step 1: 类型检查与构建**
 
-Run: `cd frontend && npx vue-tsc --noEmit`
-Expected: 无类型错误。若 Vditor 类型缺失导致报错，在 `frontend/src/global.d.ts` 添加：
+Run: `cd site && npm run check && npm run build`；`cd admin && npm run typecheck && npm run build`
+Expected: 均通过。若 Vditor 类型缺失，在 `admin/src/global.d.ts` 添加：
 
 ```ts
 declare module 'vditor';
 ```
 
-- [ ] **Step 2: 构建验证**
+- [ ] **Step 2: 全流程手动验收**
 
-Run: `cd frontend && npm run build`
-Expected: `dist/` 生成成功。
+三个终端：backend(3000)、site(4321)、admin(5173)。按顺序验证：
+1. 前台：首页/详情/高亮/评论/回复/主题切换/分类/标签/搜索/归档/友链申请/RSS/404
+2. 登录后台：仪表盘/新建分类、标签/新建文章（图片/音频上传）/审核评论与友链/修改设置
+3. 后台改默认主题为 reader 后刷新前台，确认默认极简阅读风格
 
-- [ ] **Step 3: 全流程手动验收**
-
-两个终端分别跑 `backend npm run dev` 与 `frontend npm run dev`，按顺序验证：
-1. 前台：首页 / 详情 / 高亮 / 评论 / 主题切换 / 分类 / 标签 / 搜索 / 归档 / 友链申请 / RSS
-2. 登录后台：仪表盘 / 新建分类、标签 / 新建文章（含图片/音频上传）/ 审核评论与友链 / 修改设置
-3. 修改默认主题为 reader 后刷新前台，确认默认极简阅读风格
-
-- [ ] **Step 4: 提交（如有修复）**
+- [ ] **Step 3: 提交（如有修复）**
 
 ```bash
 git add -A
@@ -5271,14 +5213,15 @@ git add backend/Dockerfile backend/.dockerignore backend/.env.example
 git commit -m "feat: 后端 Dockerfile 与环境变量示例"
 ```
 
-### Task 42: 前端 Dockerfile 与 Nginx 配置
+### Task 42: Astro 前台与 Nginx 部署配置
 
 **Files:**
-- Create: `frontend/Dockerfile`
-- Create: `frontend/nginx.conf`
-- Create: `frontend/.dockerignore`
+- Create: `site/Dockerfile`
+- Create: `site/.dockerignore`
+- Create: `deploy/nginx/Dockerfile`
+- Create: `deploy/nginx/nginx.conf`
 
-- [ ] **Step 1: 创建 `frontend/Dockerfile`（多阶段构建）**
+- [ ] **Step 1: 创建 `site/Dockerfile`（Astro node standalone）**
 
 ```dockerfile
 FROM node:20-alpine AS build
@@ -5288,28 +5231,56 @@ RUN npm install
 COPY . .
 RUN npm run build
 
+FROM node:20-alpine
+WORKDIR /app
+ENV HOST=0.0.0.0
+ENV PORT=4321
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package.json ./
+EXPOSE 4321
+CMD ["node", "./dist/server/entry.mjs"]
+```
+
+- [ ] **Step 2: 创建 `site/.dockerignore`**
+
+```dockerignore
+node_modules
+dist
+.astro
+*.log
+```
+
+- [ ] **Step 3: 创建 `deploy/nginx/Dockerfile`（构建 admin 静态产物 + Nginx 入口）**
+
+```dockerfile
+FROM node:20-alpine AS admin-build
+WORKDIR /admin
+COPY admin/package.json admin/package-lock.json* ./
+RUN npm install
+COPY admin/ .
+RUN npm run build
+
 FROM nginx:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY deploy/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=admin-build /admin/dist /usr/share/nginx/html/admin
 EXPOSE 80
 ```
 
-- [ ] **Step 2: 创建 `frontend/nginx.conf`**
+- [ ] **Step 4: 创建 `deploy/nginx/nginx.conf`**
 
 ```nginx
 server {
     listen 80;
     server_name _;
 
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # 前端 SPA 路由回退
-    location / {
-        try_files $uri $uri/ /index.html;
+    # 后台 SPA（静态文件 + history 路由回退）
+    location /admin/ {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /admin/index.html;
     }
 
-    # 后端 API 反向代理
+    # 后端 API
     location /api/ {
         proxy_pass http://mblog-api:3000;
         proxy_set_header Host $host;
@@ -5318,32 +5289,26 @@ server {
         client_max_body_size 60m;
     }
 
-    # 上传的本地文件（本地存储时）
+    # 本地存储的上传文件
     location /uploads/ {
         proxy_pass http://mblog-api:3000;
     }
 
-    # 静态资源缓存
-    location /assets/ {
-        expires 30d;
-        add_header Cache-Control "public, immutable";
+    # Astro 前台（SSR）
+    location / {
+        proxy_pass http://mblog-site:4321;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 ```
 
-- [ ] **Step 3: 创建 `frontend/.dockerignore`**
-
-```dockerignore
-node_modules
-dist
-*.log
-```
-
-- [ ] **Step 4: 提交**
+- [ ] **Step 5: 提交**
 
 ```bash
-git add frontend/Dockerfile frontend/nginx.conf frontend/.dockerignore
-git commit -m "feat: 前端 Dockerfile（多阶段）与 Nginx 配置"
+git add site/Dockerfile site/.dockerignore deploy/nginx
+git commit -m "feat: Astro 前台 Dockerfile 与 Nginx 入口（admin 静态 + 反向代理）"
 ```
 
 ### Task 43: docker-compose 与根目录说明
@@ -5352,7 +5317,7 @@ git commit -m "feat: 前端 Dockerfile（多阶段）与 Nginx 配置"
 - Create: `docker-compose.yml`
 - Create: `.env.example`
 
-- [ ] **Step 1: 创建 `docker-compose.yml`**
+- [ ] **Step 1: 创建 `docker-compose.yml`（三服务）**
 
 ```yaml
 services:
@@ -5370,11 +5335,23 @@ services:
       - mblog-data:/app/data
       - mblog-uploads:/app/uploads
 
+  mblog-site:
+    build: ./site
+    restart: unless-stopped
+    environment:
+      PORT: "4321"
+      API_BASE: http://mblog-api:3000
+    depends_on:
+      - mblog-api
+
   mblog-web:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: deploy/nginx/Dockerfile
     restart: unless-stopped
     depends_on:
       - mblog-api
+      - mblog-site
     ports:
       - "${PORT:-80}:80"
 
@@ -5398,7 +5375,7 @@ ADMIN_PASSWORD=admin123
 
 ```bash
 git add docker-compose.yml .env.example
-git commit -m "feat: docker-compose 一键部署配置"
+git commit -m "feat: docker-compose 一键部署（api + site + web）"
 ```
 
 ### Task 44: README 与整体验收
@@ -5411,35 +5388,50 @@ git commit -m "feat: docker-compose 一键部署配置"
 ```markdown
 # MBLOG 轻量博客系统
 
-前后端分离的个人博客：Vue 3 + Hono + SQLite，支持双主题换肤、Markdown（图片/音频）、评论审核、友链申请审核。
+前后端分离的个人博客：Astro(前台) + Vue(后台) + Hono + SQLite，支持双主题换肤（含阅读模式）、Markdown 写作（图片/音频）、评论审核、友链申请审核、Lenis 平滑滚动。
 
 ## 技术栈
 
-- 前端：Vite + Vue 3 + Vue Router + Vditor
+- 前台：Astro 5（SSR）+ Vue islands（评论/主题切换/友链表单）+ Lenis
+- 后台：Vue 3 SPA（Vditor 编辑器）
 - 后端：Hono + Drizzle ORM + better-sqlite3（FTS5 全文搜索）
 - 存储：本地磁盘 / 腾讯云 COS（后台可切换）
-- 部署：Docker Compose（Nginx + API）
+- 部署：Docker Compose（Nginx + Astro + API 三服务）
+
+## 目录
+
+- `backend/` Hono API
+- `site/` Astro 前台
+- `admin/` Vue 后台
 
 ## 本地开发
 
 ```bash
-# 终端 1：后端（首次需建库并创建管理员 admin/admin123）
+# 终端 1：后端（首次自动建库并创建管理员 admin/admin123）
 cd backend
 npm install
 npm run dev
 
-# 终端 2：前端
-cd frontend
+# 终端 2：前台（4321）
+cd site
+npm install
+npm run dev
+
+# 终端 3：后台（5173，base=/admin/）
+cd admin
 npm install
 npm run dev
 ```
 
-打开 http://localhost:5173 （前端），后台 http://localhost:5173/login。
+- 前台 http://localhost:4321
+- 后台 http://localhost:5173/admin/login
 
-## 测试
+## 测试与检查
 
 ```bash
-cd backend && npm test
+cd backend && npm test        # 后端测试
+cd site && npm run check      # Astro 类型检查
+cd admin && npm run typecheck # 后台类型检查
 ```
 
 ## Docker 部署
@@ -5449,27 +5441,30 @@ cp .env.example .env   # 修改 JWT_SECRET 与管理员密码
 docker compose up -d --build
 ```
 
+- 前台 http://<服务器>/ ，后台 http://<服务器>/admin/login
 - 数据卷 `mblog-data`（SQLite）与 `mblog-uploads`（上传文件），备份即复制两卷。
-- 后台地址 http://<服务器>/login
 
 ## 常用操作
 
 - 上传存储切换：后台「设置 → 存储」
 - 默认主题切换：后台「设置 → 主题」
 - 评论/友链审核：后台对应管理页
+- 前台主题切换：导航栏"阅读模式"按钮（localStorage 记忆）
 ```
 
 - [ ] **Step 2: 本地整体回归**
 
-Run: `cd backend && npx vitest run` 与 `cd frontend && npx vue-tsc --noEmit && npm run build`
-Expected: 后端全部测试 PASS；前端类型检查与构建通过。
+Run:
+- `cd backend && npx vitest run` → 全部测试 PASS
+- `cd site && npm run check && npm run build` → 通过
+- `cd admin && npm run typecheck && npm run build` → 通过
 
 - [ ] **Step 3: Docker 构建验证（可选，需 Docker 可用）**
 
 ```bash
 docker compose build
 ```
-Expected: 两个镜像构建成功。
+Expected: 三个镜像构建成功（mblog-api / mblog-site / mblog-web）。
 
 - [ ] **Step 4: 最终提交**
 
@@ -5482,10 +5477,10 @@ git commit -m "docs: README 使用说明"
 
 ## 计划自查记录
 
-- **规格覆盖**：设计文档中全部需求均已落到任务 —— 双主题换肤（T25/26/33）、分类标签管理（T14/15/37）、文章管理+Markdown 图片/音频（T16/17/36）、评论组件与审核（T11/18/31/38）、友链申请审核（T12/19/32）、搜索（T9）、归档/RSS/阅读量（T9/13）、COS 存储配置（T20/21/39）、Docker 部署（T41-43）。
+- **规格覆盖**：设计文档全部需求均已落到任务 —— 双主题换肤（T26/33）、分类标签管理（T14/15/37）、文章管理+Markdown 图片/音频（T16/17/36）、评论与审核（T11/18/31/38）、友链申请审核（T12/19/32）、搜索（T9/30）、归档/RSS/阅读量（T9/13）、COS 存储（T20/21/39）、Lenis 平滑滚动（T26）、Docker 部署（T41-43）。
 - **占位符扫描**：全部步骤含完整代码与预期输出，无 TBD/TODO。
-- **类型一致性**：`createDb`/`ensureMigrated`/`getSetting`/`getStorage`/`admin*` API 等命名在前后任务间一致；前端 `admin.ts` 导出与后台页面调用一一对应。
-- **遗留说明**：Task 7 第三条测试用例依赖 Task 9 路由就位后全绿；Task 17 列表查询已用 `and(...)` 修正。
+- **类型一致性**：`createDb`/`ensureMigrated`/`getSetting`/`getStorage`/`admin*` API 命名在前后任务间一致；`admin/src/api/admin.ts` 导出与后台页面调用一一对应；site `lib/api.ts` 类型与 backend 响应一致。
+- **遗留说明**：Task 7 第三条测试用例依赖 Task 9 路由就位后全绿；Task 17 列表查询已用 `and(...)` 修正；Task 29 的 CommentSection 引用到 Task 31 打开。
 
 
 

@@ -30,46 +30,51 @@
 
 | 层 | 选型 |
 |---|---|
-| 前端 | Vite + Vue 3 + Vue Router（SPA，不用 Nuxt） |
-| UI | 自研轻量组件，双主题通过 CSS 变量 + 布局组件实现 |
+| 前端·前台 | **Astro 5**（SSR，@astrojs/node + @astrojs/vue），Vue 组件做交互 island |
+| 前端·后台 | **独立 Vue 3 SPA**（Vite + Vue Router，含 Vditor 编辑器），挂载于 /admin |
+| UI | 自研轻量组件，双主题通过 CSS 变量 + 布局实现 |
 | 后端 | Hono（Node 运行时）+ Drizzle ORM |
 | 数据库 | SQLite（含 FTS5 全文搜索） |
 | 认证 | JWT + 单管理员账号（bcrypt 密码） |
-| Markdown 编辑 | Vditor（所见即所得 + 分屏预览，自定义工具栏） |
-| Markdown 渲染 | unified/remark + rehype-sanitize + rehype-highlight |
+| Markdown 编辑 | Vditor（后台，所见即所得 + 分屏预览，自定义工具栏） |
+| Markdown 渲染 | unified/remark + rehype-sanitize + rehype-highlight（后端渲染） |
 | 文件存储 | 存储抽象层：LocalDiskStorage / TencentCOSStorage，后台可配置 |
-| 部署 | Docker Compose：Nginx(前端) + API(Node 20 alpine) |
+| 平滑滚动 | Lenis（前台，正常主题启用、阅读模式关闭） |
+| 部署 | Docker Compose：Nginx + Astro(site) + Vue(admin 静态) + API |
 
 ## 3. 系统架构
 
 ```
 mblog/
-├── frontend/                  # Vite + Vue 3 SPA
+├── site/                       # Astro 5 前台（SSR，@astrojs/node）
+│   ├── astro.config.mjs        #   output: 'server' + node adapter + @astrojs/vue
 │   ├── src/
-│   │   ├── themes/            # 双主题：normal / reader
-│   │   │   ├── normal/        #   常规博客风格
-│   │   │   └── reader/        #   极简阅读风格
-│   │   ├── views/             # 前台页面
-│   │   ├── views/admin/       # 后台页面
-│   │   ├── components/        # 通用组件（含评论组件）
-│   │   └── api/               # API 客户端封装
-├── backend/                   # Hono + TypeScript + Drizzle
+│   │   ├── pages/              #   文件路由：首页/文章/分类/标签/搜索/归档/友链
+│   │   ├── layouts/            #   基础布局（双主题 CSS 变量 + Lenis 脚本）
+│   │   ├── components/         #   Vue islands：评论/主题切换/友链表单等
+│   │   ├── lib/api.ts          #   服务端 API 请求封装
+│   │   └── styles/             #   themes: tokens/normal/reader
+├── admin/                      # Vue 3 SPA 后台（Vite，base=/admin/）
 │   ├── src/
-│   │   ├── routes/            # /api 下所有路由
-│   │   ├── db/                # Drizzle schema + 迁移
-│   │   ├── storage/           # 存储抽象层
-│   │   ├── services/          # 业务逻辑
-│   │   └── middleware/        # JWT 认证等
+│   │   ├── views/              #   登录/仪表盘/文章/分类/标签/评论/友链/设置
+│   │   ├── components/         #   后台通用组件
+│   │   └── api/                #   管理 API 客户端
+├── backend/                    # Hono + TypeScript + Drizzle
+│   ├── src/
+│   │   ├── routes/             # /api 下所有路由
+│   │   ├── db/                 # Drizzle schema + 迁移
+│   │   ├── storage/            # 存储抽象层
+│   │   └── services/           # 业务逻辑
 ├── docker-compose.yml
 └── README.md
 ```
 
 **关键设计原则**：
 
-- 前后端通过 REST API 通信，前端 SPA 打包为静态文件
+- 前后端通过 REST API 通信：前台 Astro SSR 在服务端请求 Hono API 渲染 HTML；后台 SPA 在客户端请求
 - 后端为无状态 API 服务，JWT 认证
 - 存储通过 `StorageProvider` 接口抽象，新增存储源只需实现接口
-- 主题与业务解耦：主题数据由后端 `settings` 配置默认值，前端本地覆盖
+- 主题与业务解耦：默认主题由后端 `settings` 配置，Astro 服务端注入 `<html data-theme>`；访客前端可切换，localStorage 记忆覆盖
 
 ## 4. 数据模型（SQLite + FTS5）
 
@@ -139,30 +144,36 @@ interface StorageProvider {
 
 ## 7. 前端设计
 
+### 前台（Astro SSR + Vue islands）
+
+- 页面服务端渲染：首页、文章详情、分类/标签/搜索/归档、友链页 —— SSR 从 Hono API 拉数据渲染 HTML，SEO 友好
+- 交互部分用 Vue island（`client:load`）：评论组件、主题切换、友链申请表单
+- 平滑滚动：Lenis 脚本，正常主题启用、阅读模式关闭
+
 ### 主题系统（换肤）
 
-- `themes/normal/`：常规博客风格（卡片列表、侧栏、多彩）
-- `themes/reader/`：极简阅读风格（大留白、纯文字、最小化干扰元素）
-- 实现方式：两套 CSS 变量（颜色/字体/间距）+ 布局组件，通过 `theme` 属性切换
-- 默认主题来自后端 `settings`，访客前端可切换，localStorage 记忆覆盖
+- `normal`：常规博客风格（卡片列表、多彩）；`reader`：极简阅读风格（大留白、纯文字、最小化干扰元素）
+- 实现方式：两套 CSS 变量（颜色/字体/间距），通过 `<html data-theme>` 切换
+- 默认主题由后端 `settings` 配置，Astro SSR 服务端注入 `data-theme`（无闪烁）；访客前端可切换，localStorage 记忆覆盖
+- 阅读模式：文章页提供"阅读模式"按钮，一键切到 reader 主题
 
 ### 前台页面
 
-- 首页：文章列表（封面/摘要/标签），分页
-- 文章详情：Markdown 渲染 + 代码高亮 + 阅读模式按钮 + 评论区
+- 首页：文章列表（摘要/阅读量），`?page=` 服务端分页
+- 文章详情：后端渲染的 Markdown HTML + 代码高亮 + 阅读模式按钮 + 评论区（Vue island）
 - 分类页 / 标签页：按分类/标签筛选文章
-- 搜索页：关键词全文搜索
-- 友链页：通过审核的友链展示 + 申请表单
+- 搜索页：关键词全文搜索（表单 GET → `?q=`）
+- 友链页：通过审核的友链展示 + 申请表单（Vue island）
 - 归档页：按时间归档
-- RSS：`/api/rss` 输出
+- RSS：后端 `/api/rss` 输出
 
-### 评论组件
+### 评论组件（Vue island）
 
-- 列表：按文章加载通过审核的评论，支持回复树
-- 发表表单：昵称 + 邮箱（可选）+ 内容，提交后提示"待审核"
+- 列表：按文章加载通过审核的评论，支持回复树（parent_id 分组 + 缩进）
+- 发表表单：昵称 + 邮箱（可选）+ 内容，提交后提示"待审核"；支持回复
 - 状态处理：加载中/空态/错误提示
 
-### 后台页面
+### 后台（Vue 3 SPA，base=/admin/）
 
 - 登录页
 - 仪表盘：文章数、评论数、总阅读量、待审核评论数
@@ -201,17 +212,23 @@ interface StorageProvider {
 
 ```
 services:
-  mblog-api:
+  mblog-api:                     # Hono API
     build: ./backend
     volumes: [./data:/app/data, ./uploads:/app/uploads]
     env: JWT_SECRET 等
-  mblog-web:
-    build: ./frontend   # 多阶段：build 静态 → Nginx 托管 + 反代 /api → mblog-api
+  mblog-site:                    # Astro SSR 前台
+    build: ./site
+    environment: API_BASE=http://mblog-api:3000
+    depends_on: [mblog-api]
+  mblog-web:                     # Nginx 入口
+    build: ./deploy/nginx        # 或前端多阶段镜像
     ports: ["80:80"]
+    # 路由：/admin/ → admin 静态文件；/api/ 与 /uploads/ → mblog-api；/ → mblog-site
 ```
 
-- SQLite 文件在 `./data` 卷，上传文件在 `./uploads` 卷，备份=拷贝两个目录
-- `.env` 管理 JWT_SECRET、COS 可选配置
+- SQLite 文件在 `data` 卷，上传文件在 `uploads` 卷，备份=拷贝两个目录
+- 后台 SPA 构建产物由 Nginx 静态服务（`/admin/`），history 路由回退到 `/admin/index.html`
+- `.env` 管理 JWT_SECRET、COS 可选配置、站点域名
 - 后台初始管理员账号通过初始化脚本/首次启动创建
 
 ## 12. 实现顺序（里程碑）
@@ -219,10 +236,10 @@ services:
 1. **M1 后端骨架**：项目初始化（Hono + Drizzle）、schema、迁移、FTS5 建表
 2. **M2 公开 API**：文章/分类/标签/评论/友链/搜索/归档/RSS/公开设置
 3. **M3 管理 API**：登录认证、分类/标签/文章/评论/友链 CRUD、上传与存储抽象、设置、统计
-4. **M4 前端骨架**：Vite + Vue 3 + 路由 + 主题系统（CSS 变量双主题）
-5. **M5 前台页面**：首页、文章详情（含渲染管线）、分类/标签/搜索/归档、评论组件、友链页
-6. **M6 后台页面**：登录、仪表盘、文章管理（Vditor 编辑器）、分类/标签/评论/友链管理、设置页
-7. **M7 部署**：Dockerfile、docker-compose.yml、Nginx 配置、初始化脚本、README
+4. **M4 前台（Astro）骨架**：Astro SSR 项目、双主题 CSS 变量 + Lenis、BaseLayout、服务端 API 封装
+5. **M5 前台页面**：首页、文章详情、分类/标签/搜索/归档、评论 island、友链页
+6. **M6 后台（Vue SPA）**：登录、仪表盘、文章管理（Vditor 编辑器）、分类/标签/评论/友链管理、设置页
+7. **M7 部署**：三服务 Dockerfile、Nginx 路由、docker-compose、初始化脚本、README
 
 ## 13. 非目标（YAGNI）
 
