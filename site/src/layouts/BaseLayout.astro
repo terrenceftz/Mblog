@@ -27,6 +27,19 @@ const navItems = (settings.navMenu ?? []).filter((i) => i.label && i.url);
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title ? `${title} · ${siteName}` : siteName}</title>
     <meta name="description" content={description} />
+    <!-- 首帧前应用 localStorage 保存的主题，防止刷新时闪现默认（normal）主题 -->
+    <script is:inline>
+      (function () {
+        try {
+          var saved = localStorage.getItem('mblog_theme');
+          if (saved === 'normal' || saved === 'reader') {
+            document.documentElement.setAttribute('data-theme', saved);
+          }
+        } catch (e) {
+          /* localStorage 不可用时忽略 */
+        }
+      })();
+    </script>
     <!-- 思源宋体（Noto Serif SC）：极简阅读模式的书卷气质字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -38,7 +51,6 @@ const navItems = (settings.navMenu ?? []).filter((i) => i.label && i.url);
   <body>
     <header class="site-header">
       <div class="inner">
-        <a class="brand" href="/">{siteName}</a>
         <nav class="nav">
           {navItems.map((item) =>
             item.url.startsWith('http') ? (
@@ -82,7 +94,6 @@ const navItems = (settings.navMenu ?? []).filter((i) => i.label && i.url);
     justify-content: space-between;
     height: 56px;
   }
-  .brand { font-weight: 700; font-size: 18px; text-decoration: none; color: var(--color-text); }
   .nav { display: flex; gap: 16px; align-items: center; }
   .nav a { color: var(--color-text-muted); text-decoration: none; font-size: 14px; }
   .nav a:hover { color: var(--color-primary); }

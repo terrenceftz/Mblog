@@ -25,46 +25,12 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- 右侧固定导航 ---------- */
-[data-theme='reader'] .site-header {
-  position: fixed;
-  top: 0;
-  right: 0;
-  height: 100vh;
-  background: transparent;
-  border: none;
-  z-index: 20;
-}
-[data-theme='reader'] .inner {
-  height: 100%;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: flex-start;
-  gap: 26px;
-  padding: 48px 36px;
-  box-sizing: border-box;
-}
-[data-theme='reader'] .brand {
-  font-weight: 600;
-  font-size: 16px;
-  letter-spacing: 0.06em;
-}
-[data-theme='reader'] .nav {
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
-}
-[data-theme='reader'] .nav a {
-  font-size: 14px;
-  letter-spacing: 0.05em;
-}
-
 /* ---------- banner：顶部留白，克制展示 ---------- */
 [data-theme='reader'] .reader-banner {
   display: block;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 120px 24px 60px; /* 顶部留白 */
+  padding: 64px 24px 56px; /* 顶部留白 + 与年份列表之间的呼吸感 */
 }
 [data-theme='reader'] .reader-banner img {
   display: block;
@@ -150,7 +116,7 @@
 [data-theme='reader'] .post-detail {
   max-width: 680px;
   margin: 0 auto;
-  padding-top: 120px;
+  padding-top: 48px;
 }
 [data-theme='reader'] .post-list {
   max-width: 680px;
