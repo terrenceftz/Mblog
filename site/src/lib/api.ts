@@ -61,6 +61,7 @@ export function getPublicSettings(): Promise<PublicSettings> {
       { label: '归档', url: '/archive' },
       { label: '友链', url: '/friends' },
       { label: '项目', url: '/projects' },
+      { label: '影音', url: '/douban' },
       { label: 'RSS', url: '/api/rss' },
     ],
   }));

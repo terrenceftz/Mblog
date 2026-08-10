@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getProjects, type ProjectsData } from '../lib/api';
 
-const data = await getProjects().catch((): ProjectsData => ({ enabled: false, username: '', projects: [], error: '加载失败' }));
+const data = await getProjects().catch((): ProjectsData => ({ enabled: true, projects: [], error: '加载失败' }));
 ---
 <BaseLayout title="项目">
   <h1 class="page-title">项目</h1>

@@ -176,6 +176,3 @@
 [data-theme='normal'] .douban-card:hover .douban-title {
   color: var(--color-primary);
 }
-[data-theme='normal'] .douban-stars {
-  color: var(--color-primary);
-}
