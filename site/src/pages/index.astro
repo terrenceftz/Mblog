@@ -1,7 +1,13 @@
 ---
-const siteName = 'MBLOG';
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
-<html lang="zh-CN">
-  <head><meta charset="UTF-8" /><title>{siteName}</title></head>
-  <body><h1>{siteName}</h1><p>Astro SSR 运行正常</p></body>
-</html>
+<BaseLayout description="我的个人博客">
+  <div class="home-placeholder">
+    <h1>MBLOG</h1>
+    <p>博客系统前台（Astro SSR）</p>
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .home-placeholder { text-align: center; padding: 80px 0; }
+</style>

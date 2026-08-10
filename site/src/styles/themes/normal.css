@@ -1,0 +1,26 @@
+[data-theme='normal'] {
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-text: #1f2328;
+  --color-text-muted: #6b7280;
+  --color-primary: #3b82f6;
+  --color-primary-contrast: #ffffff;
+  --color-border: #e5e7eb;
+  --color-code-bg: #f3f4f6;
+  --radius: 10px;
+  --max-width: 960px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --card-padding: 24px;
+}
+
+[data-theme='normal'] body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+[data-theme='normal'] .post-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+}

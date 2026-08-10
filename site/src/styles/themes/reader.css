@@ -1,0 +1,34 @@
+[data-theme='reader'] {
+  --color-bg: #faf9f7;
+  --color-surface: transparent;
+  --color-text: #2b2b2b;
+  --color-text-muted: #8a8a8a;
+  --color-primary: #8b5cf6;
+  --color-primary-contrast: #ffffff;
+  --color-border: #ececec;
+  --color-code-bg: #f4f2ee;
+  --radius: 0;
+  --max-width: 680px;
+  --shadow: none;
+  --card-padding: 8px 0;
+}
+
+[data-theme='reader'] body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1.9;
+}
+
+[data-theme='reader'] .site-header,
+[data-theme='reader'] .site-footer {
+  border-color: var(--color-border);
+}
+
+[data-theme='reader'] .post-card {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 32px 0;
+}
