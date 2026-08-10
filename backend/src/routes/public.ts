@@ -3,6 +3,7 @@ import { postsRoutes } from './public/posts';
 import { categoriesTagsRoutes } from './public/categoriesTags';
 import { commentsRoutes } from './public/comments';
 import { friendLinksRoutes } from './public/friendLinks';
+import { miscRoutes } from './public/misc';
 import type { Db } from '../db';
 
 export function publicRoutes(ctx: Db) {
@@ -11,5 +12,6 @@ export function publicRoutes(ctx: Db) {
   app.route('/', categoriesTagsRoutes(ctx));
   app.route('/', commentsRoutes(ctx));
   app.route('/', friendLinksRoutes(ctx));
+  app.route('/', miscRoutes(ctx));
   return app;
 }

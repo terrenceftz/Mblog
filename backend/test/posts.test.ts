@@ -91,4 +91,29 @@ describe('public posts', () => {
     expect(body.data.length).toBe(1);
     expect(body.data[0].postCount).toBe(1); // 草稿不计入
   });
+
+  it('RSS 输出 xml', async () => {
+    const res = await app.request('/api/rss');
+    expect(res.headers.get('content-type')).toContain('application/rss+xml');
+    const text = await res.text();
+    expect(text).toContain('<rss');
+  });
+
+  it('公开设置返回主题与站点名', async () => {
+    const res = await app.request('/api/settings/public');
+    const body = await res.json();
+    expect(body.data.siteName).toBeTruthy();
+    expect(body.data.theme).toBe('normal');
+  });
+
+  it('归档按月份分组', async () => {
+    ctx.db.insert(posts).values([
+      { title: '旧文', slug: 'old', status: 'published', contentMd: '', contentHtml: '', createdAt: Date.parse('2025-01-15') },
+      { title: '新文', slug: 'new', status: 'published', contentMd: '', contentHtml: '', createdAt: Date.parse('2026-08-01') },
+    ]).run();
+    const res = await app.request('/api/archive');
+    const body = await res.json();
+    expect(body.data.length).toBe(2);
+    expect(body.data[0].month).toBe('2026-08'); // 新的在前
+  });
 });
