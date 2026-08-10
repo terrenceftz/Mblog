@@ -600,6 +600,11 @@ export function createApp(ctx: Db) {
   const app = new Hono();
   app.onError(errorHandler);
 
+  // 未匹配路由统一返回 JSON 错误
+  app.notFound((c) =>
+    c.json({ error: { code: 'NOT_FOUND', message: '接口不存在' } }, 404),
+  );
+
   app.get('/api/health', (c) => c.json({ data: { status: 'ok' } }));
 
   // 开发环境：本地存储的文件由后端直接静态服务；生产由 Nginx 服务
@@ -614,12 +619,16 @@ export function createApp(ctx: Db) {
 - [ ] **Step 3: 创建 `backend/src/index.ts`**
 
 ```ts
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
 import { serve } from '@hono/node-server';
 import { createApp } from './app';
 import { createDb } from './db';
 import { ensureMigrated } from './db/migrate';
 
 const dbPath = process.env.DB_PATH ?? 'data/mblog.db';
+// better-sqlite3 不会自动创建父目录
+mkdirSync(path.dirname(dbPath), { recursive: true });
 const ctx = createDb(dbPath);
 ensureMigrated(ctx);
 
