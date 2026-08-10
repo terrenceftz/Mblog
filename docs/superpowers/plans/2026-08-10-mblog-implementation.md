@@ -1316,12 +1316,29 @@ export function publicRoutes(ctx: Db) {
 - [ ] **Step 3: 追加测试到 `backend/test/posts.test.ts`**
 
 ```ts
-it('返回分类列表（含文章数）', async () => {
-  ctx.db.insert(posts).values({ title: 'a', slug: 'a', status: 'published', contentMd: '', categoryId: 1 }).run();
-  const res = await app.request('/api/categories');
-  const body = await res.json();
-  expect(body.data.length).toBeGreaterThan(0);
-});
+  it('返回分类列表（含已发布文章数）', async () => {
+    const cat = ctx.db.insert(categories).values({ name: '前端', slug: 'frontend' }).returning({ id: categories.id }).get();
+    ctx.db.insert(posts).values([
+      { title: 'a', slug: 'a', status: 'published', contentMd: '', categoryId: cat.id },
+      { title: '草稿', slug: 'a-draft', status: 'draft', contentMd: '', categoryId: cat.id },
+    ]).run();
+    const res = await app.request('/api/categories');
+    const body = await res.json();
+    expect(body.data.length).toBe(1);
+    expect(body.data[0].name).toBe('前端');
+    expect(body.data[0].postCount).toBe(1); // 草稿不计入
+  });
+
+  it('返回标签列表（只统计已发布文章）', async () => {
+    ctx.db.insert(tags).values({ name: 'Vue', slug: 'vue' }).run();
+    const pub = ctx.db.insert(posts).values({ title: 'p', slug: 'p', status: 'published', contentMd: '' }).returning({ id: posts.id }).get();
+    const draft = ctx.db.insert(posts).values({ title: 'd', slug: 'd', status: 'draft', contentMd: '' }).returning({ id: posts.id }).get();
+    ctx.db.insert(postTags).values([{ postId: pub.id, tagId: 1 }, { postId: draft.id, tagId: 1 }]).run();
+    const res = await app.request('/api/tags');
+    const body = await res.json();
+    expect(body.data.length).toBe(1);
+    expect(body.data[0].postCount).toBe(1); // 草稿不计入
+  });
 ```
 
 - [ ] **Step 4: 运行测试**
