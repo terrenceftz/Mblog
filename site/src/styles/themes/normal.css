@@ -110,3 +110,44 @@
 [data-theme='normal'] .page-layout {
   display: contents;
 }
+
+/* 文章页（normal 主题基础排版；极简模式由 reader.css 覆盖） */
+[data-theme='normal'] .article-wrapper {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+[data-theme='normal'] .article-title {
+  font-size: 28px;
+  margin: 0 0 12px;
+}
+[data-theme='normal'] .article-meta {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+[data-theme='normal'] .article-meta a {
+  color: var(--color-text-muted);
+}
+[data-theme='normal'] .article-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+[data-theme='normal'] .tags {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+}
+[data-theme='normal'] .tag {
+  font-size: 13px;
+  color: var(--color-primary);
+  text-decoration: none;
+}
