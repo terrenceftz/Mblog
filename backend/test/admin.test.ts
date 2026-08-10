@@ -254,3 +254,40 @@ describe('admin friend links', () => {
     expect(del.status).toBe(200);
   });
 });
+
+describe('admin upload & stats', () => {
+  const { app } = makeTestApp();
+  let token = '';
+
+  beforeAll(async () => {
+    resetRateLimit();
+    token = await loginAsAdmin(app);
+  });
+
+  it('上传图片并记录媒体文件', async () => {
+    const headers = authHeaders(token);
+    const form = new FormData();
+    form.append('file', new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' }), 'a.png');
+    const res = await app.request('/api/admin/upload', {
+      method: 'POST',
+      headers,
+      body: form,
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.data.url).toMatch(/^\/uploads\//);
+
+    const media = await app.request('/api/admin/media', { headers });
+    const mediaBody = await media.json();
+    expect(mediaBody.data.total).toBe(1);
+  });
+
+  it('统计接口', async () => {
+    const headers = authHeaders(token);
+    const res = await app.request('/api/admin/stats', { headers });
+    const body = await res.json();
+    expect(body.data).toHaveProperty('postTotal');
+    expect(body.data).toHaveProperty('pendingComments');
+    expect(body.data).toHaveProperty('totalViews');
+  });
+});
