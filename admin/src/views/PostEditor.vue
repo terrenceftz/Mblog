@@ -84,6 +84,22 @@ onMounted(async () => {
       headers: { Authorization: `Bearer ${localStorage.getItem('admin_token') ?? ''}` },
       filename: () => 'file',
       accept: 'image/*',
+      // 后端返回 { data: { url, key } }；转换为 Vditor 内置契约 { code, msg, data: { errFiles, succMap } }，
+      // 否则 Vditor 默认回调读不到 succMap 会抛错，导致上传后图片不插入编辑器
+      format: (files, responseText) => {
+        let url = '';
+        try {
+          url = (JSON.parse(responseText) as { data?: { url?: string } })?.data?.url ?? '';
+        } catch {
+          url = '';
+        }
+        const name = files[0]?.name ?? 'image';
+        return JSON.stringify({
+          code: 0,
+          msg: '',
+          data: { errFiles: [], succMap: url ? { [name]: url } : {} },
+        });
+      },
     },
     input: (value: string) => {
       form.value.contentMd = value;
