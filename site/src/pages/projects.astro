@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getProjects } from '../lib/api';
+
+const data = await getProjects().catch(() => ({ enabled: false, username: '', projects: [], error: '加载失败' }));
+---
+<BaseLayout title="项目">
+  <h1 class="page-title">项目</h1>
+
+  {!data.enabled ? (
+    <p class="projects-empty">暂未开启 GitHub 项目展示</p>
+  ) : data.error ? (
+    <div class="projects-empty">
+      <p>{data.error}</p>
+      <a href={`https://github.com/${data.username}`} target="_blank" rel="noopener noreferrer">访问 GitHub 主页</a>
+    </div>
+  ) : data.projects.length === 0 ? (
+    <p class="projects-empty">该账号暂无公开项目</p>
+  ) : (
+    <div class="project-list">
+      {data.projects.map((p) => (
+        <a class="project-card" href={p.url} target="_blank" rel="noopener noreferrer">
+          <div class="project-main">
+            <span class="project-name">{p.name}</span>
+            {p.language && <span class="project-lang">{p.language}</span>}
+            {p.stars > 0 && <span class="project-stars">★ {p.stars}</span>}
+          </div>
+          {p.description && <p class="project-desc">{p.description}</p>}
+          <span class="project-updated">{new Date(p.updatedAt).toLocaleDateString('zh-CN')} 更新</span>
+        </a>
+      ))}
+    </div>
+  )}
+</BaseLayout>
+
+<style is:global>
+  .page-title { font-size: 22px; margin-bottom: 20px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
+  .project-list {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px;
+    max-width: var(--max-width); margin: 0 auto;
+  }
+  .project-card {
+    display: flex; flex-direction: column; gap: 8px; padding: 16px;
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    text-decoration: none; color: var(--color-text);
+  }
+  .project-card:hover { border-color: var(--color-primary); }
+  .project-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .project-name { font-weight: 600; font-size: 16px; }
+  .project-lang { font-size: 12px; color: var(--color-primary); border: 1px solid var(--color-border); border-radius: 999px; padding: 1px 8px; }
+  .project-stars { font-size: 12px; color: var(--color-text-muted); }
+  .project-desc { color: var(--color-text-muted); font-size: 13px; line-height: 1.6; margin: 0; }
+  .project-updated { color: var(--color-text-muted); font-size: 12px; opacity: 0.7; }
+  .projects-empty { text-align: center; color: var(--color-text-muted); padding: 48px 0; max-width: var(--max-width); margin: 0 auto; }
+</style>

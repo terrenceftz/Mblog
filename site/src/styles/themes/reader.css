@@ -428,3 +428,30 @@
 [data-theme='reader'] .post-views {
   display: none;
 }
+
+/* ---------- 项目页：与友链/归档一致的克制列表 ---------- */
+[data-theme='reader'] .project-list {
+  grid-template-columns: 1fr;
+  max-width: 760px;
+  gap: 0;
+}
+[data-theme='reader'] .project-card {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 18px 4px;
+}
+[data-theme='reader'] .project-card:hover {
+  border-bottom-color: var(--color-primary);
+}
+[data-theme='reader'] .project-lang {
+  border-color: color-mix(in srgb, var(--color-border) 80%, transparent);
+  color: var(--color-text-muted);
+}
+[data-theme='reader'] .project-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
