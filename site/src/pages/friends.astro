@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FriendLinkForm from '../components/FriendLinkForm.vue';
+import { getFriendLinks } from '../lib/api';
+
+const links = await getFriendLinks();
+---
+<BaseLayout title="友情链接">
+  <h1 class="page-title">友情链接</h1>
+  {links.length > 0 ? (
+    <div class="link-grid">
+      {links.map((l) => (
+        <a class="link-card" href={l.url} target="_blank" rel="noopener noreferrer">
+          <div class="link-avatar">{l.name.slice(0, 1)}</div>
+          <div>
+            <div class="link-name">{l.name}</div>
+            {l.description && <div class="link-desc">{l.description}</div>}
+          </div>
+        </a>
+      ))}
+    </div>
+  ) : (
+    <p class="link-empty">暂无友链</p>
+  )}
+  <FriendLinkForm client:load />
+</BaseLayout>
+
+<style is:global>
+  .page-title { font-size: 22px; margin-bottom: 20px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
+  .link-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+    max-width: var(--max-width); margin: 0 auto;
+  }
+  .link-card {
+    display: flex; gap: 12px; align-items: center; padding: 14px;
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius); box-shadow: var(--shadow); text-decoration: none; color: var(--color-text);
+  }
+  .link-card:hover { border-color: var(--color-primary); }
+  .link-avatar {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary);
+    color: var(--color-primary-contrast); display: flex; align-items: center; justify-content: center; font-weight: 700;
+  }
+  .link-name { font-weight: 600; }
+  .link-desc { color: var(--color-text-muted); font-size: 13px; margin-top: 2px; }
+  .link-empty { color: var(--color-text-muted); padding: 24px 0; text-align: center; }
+</style>
