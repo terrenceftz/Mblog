@@ -1,8 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getProjects } from '../lib/api';
+import { getProjects, type ProjectsData } from '../lib/api';
 
-const data = await getProjects().catch(() => ({ enabled: false, username: '', projects: [], error: '加载失败' }));
+const data = await getProjects().catch((): ProjectsData => ({ enabled: false, username: '', projects: [], error: '加载失败' }));
 ---
 <BaseLayout title="项目">
   <h1 class="page-title">项目</h1>
@@ -12,7 +12,7 @@ const data = await getProjects().catch(() => ({ enabled: false, username: '', pr
   ) : data.error ? (
     <div class="projects-empty">
       <p>{data.error}</p>
-      <a href={`https://github.com/${data.username}`} target="_blank" rel="noopener noreferrer">访问 GitHub 主页</a>
+      {data.username && <a href={`https://github.com/${data.username}`} target="_blank" rel="noopener noreferrer">访问 GitHub 主页</a>}
     </div>
   ) : data.projects.length === 0 ? (
     <p class="projects-empty">该账号暂无公开项目</p>
