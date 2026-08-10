@@ -1,0 +1,33 @@
+---
+interface PostRow {
+  title: string;
+  slug: string;
+  summary: string;
+  createdAt: number;
+  viewCount: number;
+}
+interface Props {
+  posts: PostRow[];
+}
+const { posts } = Astro.props;
+---
+{
+  posts.length > 0 ? (
+    <div class="post-list">
+      {posts.map((post) => (
+        <article class="post-card">
+          <h2 class="post-title">
+            <a href={`/post/${post.slug}`}>{post.title}</a>
+          </h2>
+          {post.summary && <p class="post-summary">{post.summary}</p>}
+          <div class="post-meta">
+            <span>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</span>
+            <span>👁 {post.viewCount}</span>
+          </div>
+        </article>
+      ))}
+    </div>
+  ) : (
+    <p class="post-empty">暂无文章</p>
+  )
+}

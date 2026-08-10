@@ -1,13 +1,31 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PostList from '../components/PostList.astro';
+import { getPosts } from '../lib/api';
+
+const pageSize = 10;
+const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
+const data = await getPosts({ page });
+const total = data.total;
+const totalPages = Math.max(1, Math.ceil(total / pageSize));
 ---
 <BaseLayout description="我的个人博客">
-  <div class="home-placeholder">
-    <h1>MBLOG</h1>
-    <p>博客系统前台（Astro SSR）</p>
-  </div>
+  <PostList posts={data.list} />
+  {totalPages > 1 && (
+    <nav class="pagination">
+      {page > 1 && <a href={`/?page=${page - 1}`}>← 上一页</a>}
+      <span class="page-info">{page} / {totalPages}</span>
+      {page < totalPages && <a href={`/?page=${page + 1}`}>下一页 →</a>}
+    </nav>
+  )}
 </BaseLayout>
 
 <style is:global>
-  .home-placeholder { text-align: center; padding: 80px 0; }
+  .pagination {
+    display: flex; gap: 16px; align-items: center; justify-content: center;
+    padding: 24px 0; max-width: var(--max-width); margin: 0 auto;
+  }
+  .pagination a { color: var(--color-text); text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 6px 14px; background: var(--color-surface); }
+  .pagination a:hover { color: var(--color-primary); border-color: var(--color-primary); }
+  .page-info { color: var(--color-text-muted); font-size: 14px; }
 </style>
