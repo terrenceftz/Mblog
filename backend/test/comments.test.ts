@@ -28,6 +28,8 @@ describe('public comments', () => {
     const body = await res.json();
     expect(body.data).toHaveLength(1);
     expect(body.data[0].content).toBe('approved');
+    expect(body.data[0]).not.toHaveProperty('email');
+    expect(body.data[0]).not.toHaveProperty('ip');
   });
 
   it('不存在的文章不可评论', async () => {

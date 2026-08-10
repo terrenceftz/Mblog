@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and, asc, inArray } from 'drizzle-orm';
+import { eq, and, asc } from 'drizzle-orm';
 import { comments, posts } from '../../db/schema';
 import { rateLimit } from '../../middleware/rateLimit';
 import type { Db } from '../../db';
@@ -12,8 +12,16 @@ export function commentsRoutes(ctx: Db) {
     if (!postId || !Number.isInteger(postId)) {
       return c.json({ error: { code: 'INVALID', message: '缺少有效的 post_id' } }, 400);
     }
+    // 只暴露公开字段，不返回 email/ip
     const rows = ctx.db
-      .select()
+      .select({
+        id: comments.id,
+        postId: comments.postId,
+        author: comments.author,
+        content: comments.content,
+        parentId: comments.parentId,
+        createdAt: comments.createdAt,
+      })
       .from(comments)
       .where(and(eq(comments.postId, postId), eq(comments.status, 'approved')))
       .orderBy(asc(comments.createdAt))
