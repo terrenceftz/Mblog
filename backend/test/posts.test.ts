@@ -47,4 +47,24 @@ describe('public posts', () => {
     expect(body.data.total).toBe(1);
     expect(body.data.list[0].slug).toBe('ts');
   });
+
+  it('草稿详情返回 404', async () => {
+    ctx.db.insert(posts).values({ title: '草稿', slug: 'draft-2', status: 'draft', contentMd: '', contentHtml: '' }).run();
+    const res = await app.request('/api/posts/draft-2');
+    expect(res.status).toBe(404);
+  });
+
+  it('非法分页参数不返回 500 也不泄露全表', async () => {
+    const res = await app.request('/api/posts?page=abc&pageSize=1.5');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.list.length).toBeLessThanOrEqual(10);
+  });
+
+  it('FTS 特殊字符不返回 500', async () => {
+    for (const q of ['*', '(', 'node-js', 'Hono OR Alpha']) {
+      const res = await app.request(`/api/posts?q=${encodeURIComponent(q)}`);
+      expect(res.status).toBe(200);
+    }
+  });
 });

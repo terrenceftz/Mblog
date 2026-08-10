@@ -7,8 +7,11 @@ export function postsRoutes(ctx: Db) {
   const app = new Hono();
 
   app.get('/posts', async (c) => {
-    const page = Math.max(1, Number(c.req.query('page') ?? 1));
-    const pageSize = Math.min(50, Math.max(1, Number(c.req.query('pageSize') ?? 10)));
+    // 分页参数加固：非法/小数一律回落默认值，防止 NaN 泄漏到 LIMIT/OFFSET
+    const rawPage = Number(c.req.query('page') ?? 1);
+    const page = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+    const rawSize = Number(c.req.query('pageSize') ?? 10);
+    const pageSize = Number.isInteger(rawSize) && rawSize >= 1 ? Math.min(50, rawSize) : 10;
     const categorySlug = c.req.query('category')?.trim();
     const tagSlug = c.req.query('tag')?.trim();
     const q = c.req.query('q')?.trim();
@@ -34,11 +37,21 @@ export function postsRoutes(ctx: Db) {
     }
 
     if (q) {
-      // FTS5 全文搜索，简单去除引号避免语法错误
-      const safeQ = q.replace(/"/g, ' ');
-      const rows = ctx.sqlite
-        .prepare('SELECT rowid AS id FROM posts_fts WHERE posts_fts MATCH ? ORDER BY rank LIMIT 200')
-        .all(safeQ) as { id: number }[];
+      // FTS5 语法加固：按词分词并逐个加引号，特殊字符失去操作符语义；异常时兜底空结果
+      const terms = q
+        .split(/[^\w\u4e00-\u9fa5]+/)
+        .filter(Boolean)
+        .map((t) => `"${t.replace(/"/g, '')}"`);
+      let rows: { id: number }[] = [];
+      if (terms.length) {
+        try {
+          rows = ctx.sqlite
+            .prepare('SELECT rowid AS id FROM posts_fts WHERE posts_fts MATCH ? ORDER BY rank LIMIT 200')
+            .all(terms.join(' ')) as { id: number }[];
+        } catch {
+          rows = [];
+        }
+      }
       if (rows.length === 0) return c.json({ data: { list: [], total: 0 } });
       conditions.push(inArray(posts.id, rows.map((r) => r.id)));
     }
@@ -69,7 +82,12 @@ export function postsRoutes(ctx: Db) {
   app.get('/posts/:slug', async (c) => {
     const slug = c.req.param('slug');
     const post = ctx.db
-      .select()
+      .select({
+        id: posts.id, title: posts.title, slug: posts.slug, summary: posts.summary,
+        cover: posts.cover, categoryId: posts.categoryId, status: posts.status,
+        viewCount: posts.viewCount, contentHtml: posts.contentHtml,
+        createdAt: posts.createdAt, updatedAt: posts.updatedAt,
+      })
       .from(posts)
       .where(and(eq(posts.slug, slug), eq(posts.status, 'published')))
       .get();
