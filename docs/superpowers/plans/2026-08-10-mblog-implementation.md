@@ -888,6 +888,11 @@ export function rateLimit(max: number, windowMs: number) {
     await next();
   };
 }
+
+/** 仅测试用：清空限流桶，避免跨用例共享状态导致误 429。 */
+export function resetRateLimit(): void {
+  buckets.clear();
+}
 ```
 
 - [ ] **Step 2: 更新 `backend/test/helpers.ts` 增加登录辅助函数**
@@ -896,8 +901,10 @@ export function rateLimit(max: number, windowMs: number) {
 import { createApp } from '../src/app';
 import { createDb } from '../src/db';
 import { ensureMigrated } from '../src/db/migrate';
+import { resetRateLimit } from '../src/middleware/rateLimit';
 
 export function makeTestApp() {
+  resetRateLimit(); // 隔离限流桶状态
   const ctx = createDb(':memory:');
   ensureMigrated(ctx);
   const app = createApp(ctx);
