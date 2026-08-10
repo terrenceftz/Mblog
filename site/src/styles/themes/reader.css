@@ -357,8 +357,7 @@
 
 /* ---------- 文章页：竖排品牌贴近文章 + 正文 + 右侧目录 ---------- */
 [data-theme='reader'] .page-layout.article-layout {
-  grid-template-columns: minmax(48px, 7vw) minmax(0, clamp(580px, 62vw, 720px)) minmax(170px, 220px);
-  justify-content: center;
+  grid-template-columns: 1fr minmax(0, clamp(580px, 62vw, 720px)) 1fr;
   gap: 0 32px;
   padding: 96px clamp(20px, 4vw, 56px);
   max-width: none;
@@ -401,6 +400,8 @@
   position: sticky;
   top: 96px;
   align-self: start;
+  justify-self: start;
+  max-width: 220px;
   max-height: calc(100vh - 128px);
   overflow-y: auto;
   font-family: var(--font-ui);
