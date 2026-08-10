@@ -158,3 +158,62 @@ describe('admin posts', () => {
     expect(gone.status).toBe(404);
   });
 });
+
+describe('admin comments', () => {
+  const { app, ctx } = makeTestApp();
+  let token = '';
+
+  beforeAll(async () => {
+    resetRateLimit();
+    token = await loginAsAdmin(app);
+  });
+
+  it('评论审核、回复与批量操作', async () => {
+    const headers = authHeaders(token);
+    // 建一篇已发布文章
+    const postRes = await app.request('/api/admin/posts', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'P', contentMd: 'x', status: 'published' }),
+    });
+    expect(postRes.status).toBe(201);
+    // 访客发表一条评论（待审核）
+    const commentRes = await app.request('/api/comments', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ postId: 1, author: '访客', content: '好文' }),
+    });
+    expect(commentRes.status).toBe(201);
+
+    // 管理员通过
+    const approve = await app.request('/api/admin/comments/1', {
+      method: 'PATCH', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ status: 'approved' }),
+    });
+    expect(approve.status).toBe(200);
+    const list = await app.request('/api/admin/comments?status=approved', { headers });
+    const listBody = await list.json();
+    expect(listBody.data.length).toBeGreaterThanOrEqual(1);
+
+    // 管理员回复（直接 approved）
+    const reply = await app.request('/api/admin/comments/1/reply', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ content: '感谢支持' }),
+    });
+    expect(reply.status).toBe(201);
+
+    // 批量通过一条待审评论（先发第二条评论）
+    await app.request('/api/comments', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ postId: 1, author: '路人', content: '第二条' }),
+    });
+    const batch = await app.request('/api/admin/comments/batch', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ ids: [3], action: 'approve' }),
+    });
+    expect(batch.status).toBe(200);
+    // 删除一条评论
+    const del = await app.request('/api/admin/comments/2', { method: 'DELETE', headers });
+    expect(del.status).toBe(200);
+  });
+});
