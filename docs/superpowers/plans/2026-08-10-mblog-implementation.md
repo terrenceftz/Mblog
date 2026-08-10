@@ -1872,16 +1872,12 @@ describe('admin categories', () => {
   let token = '';
 
   beforeAll(async () => {
-    const res = await app.request('/api/admin/login', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-    });
-    token = (await res.json()).data.token;
+    resetRateLimit(); // 前序限流测试会耗尽共享桶，beforeAll 内先重置（vitest 的 beforeEach 不会在 beforeAll 前执行）
+    token = await loginAsAdmin(app);
   });
 
   it('创建、列出、更新、删除分类', async () => {
-    const headers = { Authorization: `Bearer ${token}` };
+    const headers = authHeaders(token);
     const create = await app.request('/api/admin/categories', {
       method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
       body: JSON.stringify({ name: '前端' }),
