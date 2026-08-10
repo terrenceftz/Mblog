@@ -1403,6 +1403,9 @@ export function commentsRoutes(ctx: Db) {
     const content = body.content.trim().slice(0, 2000);
     const email = typeof body.email === 'string' ? body.email.trim().slice(0, 100) : '';
     if (!author || !content) return c.json({ error: { code: 'INVALID', message: '昵称和内容不能为空' } }, 400);
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return c.json({ error: { code: 'INVALID', message: '邮箱格式不正确' } }, 400);
+    }
 
     const post = ctx.db
       .select()
@@ -1413,8 +1416,14 @@ export function commentsRoutes(ctx: Db) {
 
     const parentId = typeof body.parentId === 'number' ? body.parentId : null;
     if (parentId !== null) {
-      const parent = ctx.db.select({ id: comments.id }).from(comments).where(eq(comments.id, parentId)).get();
-      if (!parent) return c.json({ error: { code: 'INVALID', message: '回复的评论不存在' } }, 400);
+      const parent = ctx.db
+        .select({ id: comments.id, postId: comments.postId, status: comments.status })
+        .from(comments)
+        .where(eq(comments.id, parentId))
+        .get();
+      if (!parent || parent.postId !== post.id || parent.status !== 'approved') {
+        return c.json({ error: { code: 'INVALID', message: '回复的评论不存在或不可回复' } }, 400);
+      }
     }
 
     const ip =
