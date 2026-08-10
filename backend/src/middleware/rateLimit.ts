@@ -21,3 +21,8 @@ export function rateLimit(max: number, windowMs: number) {
     await next();
   };
 }
+
+/** 仅测试用：清空限流桶，避免跨用例共享状态导致误 429。 */
+export function resetRateLimit(): void {
+  buckets.clear();
+}

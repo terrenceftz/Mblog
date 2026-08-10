@@ -1,8 +1,10 @@
 import { createApp } from '../src/app';
 import { createDb } from '../src/db';
 import { ensureMigrated } from '../src/db/migrate';
+import { resetRateLimit } from '../src/middleware/rateLimit';
 
 export function makeTestApp() {
+  resetRateLimit(); // 隔离限流桶状态
   const ctx = createDb(':memory:');
   ensureMigrated(ctx);
   const app = createApp(ctx);
