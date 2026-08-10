@@ -25,7 +25,7 @@ onMounted(() => {
 
 <template>
   <button class="theme-toggle" type="button" @click="toggle">
-    {{ current === 'normal' ? '📖 阅读模式' : '🌐 正常模式' }}
+    {{ current === 'normal' ? '阅读模式' : '正常模式' }}
   </button>
 </template>
 
