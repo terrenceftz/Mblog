@@ -26,12 +26,14 @@
   text-rendering: optimizeLegibility;
 }
 
-/* ---------- 顶部导航：简洁横排 ---------- */
+/* ---------- 顶部导航：简洁横排，链接居中 ---------- */
 [data-theme='reader'] .site-header {
   border-bottom: 1px solid var(--color-border);
 }
 [data-theme='reader'] .inner {
   height: 52px;
+  position: relative;
+  justify-content: center;
 }
 [data-theme='reader'] .nav {
   gap: 28px;
@@ -45,16 +47,33 @@
 [data-theme='reader'] .nav a:hover {
   color: var(--color-text);
 }
-[data-theme='reader'] .theme-toggle {
-  border-color: var(--color-border);
+/* 主题切换：低调的纯文字，置于导航栏右缘，不与居中链接抢眼 */
+/* 用 .site-header 前缀提高优先级，覆盖 Vue scoped 按钮样式 */
+[data-theme='reader'] .site-header .theme-toggle {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
   background: transparent;
+  padding: 0;
   color: var(--color-text-muted);
   font-size: 13px;
-  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  cursor: pointer;
+  transition: opacity 0.2s ease, color 0.2s ease;
 }
-[data-theme='reader'] .theme-toggle:hover {
+[data-theme='reader'] .site-header .theme-toggle:hover {
   color: var(--color-text);
-  border-color: var(--color-text-muted);
+  opacity: 1;
+}
+/* 窄屏：切换按钮回到行内，避免与居中链接重叠 */
+@media (max-width: 640px) {
+  [data-theme='reader'] .site-header .theme-toggle {
+    position: static;
+    transform: none;
+  }
 }
 
 /* ---------- banner：克制居中，置于导航上方 ---------- */
