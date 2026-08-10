@@ -27,16 +27,26 @@ export function friendLinksRoutes(ctx: Db) {
 
   app.post('/friend-links', rateLimit(5, 60_000), async (c) => {
     if (getSetting(ctx, 'friend_link_enabled') !== '1') {
-      return c.json({ error: { code: 'DISABLED', message: '友链申请已关闭' } }, 403);
+      return c.json({ error: { code: 'FORBIDDEN', message: '友链申请已关闭' } }, 403);
     }
     const body = await c.req.json().catch(() => null);
     const name = typeof body?.name === 'string' ? body.name.trim().slice(0, 50) : '';
-    const url = typeof body?.url === 'string' ? body.url.trim().slice(0, 300) : '';
+    const rawUrl = typeof body?.url === 'string' ? body.url.trim().slice(0, 300) : '';
     const description = typeof body?.description === 'string' ? body.description.trim().slice(0, 200) : '';
-    if (!name || !url || !/^https?:\/\//i.test(url)) {
+    // URL 解析校验：仅 http/https，且拒绝引号/空白等属性注入向量
+    let url: URL | null = null;
+    if (name && rawUrl && !/[\s"'<>]/.test(rawUrl)) {
+      try {
+        const parsed = new URL(rawUrl);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') url = parsed;
+      } catch {
+        url = null;
+      }
+    }
+    if (!url) {
       return c.json({ error: { code: 'INVALID', message: '请填写站名和有效网址' } }, 400);
     }
-    ctx.db.insert(friendLinks).values({ name, url, description, status: 'pending' }).run();
+    ctx.db.insert(friendLinks).values({ name, url: url.href, description, status: 'pending' }).run();
     return c.json({ data: { message: '申请已提交，等待审核' } }, 201);
   });
 
