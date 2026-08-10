@@ -1535,8 +1535,15 @@ export function friendLinksRoutes(ctx: Db) {
   const app = new Hono();
 
   app.get('/friend-links', (c) => {
+    // 只暴露已审核友链；不返回 status 等内部字段
     const rows = ctx.db
-      .select()
+      .select({
+        id: friendLinks.id,
+        name: friendLinks.name,
+        url: friendLinks.url,
+        description: friendLinks.description,
+        avatar: friendLinks.avatar,
+      })
       .from(friendLinks)
       .where(eq(friendLinks.status, 'approved'))
       .orderBy(asc(friendLinks.createdAt))
@@ -1552,7 +1559,7 @@ export function friendLinksRoutes(ctx: Db) {
     const name = typeof body?.name === 'string' ? body.name.trim().slice(0, 50) : '';
     const url = typeof body?.url === 'string' ? body.url.trim().slice(0, 300) : '';
     const description = typeof body?.description === 'string' ? body.description.trim().slice(0, 200) : '';
-    if (!name || !url || !/^https?:\/\//.test(url)) {
+    if (!name || !url || !/^https?:\/\//i.test(url)) {
       return c.json({ error: { code: 'INVALID', message: '请填写站名和有效网址' } }, 400);
     }
     ctx.db.insert(friendLinks).values({ name, url, description, status: 'pending' }).run();
