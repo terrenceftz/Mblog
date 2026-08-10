@@ -83,16 +83,30 @@
 }
 [data-theme='reader'] .year-group {
   display: grid;
-  grid-template-columns: 96px 1fr;
+  grid-template-columns: 112px 1fr;
   gap: 16px;
   padding: 26px 0;
   border-bottom: 1px solid var(--color-border);
 }
 [data-theme='reader'] .year-label {
-  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* 水平居中 */
+  align-self: center;    /* 组内垂直居中 */
+  gap: 4px;
+  color: var(--color-text);
+}
+[data-theme='reader'] .year-label .year-first {
+  font-size: 34px;       /* 首字加大 */
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+[data-theme='reader'] .year-label .year-rest {
+  font-size: 14px;
   color: var(--color-text-muted);
-  letter-spacing: 0.08em;
-  padding-top: 2px;
+  letter-spacing: 0.18em; /* 大写数字排开 */
+  margin-left: 0.18em;    /* 补偿末字字距，视觉居中 */
 }
 [data-theme='reader'] .year-list {
   list-style: none;

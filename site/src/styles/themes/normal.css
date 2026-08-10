@@ -47,6 +47,7 @@
   font-size: 18px;
   color: var(--color-primary);
   margin: 0 0 12px;
+  letter-spacing: 0.1em;
 }
 [data-theme='normal'] .year-list {
   list-style: none;

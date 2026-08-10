@@ -13,6 +13,12 @@ function fmtMonthDay(ts: number): string {
   const d = new Date(ts);
   return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+// 年份大写数字：2026 -> 贰零贰陆（首字单独加大）
+const CN_DIGITS = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+function yearCn(year: string): { first: string; rest: string } {
+  const chars = year.split('').map((d) => CN_DIGITS[Number(d)] ?? d);
+  return { first: chars[0], rest: chars.slice(1).join('') };
+}
 const yearGroups: { year: string; items: PostListItem[] }[] = [];
 for (const post of data.list) {
   const year = String(new Date(post.createdAt).getFullYear());
@@ -30,7 +36,10 @@ for (const post of data.list) {
   <div class="year-groups">
     {yearGroups.map((g) => (
       <section class="year-group">
-        <div class="year-label">{g.year}</div>
+        <div class="year-label" title={g.year}>
+          <span class="year-first">{yearCn(g.year).first}</span>
+          <span class="year-rest">{yearCn(g.year).rest}</span>
+        </div>
         <ul class="year-list">
           {g.items.map((post) => (
             <li class="year-item">
