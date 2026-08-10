@@ -1028,6 +1028,7 @@ git commit -m "feat: IP 限流中间件 + 登录限流 + 测试辅助函数"
 import { Hono } from 'hono';
 import { eq, and, desc, count, inArray } from 'drizzle-orm';
 import { posts, postTags, tags, categories } from '../../db/schema';
+import { toSearchText } from '../../services/posts';
 import type { Db } from '../../db';
 
 export function postsRoutes(ctx: Db) {
@@ -1064,9 +1065,9 @@ export function postsRoutes(ctx: Db) {
     }
 
     if (q) {
-      // FTS5 语法加固：按词分词并逐个加引号，特殊字符失去操作符语义；异常时兜底空结果
-      const terms = q
-        .split(/[^\w\u4e00-\u9fa5]+/)
+      // CJK 逐字分词 + FTS5 语法加固：特殊字符失去操作符语义；异常时兜底空结果
+      const terms = toSearchText(q)
+        .split(/\s+/)
         .filter(Boolean)
         .map((t) => `"${t.replace(/"/g, '')}"`);
       let rows: { id: number }[] = [];
@@ -2068,9 +2069,19 @@ export interface PostInput {
   tagIds?: number[];
 }
 
+/**
+ * CJK 逐字分词：unicode61 分词器把连续中文当作单个 token，导致"正文"搜不到"正文内容"。
+ * 这里把每个 CJK 字符用空格隔开（英文单词不受影响），配合查询端同样处理实现中文子串搜索。
+ */
+export function toSearchText(text: string): string {
+  return text.replace(/([\u4e00-\u9fa5])/g, '$1 ');
+}
+
 export function syncFts(ctx: Db, post: { id: number; title: string; contentMd: string }): void {
   ctx.sqlite.prepare('DELETE FROM posts_fts WHERE rowid = ?').run(post.id);
-  ctx.sqlite.prepare('INSERT INTO posts_fts(rowid, title, content_md) VALUES (?, ?, ?)').run(post.id, post.title, post.contentMd);
+  ctx.sqlite
+    .prepare('INSERT INTO posts_fts(rowid, title, content_md) VALUES (?, ?, ?)')
+    .run(post.id, toSearchText(post.title), toSearchText(post.contentMd));
 }
 
 export function setPostTags(ctx: Db, postId: number, tagIds: number[]): void {
