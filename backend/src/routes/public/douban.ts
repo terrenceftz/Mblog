@@ -43,10 +43,7 @@ export async function fetchDoubanMovies(uid: string): Promise<DoubanMovie[]> {
     const ratingText = ratingMatch?.[1] ?? '';
     const rating = RATING_MAP[ratingText] ?? 0;
     const pub = it.pubDate ? new Date(String(it.pubDate)) : null;
-    const date =
-      pub && !Number.isNaN(pub.getTime())
-        ? `${pub.getFullYear()}-${String(pub.getMonth() + 1).padStart(2, '0')}-${String(pub.getDate()).padStart(2, '0')}`
-        : '';
+    const date = pub && !Number.isNaN(pub.getTime()) ? pub.toISOString().slice(0, 10) : '';
     const cleanTitle = title.replace(/^看过/, '').trim();
     if (cleanTitle) movies.push({ title: cleanTitle, url: link, cover, rating, ratingText, date });
   }
