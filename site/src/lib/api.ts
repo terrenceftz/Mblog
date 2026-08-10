@@ -63,9 +63,10 @@ export function getPublicSettings(): Promise<PublicSettings> {
   }));
 }
 
-export function getPosts(params: { page?: number; category?: string; tag?: string; q?: string } = {}) {
+export function getPosts(params: { page?: number; pageSize?: number; category?: string; tag?: string; q?: string } = {}) {
   const qs = new URLSearchParams();
   if (params.page) qs.set('page', String(params.page));
+  if (params.pageSize) qs.set('pageSize', String(params.pageSize));
   if (params.category) qs.set('category', params.category);
   if (params.tag) qs.set('tag', params.tag);
   if (params.q) qs.set('q', params.q);

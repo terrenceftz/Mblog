@@ -1,10 +1,13 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPosts, type PostListItem } from '../lib/api';
+import { getPosts, getPublicSettings, type PostListItem } from '../lib/api';
 
-const pageSize = 10;
+const settings = await getPublicSettings();
+// 首页文章数：默认主题配置决定（双主题架构下 SSR 以默认主题为准）
+const defaultTheme = settings.theme === 'reader' ? settings.themeReader : settings.themeNormal;
+const pageSize = defaultTheme.homePageSize ?? 10;
 const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
-const data = await getPosts({ page });
+const data = await getPosts({ page, pageSize });
 const total = data.total;
 const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
