@@ -202,7 +202,7 @@
   letter-spacing: 0.03em;
 }
 [data-theme='reader'] .post-list {
-  max-width: 680px;
+  max-width: 760px;
   margin: 0 auto;
 }
 
@@ -295,4 +295,135 @@
   border-top: 1px solid var(--color-border);
   margin-top: 64px;
   padding-top: 32px;
+}
+
+/* ---------- 其他页面与主页统一（归档 / 友链 / 搜索 / 分类标签） ---------- */
+/* 页面标题：宋体、克制 */
+[data-theme='reader'] .page-title {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin: 0 auto 28px;
+  max-width: 760px;
+}
+
+/* 归档：月份作小标签 + 细虚线行，与主页年份列表一致 */
+[data-theme='reader'] .archive-group {
+  max-width: 760px;
+  margin: 0 auto;
+}
+[data-theme='reader'] .archive-group .month {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.2em;
+  border-bottom: none;
+  padding: 32px 0 8px;
+}
+[data-theme='reader'] .archive-group ul {
+  margin: 0;
+}
+[data-theme='reader'] .archive-group li {
+  padding: 12px 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--color-border) 60%, transparent);
+  transition: padding-left 0.25s ease;
+}
+[data-theme='reader'] .archive-group li:last-child {
+  border-bottom: none;
+}
+[data-theme='reader'] .archive-group li:hover {
+  padding-left: 8px;
+}
+[data-theme='reader'] .archive-group .date {
+  font-size: 13px;
+  min-width: 96px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+[data-theme='reader'] .archive-group a {
+  color: var(--color-text);
+  font-size: 16px;
+}
+[data-theme='reader'] .archive-group a:hover {
+  color: var(--color-primary);
+}
+
+/* 友链：单列细线行，去卡片化 */
+[data-theme='reader'] .link-grid {
+  grid-template-columns: 1fr;
+  max-width: 760px;
+  gap: 0;
+}
+[data-theme='reader'] .link-card {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 16px 4px;
+}
+[data-theme='reader'] .link-card:hover {
+  border-bottom-color: var(--color-primary);
+}
+[data-theme='reader'] .link-avatar {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  font-size: 15px;
+}
+[data-theme='reader'] .link-name {
+  font-weight: 500;
+}
+[data-theme='reader'] .link-desc {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+/* 搜索：下划线输入 + 文字按钮 */
+[data-theme='reader'] .search-form {
+  max-width: 760px;
+  gap: 12px;
+}
+[data-theme='reader'] .search-form input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: 8px 2px;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+[data-theme='reader'] .search-form input:focus {
+  border-bottom-color: var(--color-text-muted);
+}
+[data-theme='reader'] .search-form button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  padding: 0 8px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+[data-theme='reader'] .search-form button:hover {
+  color: var(--color-text);
+}
+[data-theme='reader'] .result-info {
+  max-width: 760px;
+}
+
+/* 列表卡片标题与主页统一；浏览量隐藏（主页亦不显示） */
+[data-theme='reader'] .post-card .post-title {
+  font-size: 19px;
+}
+[data-theme='reader'] .post-views {
+  display: none;
 }

@@ -22,7 +22,7 @@ const { posts } = Astro.props;
           {post.summary && <p class="post-summary">{post.summary}</p>}
           <div class="post-meta">
             <span>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</span>
-            <span>👁 {post.viewCount}</span>
+            <span class="post-views">👁 {post.viewCount}</span>
           </div>
         </article>
       ))}
