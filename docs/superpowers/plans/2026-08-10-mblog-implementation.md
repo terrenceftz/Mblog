@@ -1102,7 +1102,9 @@ export function postsRoutes(ctx: Db) {
       .get();
     if (!post) return c.json({ error: { code: 'NOT_FOUND', message: '文章不存在' } }, 404);
 
-    ctx.db.update(posts).set({ viewCount: post.viewCount + 1 }).where(eq(posts.id, post.id)).run();
+    // contentHtml 由写入时渲染存储（见 services/posts.ts）；此处返回存储值，仅递增阅读量
+    const viewCount = post.viewCount + 1;
+    ctx.db.update(posts).set({ viewCount }).where(eq(posts.id, post.id)).run();
 
     const postTagList = ctx.db
       .select({ name: tags.name, slug: tags.slug })
@@ -1114,7 +1116,7 @@ export function postsRoutes(ctx: Db) {
       ? ctx.db.select().from(categories).where(eq(categories.id, post.categoryId)).get()
       : null;
 
-    return c.json({ data: { ...post, tags: postTagList, category } });
+    return c.json({ data: { ...post, viewCount, tags: postTagList, category } });
   });
 
   return app;
@@ -1158,10 +1160,14 @@ describe('public posts', () => {
   });
 
   it('详情返回渲染 HTML 并递增阅读量', async () => {
-    ctx.db.insert(posts).values({ title: '详情', slug: 'detail', status: 'published', contentMd: '# 标题' }).run();
+    ctx.db.insert(posts).values({
+      title: '详情', slug: 'detail', status: 'published', contentMd: '# 标题',
+      contentHtml: '<h1>标题</h1>', // 写入时渲染的值（服务层负责生成）
+    }).run();
     const res = await app.request('/api/posts/detail');
     const body = await res.json();
     expect(body.data.contentHtml).toContain('<h1>标题</h1>');
+    expect(body.data.viewCount).toBe(1);
     const again = await app.request('/api/posts/detail');
     const body2 = await again.json();
     expect(body2.data.viewCount).toBe(2);
@@ -1173,8 +1179,11 @@ describe('public posts', () => {
   });
 
   it('支持关键词搜索', async () => {
-    ctx.db.insert(posts).values({ title: 'TypeScript 教程', slug: 'ts', status: 'published', contentMd: 'Hono 很轻' }).run();
-    ctx.sqlite.prepare('INSERT INTO posts_fts(rowid, title, content_md) VALUES (?, ?, ?)').run(3, 'TypeScript 教程', 'Hono 很轻');
+    const row = ctx.db.insert(posts).values({
+      title: 'TypeScript 教程', slug: 'ts', status: 'published', contentMd: 'Hono 很轻',
+    }).returning({ id: posts.id }).get();
+    ctx.sqlite.prepare('INSERT INTO posts_fts(rowid, title, content_md) VALUES (?, ?, ?)')
+      .run(row.id, 'TypeScript 教程', 'Hono 很轻');
     const res = await app.request('/api/posts?q=Hono');
     const body = await res.json();
     expect(body.data.total).toBe(1);
