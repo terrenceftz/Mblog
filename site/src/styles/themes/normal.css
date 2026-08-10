@@ -24,3 +24,85 @@
   box-shadow: var(--shadow);
   border: 1px solid var(--color-border);
 }
+
+/* banner 仅极简模式显示 */
+[data-theme='normal'] .reader-banner {
+  display: none;
+}
+
+/* 年份分组列表：normal 下以卡片行呈现 */
+[data-theme='normal'] .year-groups {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+[data-theme='normal'] .year-group {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 20px;
+}
+[data-theme='normal'] .year-label {
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--color-primary);
+  margin: 0 0 12px;
+}
+[data-theme='normal'] .year-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+[data-theme='normal'] .year-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+[data-theme='normal'] .item-main {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+}
+[data-theme='normal'] .item-date {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme='normal'] .item-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+}
+[data-theme='normal'] .item-title:hover {
+  color: var(--color-primary);
+}
+[data-theme='normal'] .item-summary {
+  flex: 1;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='normal'] .item-views {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+[data-theme='normal'] .post-list {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}

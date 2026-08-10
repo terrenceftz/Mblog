@@ -1,16 +1,53 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PostList from '../components/PostList.astro';
-import { getPosts } from '../lib/api';
+import { getPosts, type PostListItem } from '../lib/api';
 
 const pageSize = 10;
 const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
 const data = await getPosts({ page });
 const total = data.total;
 const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+// 按年份分组（最新在前）
+function fmtMonthDay(ts: number): string {
+  const d = new Date(ts);
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const yearGroups: { year: string; items: PostListItem[] }[] = [];
+for (const post of data.list) {
+  const year = String(new Date(post.createdAt).getFullYear());
+  const last = yearGroups[yearGroups.length - 1];
+  if (last && last.year === year) last.items.push(post);
+  else yearGroups.push({ year, items: [post] });
+}
 ---
 <BaseLayout description="我的个人博客">
-  <PostList posts={data.list} />
+  <!-- banner：仅极简模式显示（normal 主题通过 CSS 隐藏） -->
+  <div class="reader-banner">
+    <img src="/banner.png" alt="Banner" />
+  </div>
+
+  <div class="year-groups">
+    {yearGroups.map((g) => (
+      <section class="year-group">
+        <div class="year-label">{g.year}</div>
+        <ul class="year-list">
+          {g.items.map((post) => (
+            <li class="year-item">
+              <div class="item-main">
+                <span class="item-date">{fmtMonthDay(post.createdAt)}</span>
+                <a class="item-title" href={`/post/${post.slug}`}>{post.title}</a>
+              </div>
+              {post.summary && <p class="item-summary">{post.summary}</p>}
+              <span class="item-views">👁 {post.viewCount}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+    {data.list.length === 0 && <p class="post-empty">暂无文章</p>}
+  </div>
+
   {totalPages > 1 && (
     <nav class="pagination">
       {page > 1 && <a href={`/?page=${page - 1}`}>← 上一页</a>}

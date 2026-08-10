@@ -1,14 +1,14 @@
 [data-theme='reader'] {
-  --color-bg: #faf9f7;
+  --color-bg: rgb(243, 240, 243); /* 淡粉紫灰背景 */
   --color-surface: transparent;
   --color-text: #33312e;
   --color-text-muted: #8d8a85;
   --color-primary: #4a6b8a; /* 黛青墨色强调，书卷气质 */
   --color-primary-contrast: #ffffff;
-  --color-border: #e9e6e1;
-  --color-code-bg: #f3f1ec;
+  --color-border: rgb(228, 222, 228); /* 与背景同色调的发丝边框 */
+  --color-code-bg: rgb(236, 232, 236); /* 与背景同色调的代码底色 */
   --radius: 0;
-  --max-width: 680px;
+  --max-width: 820px;
   --shadow: none;
   --card-padding: 8px 0;
   /* 思源宋体 + 系统中文字体回退（Google Fonts 不可用时依然有宋体观感） */
@@ -25,6 +25,125 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* ---------- 右侧固定导航 ---------- */
+[data-theme='reader'] .site-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  background: transparent;
+  border: none;
+  z-index: 20;
+}
+[data-theme='reader'] .inner {
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 26px;
+  padding: 48px 36px;
+  box-sizing: border-box;
+}
+[data-theme='reader'] .brand {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+}
+[data-theme='reader'] .nav {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+[data-theme='reader'] .nav a {
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- banner：顶部留白，克制展示 ---------- */
+[data-theme='reader'] .reader-banner {
+  display: block;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 120px 24px 60px; /* 顶部留白 */
+}
+[data-theme='reader'] .reader-banner img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---------- 年份分组文章列表 ---------- */
+[data-theme='reader'] .site-main {
+  padding-bottom: 80px;
+}
+[data-theme='reader'] .year-groups {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+[data-theme='reader'] .year-group {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 16px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+[data-theme='reader'] .year-label {
+  font-size: 15px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  padding-top: 2px;
+}
+[data-theme='reader'] .year-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+[data-theme='reader'] .year-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+[data-theme='reader'] .item-main {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+}
+[data-theme='reader'] .item-date {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  min-width: 52px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+[data-theme='reader'] .item-title {
+  font-size: 16px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+[data-theme='reader'] .item-title:hover {
+  color: var(--color-primary);
+}
+[data-theme='reader'] .item-summary,
+[data-theme='reader'] .item-views {
+  display: none; /* 克制：极简列表只留日期与标题 */
+}
+
+/* ---------- 阅读页面约束（文章正文保持阅读栏宽） ---------- */
+[data-theme='reader'] .post-detail {
+  max-width: 680px;
+  margin: 0 auto;
+  padding-top: 120px;
+}
+[data-theme='reader'] .post-list {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* ---------- 原有元素适配 ---------- */
 [data-theme='reader'] .site-header,
 [data-theme='reader'] .site-footer {
   border-color: var(--color-border);
