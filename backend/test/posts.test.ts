@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { makeTestApp } from './helpers';
-import { posts } from '../src/db/schema';
+import { posts, categories } from '../src/db/schema';
 
 describe('public posts', () => {
   const { app, ctx } = makeTestApp();
@@ -66,5 +66,15 @@ describe('public posts', () => {
       const res = await app.request(`/api/posts?q=${encodeURIComponent(q)}`);
       expect(res.status).toBe(200);
     }
+  });
+
+  it('返回分类列表（含文章数）', async () => {
+    ctx.db.insert(categories).values({ name: '前端', slug: 'frontend' }).run();
+    ctx.db.insert(posts).values({ title: 'a', slug: 'a', status: 'published', contentMd: '', categoryId: 1 }).run();
+    const res = await app.request('/api/categories');
+    const body = await res.json();
+    expect(body.data.length).toBe(1);
+    expect(body.data[0].name).toBe('前端');
+    expect(body.data[0].postCount).toBe(1);
   });
 });
