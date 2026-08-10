@@ -43,6 +43,7 @@ CREATE TABLE `media_files` (
 CREATE TABLE `post_tags` (
 	`post_id` integer NOT NULL,
 	`tag_id` integer NOT NULL,
+	PRIMARY KEY(`post_id`, `tag_id`),
 	FOREIGN KEY (`post_id`) REFERENCES `posts`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -60,7 +61,7 @@ CREATE TABLE `posts` (
 	`view_count` integer DEFAULT 0 NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
-	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `posts_slug_unique` ON `posts` (`slug`);--> statement-breakpoint

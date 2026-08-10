@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -28,17 +28,21 @@ export const posts = sqliteTable('posts', {
   contentHtml: text('content_html').notNull().default(''),
   summary: text('summary').notNull().default(''),
   cover: text('cover').notNull().default(''),
-  categoryId: integer('category_id').references(() => categories.id),
+  categoryId: integer('category_id').references(() => categories.id, { onDelete: 'set null' }),
   status: text('status', { enum: ['draft', 'published'] }).notNull().default('draft'),
   viewCount: integer('view_count').notNull().default(0),
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
   updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now()),
 });
 
-export const postTags = sqliteTable('post_tags', {
-  postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
-  tagId: integer('tag_id').references(() => tags.id, { onDelete: 'cascade' }).notNull(),
-});
+export const postTags = sqliteTable(
+  'post_tags',
+  {
+    postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
+    tagId: integer('tag_id').references(() => tags.id, { onDelete: 'cascade' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.postId, t.tagId] })],
+);
 
 export const comments = sqliteTable('comments', {
   id: integer('id').primaryKey({ autoIncrement: true }),
