@@ -20,11 +20,11 @@ const error = ref('');
 const allSettings = ref<Record<string, string>>({});
 
 function mergeStored(raw: string | undefined, d: ThemeForm): ThemeForm {
-  let parsed: Partial<ThemeForm> = {};
+  let parsed: Record<string, unknown> = {};
   if (raw) {
     try {
-      const o = JSON.parse(raw);
-      if (o && typeof o === 'object') parsed = o;
+      const o: unknown = JSON.parse(raw);
+      if (o && typeof o === 'object' && !Array.isArray(o)) parsed = o as Record<string, unknown>;
     } catch { parsed = {}; }
   }
   return {
@@ -48,6 +48,9 @@ async function save() {
   saved.value = false;
   error.value = '';
   try {
+    const f = forms.value[activeTab.value];
+    f.fontSize = Math.min(24, Math.max(12, Math.round(f.fontSize)));
+    f.homePageSize = Math.min(50, Math.max(1, Math.round(f.homePageSize)));
     allSettings.value.theme_normal = JSON.stringify(forms.value.normal);
     allSettings.value.theme_reader = JSON.stringify(forms.value.reader);
     allSettings.value = await adminPutSettings(allSettings.value);
@@ -92,7 +95,7 @@ function resetTheme() {
       <div class="actions">
         <p v-if="saved" class="saved">✓ 已保存</p>
         <p v-if="error" class="error">{{ error }}</p>
-        <button type="button" class="btn" @click="resetTheme">恢复当前主题默认</button>
+        <button type="button" class="btn" @click="resetTheme">重置当前主题（需保存）</button>
         <button type="submit" class="btn primary">保存主题设置</button>
       </div>
     </form>
