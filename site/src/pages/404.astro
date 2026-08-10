@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="页面不存在">
+  <div class="not-found">
+    <h1>404</h1>
+    <p>页面不存在或已下线</p>
+    <a href="/">返回首页</a>
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .not-found { text-align: center; padding: 80px 0; }
+  .not-found h1 { font-size: 48px; margin: 0 0 12px; }
+  .not-found p { color: var(--color-text-muted); }
+</style>
