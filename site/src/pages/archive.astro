@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getArchive } from '../lib/api';
+
+const groups = await getArchive();
+---
+<BaseLayout title="归档">
+  <h1 class="page-title">归档</h1>
+  {groups.map((g) => (
+    <section class="archive-group">
+      <h2 class="month">{g.month}</h2>
+      <ul>
+        {g.items.map((item) => (
+          <li>
+            <span class="date">{new Date(item.createdAt).toLocaleDateString('zh-CN')}</span>
+            <a href={`/post/${item.slug}`}>{item.title}</a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</BaseLayout>
+
+<style is:global>
+  .archive-group { margin-bottom: 24px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
+  .month { font-size: 16px; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; }
+  .archive-group ul { list-style: none; padding: 0; }
+  .archive-group li { padding: 6px 0; display: flex; gap: 12px; }
+  .date { color: var(--color-text-muted); font-size: 13px; min-width: 90px; }
+  .archive-group a { color: var(--color-text); text-decoration: none; }
+  .archive-group a:hover { color: var(--color-primary); }
+</style>

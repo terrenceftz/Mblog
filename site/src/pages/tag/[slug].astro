@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostList from '../../components/PostList.astro';
+import { getPosts, getTags } from '../../lib/api';
+
+const { slug } = Astro.params;
+const [data, tags] = await Promise.all([getPosts({ tag: slug }), getTags()]);
+const name = tags.find((t) => t.slug === slug)?.name ?? String(slug);
+---
+<BaseLayout title={`标签：${name}`}>
+  <h1 class="page-title">标签：# {name}</h1>
+  <PostList posts={data.list} />
+</BaseLayout>
+
+<style is:global>
+  .page-title { font-size: 22px; margin-bottom: 20px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
+</style>

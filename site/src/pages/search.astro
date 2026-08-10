@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostList from '../components/PostList.astro';
+import { getPosts } from '../lib/api';
+
+const q = Astro.url.searchParams.get('q')?.trim() ?? '';
+const results = q ? await getPosts({ q }) : null;
+---
+<BaseLayout title={q ? `搜索：${q}` : '搜索'}>
+  <form class="search-form" action="/search" method="get">
+    <input name="q" value={q} placeholder="搜索文章标题或正文…" />
+    <button type="submit">搜索</button>
+  </form>
+  {results && (
+    <>
+      <p class="result-info">共找到 {results.total} 篇相关文章</p>
+      <PostList posts={results.list} />
+    </>
+  )}
+</BaseLayout>
+
+<style is:global>
+  .search-form {
+    display: flex; gap: 8px; max-width: var(--max-width); margin: 0 auto 20px;
+  }
+  .search-form input {
+    flex: 1; border: 1px solid var(--color-border); border-radius: var(--radius);
+    padding: 8px 12px; background: var(--color-surface); color: var(--color-text);
+  }
+  .search-form button {
+    border: none; background: var(--color-primary); color: var(--color-primary-contrast);
+    border-radius: var(--radius); padding: 8px 16px; cursor: pointer;
+  }
+  .result-info { color: var(--color-text-muted); font-size: 14px; margin: 0 0 16px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
+</style>
