@@ -68,13 +68,16 @@ describe('public posts', () => {
     }
   });
 
-  it('返回分类列表（含文章数）', async () => {
+  it('返回分类列表（含已发布文章数）', async () => {
     ctx.db.insert(categories).values({ name: '前端', slug: 'frontend' }).run();
-    ctx.db.insert(posts).values({ title: 'a', slug: 'a', status: 'published', contentMd: '', categoryId: 1 }).run();
+    ctx.db.insert(posts).values([
+      { title: 'a', slug: 'a', status: 'published', contentMd: '', categoryId: 1 },
+      { title: '草稿', slug: 'a-draft', status: 'draft', contentMd: '', categoryId: 1 },
+    ]).run();
     const res = await app.request('/api/categories');
     const body = await res.json();
     expect(body.data.length).toBe(1);
     expect(body.data[0].name).toBe('前端');
-    expect(body.data[0].postCount).toBe(1);
+    expect(body.data[0].postCount).toBe(1); // 草稿不计入
   });
 });
