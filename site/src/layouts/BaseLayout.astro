@@ -4,7 +4,7 @@ import '../styles/themes/normal.css';
 import '../styles/themes/reader.css';
 import 'highlight.js/styles/github.css';
 import ThemeToggle from '../components/ThemeToggle.vue';
-import { getPublicSettings } from '../lib/api';
+import { getPublicSettings, type ThemeConfig } from '../lib/api';
 
 interface Props {
   title?: string;
@@ -19,6 +19,19 @@ const defaultTheme = settings.theme || 'normal';
 const year = new Date().getFullYear();
 // 后台自定义导航菜单（label + url；http 开头外链新窗口打开）
 const navItems = (settings.navMenu ?? []).filter((i) => i.label && i.url);
+// 后台主题配置 → CSS 变量覆盖（两套都注入，切换主题时同样生效）
+function themeStyleBlock(theme: 'normal' | 'reader', cfg: ThemeConfig): string {
+  const vars: string[] = [];
+  if (cfg.bg) vars.push(`--color-bg:${cfg.bg}`);
+  if (cfg.text) vars.push(`--color-text:${cfg.text}`);
+  if (cfg.muted) vars.push(`--color-text-muted:${cfg.muted}`);
+  if (cfg.primary) vars.push(`--color-primary:${cfg.primary}`);
+  if (cfg.border) vars.push(`--color-border:${cfg.border}`);
+  if (cfg.fontSize) vars.push(`--font-size:${cfg.fontSize}px`);
+  if (!vars.length) return '';
+  return `<style>[data-theme='${theme}']{${vars.join(';')}}</style>`;
+}
+const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleBlock('reader', settings.themeReader)].join('');
 ---
 <!doctype html>
 <html lang="zh-CN" data-theme={defaultTheme}>
@@ -47,6 +60,8 @@ const navItems = (settings.navMenu ?? []).filter((i) => i.label && i.url);
       href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <!-- 后台主题配置：覆盖主题 CSS 变量 -->
+    <Fragment set:html={themeStyle} />
   </head>
   <body>
     <!-- 首页 banner：置于导航上方（仅首页传入，极简模式显示） -->

@@ -11,6 +11,7 @@
   --max-width: 820px;
   --shadow: none;
   --card-padding: 8px 0;
+  --font-size: 17px;
   /* 思源宋体 + 系统中文字体回退 */
   --font-body: 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN',
     'Songti SC', 'Noto Serif CJK SC', 'SimSun', serif;
@@ -19,7 +20,7 @@
 [data-theme='reader'] body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 17px;
+  font-size: var(--font-size);
   line-height: 1.9;
   letter-spacing: 0.02em;
   -webkit-font-smoothing: antialiased;

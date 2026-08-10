@@ -11,12 +11,20 @@ export interface PostDetail extends PostListItem {
   category: { id: number; name: string; slug: string } | null;
 }
 export interface Page<T> { list: T[]; total: number }
+export interface ThemeConfig {
+  bg?: string; text?: string; muted?: string; primary?: string; border?: string;
+  fontSize?: number; homePageSize?: number;
+}
 export interface PublicSettings {
   siteName: string;
   siteDesc: string;
   theme: string;
   friendLinkEnabled: boolean;
   navMenu: { label: string; url: string }[];
+  themeNormal: ThemeConfig;
+  themeReader: ThemeConfig;
+  githubEnabled: boolean;
+  githubUsername: string;
 }
 export interface Category { id: number; name: string; slug: string; postCount: number }
 export interface Tag { id: number; name: string; slug: string; postCount: number }
@@ -26,6 +34,13 @@ export interface CommentItem {
   status: string; parentId: number | null; createdAt: number;
 }
 export interface FriendLink { id: number; name: string; url: string; description: string; avatar: string }
+export interface Project {
+  name: string; description: string; url: string;
+  language: string | null; stars: number; updatedAt: string;
+}
+export interface ProjectsData {
+  enabled: boolean; username?: string; projects: Project[]; error?: string; stale?: boolean;
+}
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}/api${path}`, { headers: { Accept: 'application/json' } });
@@ -37,10 +52,12 @@ async function get<T>(path: string): Promise<T> {
 export function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
     siteName: '我的博客', siteDesc: '', theme: 'normal', friendLinkEnabled: true,
+    themeNormal: {}, themeReader: {}, githubEnabled: false, githubUsername: '',
     navMenu: [
       { label: '首页', url: '/' },
       { label: '归档', url: '/archive' },
       { label: '友链', url: '/friends' },
+      { label: '项目', url: '/projects' },
       { label: 'RSS', url: '/api/rss' },
     ],
   }));
@@ -60,3 +77,4 @@ export const getTags = () => get<Tag[]>('/tags');
 export const getArchive = () => get<ArchiveGroup[]>('/archive');
 export const getApprovedComments = (postId: number) => get<CommentItem[]>(`/comments?post_id=${postId}`);
 export const getFriendLinks = () => get<FriendLink[]>('/friend-links');
+export const getProjects = () => get<ProjectsData>('/projects');
