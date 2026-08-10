@@ -416,12 +416,16 @@ import rehypeStringify from 'rehype-stringify';
 // 在默认白名单上扩展音频/视频标签，支持编辑器插入的 <audio>
 const schema = {
   ...defaultSchema,
-  tagNames: [...defaultSchema.tagNames, 'audio', 'source', 'video', 'figure', 'figcaption'],
+  tagNames: [...(defaultSchema.tagNames ?? []), 'audio', 'video', 'figure', 'figcaption'],
   attributes: {
     ...defaultSchema.attributes,
-    audio: [...(defaultSchema.attributes.audio ?? []), 'src', 'controls', 'preload', 'loop'],
-    source: [...(defaultSchema.attributes.source ?? []), 'src', 'type'],
-    video: [...(defaultSchema.attributes.video ?? []), 'src', 'controls', 'poster'],
+    audio: [...(defaultSchema.attributes?.audio ?? []), 'src', 'controls', 'preload', 'loop'],
+    source: [...(defaultSchema.attributes?.source ?? []), 'src', 'type'],
+    video: [...(defaultSchema.attributes?.video ?? []), 'src', 'controls', 'poster'],
+  },
+  protocols: {
+    ...defaultSchema.protocols,
+    poster: ['http', 'https'],
   },
 };
 
@@ -461,6 +465,16 @@ describe('renderMarkdown', () => {
   it('剥离 script 脚本（防 XSS）', async () => {
     const html = await renderMarkdown('<script>alert(1)</script>');
     expect(html).not.toContain('<script>');
+  });
+
+  it('剥离事件属性（onerror）', async () => {
+    const html = await renderMarkdown('<img src="x" onerror="alert(1)">');
+    expect(html).not.toContain('onerror');
+  });
+
+  it('剥离 javascript: 链接', async () => {
+    const html = await renderMarkdown('[危险](javascript:alert(1))');
+    expect(html).not.toContain('javascript:');
   });
 
   it('支持 GFM 表格', async () => {
