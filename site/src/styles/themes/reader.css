@@ -900,3 +900,36 @@
     animation: none;
   }
 }
+
+/* ---------- 豆瓣影音页：克制海报墙 ---------- */
+[data-theme='reader'] .douban-grid {
+  max-width: 760px;
+}
+[data-theme='reader'] .douban-card {
+  color: var(--color-text-primary);
+}
+[data-theme='reader'] .douban-title {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  transition: color 0.18s ease;
+}
+[data-theme='reader'] .douban-card:hover .douban-title {
+  color: var(--color-primary);
+}
+[data-theme='reader'] .douban-cover {
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+}
+[data-theme='reader'] .douban-meta {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+[data-theme='reader'] .douban-stars {
+  color: var(--color-primary);
+  font-size: 0.75rem;
+}
+[data-theme='reader'] .douban-date {
+  color: var(--color-text-muted);
+  opacity: 0.8;
+}

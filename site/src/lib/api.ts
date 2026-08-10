@@ -25,6 +25,8 @@ export interface PublicSettings {
   themeReader: ThemeConfig;
   githubEnabled: boolean;
   githubUsername: string;
+  doubanEnabled: boolean;
+  doubanUid: string;
 }
 export interface Category { id: number; name: string; slug: string; postCount: number }
 export interface Tag { id: number; name: string; slug: string; postCount: number }
@@ -53,6 +55,7 @@ export function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
     siteName: '我的博客', siteDesc: '', theme: 'normal', friendLinkEnabled: true,
     themeNormal: {}, themeReader: {}, githubEnabled: false, githubUsername: '',
+    doubanEnabled: false, doubanUid: '',
     navMenu: [
       { label: '首页', url: '/' },
       { label: '归档', url: '/archive' },
@@ -79,3 +82,19 @@ export const getArchive = () => get<ArchiveGroup[]>('/archive');
 export const getApprovedComments = (postId: number) => get<CommentItem[]>(`/comments?post_id=${postId}`);
 export const getFriendLinks = () => get<FriendLink[]>('/friend-links');
 export const getProjects = () => get<ProjectsData>('/projects');
+export interface DoubanMovie {
+  title: string;
+  url: string;
+  cover: string;
+  rating: number;
+  ratingText: string;
+  date: string;
+}
+export interface DoubanData {
+  enabled: boolean;
+  uid?: string;
+  movies: DoubanMovie[];
+  error?: string;
+  stale?: boolean;
+}
+export const getDouban = () => get<DoubanData>('/douban');

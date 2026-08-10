@@ -171,3 +171,11 @@
 [data-theme='normal'] .article-toc {
   display: none;
 }
+
+/* 豆瓣影音页：海报卡片 */
+[data-theme='normal'] .douban-card:hover .douban-title {
+  color: var(--color-primary);
+}
+[data-theme='normal'] .douban-stars {
+  color: var(--color-primary);
+}
