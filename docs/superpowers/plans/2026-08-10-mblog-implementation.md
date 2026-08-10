@@ -1364,7 +1364,7 @@ git commit -m "feat: 公开分类/标签列表 API"
 
 ```ts
 import { Hono } from 'hono';
-import { eq, and, asc, inArray } from 'drizzle-orm';
+import { eq, and, asc } from 'drizzle-orm';
 import { comments, posts } from '../../db/schema';
 import { rateLimit } from '../../middleware/rateLimit';
 import type { Db } from '../../db';
@@ -1374,9 +1374,19 @@ export function commentsRoutes(ctx: Db) {
 
   app.get('/comments', (c) => {
     const postId = Number(c.req.query('post_id'));
-    if (!postId) return c.json({ error: { code: 'INVALID', message: '缺少 post_id' } }, 400);
+    if (!postId || !Number.isInteger(postId)) {
+      return c.json({ error: { code: 'INVALID', message: '缺少有效的 post_id' } }, 400);
+    }
+    // 只暴露公开字段，不返回 email/ip
     const rows = ctx.db
-      .select()
+      .select({
+        id: comments.id,
+        postId: comments.postId,
+        author: comments.author,
+        content: comments.content,
+        parentId: comments.parentId,
+        createdAt: comments.createdAt,
+      })
       .from(comments)
       .where(and(eq(comments.postId, postId), eq(comments.status, 'approved')))
       .orderBy(asc(comments.createdAt))
@@ -1408,8 +1418,8 @@ export function commentsRoutes(ctx: Db) {
     }
 
     const ip =
-      c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
-      c.req.header('x-real-ip') ??
+      c.req.header('x-real-ip')?.trim() ||
+      c.req.header('x-forwarded-for')?.split(',').pop()?.trim() ||
       'unknown';
 
     ctx.db.insert(comments).values({ postId: post.id, author, email, content, ip, status: 'pending', parentId }).run();
