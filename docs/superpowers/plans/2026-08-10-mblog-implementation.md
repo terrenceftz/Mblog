@@ -73,7 +73,7 @@ MBLOG/
 │       ├── main.ts / App.vue
 │       ├── router/index.ts
 │       ├── api/client.ts / posts.ts / admin.ts
-│       ├── composables/useTheme.ts / useSettings.ts
+│       ├── composables/useTheme.ts / useSettings.ts / useLenis.ts
 │       ├── assets/themes/tokens.css / normal.css / reader.css
 │       ├── layouts/NormalLayout.vue / ReaderLayout.vue
 │       ├── components/PostList.vue / CommentSection.vue / ThemeToggle.vue / Pagination.vue
@@ -2744,6 +2744,7 @@ git commit -m "test: 后端 M1-M3 验收回归"
   },
   "dependencies": {
     "highlight.js": "^11.10.0",
+    "lenis": "^1.3.25",
     "vditor": "^3.10.9",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
@@ -2965,10 +2966,12 @@ createApp(App).use(router).mount('#app');
 <script setup lang="ts">
 import { watchEffect } from 'vue';
 import { useTheme } from './composables/useTheme';
+import { useLenis } from './composables/useLenis';
 import NormalLayout from './layouts/NormalLayout.vue';
 import ReaderLayout from './layouts/ReaderLayout.vue';
 
 const { current } = useTheme();
+useLenis();
 watchEffect(() => {
   document.documentElement.setAttribute('data-theme', current.value);
 });
@@ -2981,7 +2984,42 @@ watchEffect(() => {
 </template>
 ```
 
-- [ ] **Step 3: 创建 `frontend/src/layouts/NormalLayout.vue`**
+- [ ] **Step 3: 创建 `frontend/src/composables/useLenis.ts`（平滑滚动，随主题开关）**
+
+```ts
+import { watch, onBeforeUnmount } from 'vue';
+import Lenis from 'lenis';
+import { useTheme } from './useTheme';
+
+/**
+ * Lenis 平滑滚动。
+ * 正常主题启用平滑滚动；阅读模式（reader）恢复原生滚动，保持极简专注。
+ */
+export function useLenis() {
+  const { current } = useTheme();
+  let lenis: Lenis | null = null;
+
+  watch(
+    () => current.value,
+    (theme) => {
+      if (theme === 'normal') {
+        if (!lenis) lenis = new Lenis({ autoRaf: true });
+        lenis.start();
+      } else {
+        lenis?.stop();
+      }
+    },
+    { immediate: true },
+  );
+
+  onBeforeUnmount(() => {
+    lenis?.destroy();
+    lenis = null;
+  });
+}
+```
+
+- [ ] **Step 4: 创建 `frontend/src/layouts/NormalLayout.vue`**
 
 ```vue
 <script setup lang="ts">
@@ -3044,7 +3082,7 @@ import ThemeToggle from '../components/ThemeToggle.vue';
 </style>
 ```
 
-- [ ] **Step 4: 创建 `frontend/src/layouts/ReaderLayout.vue`**
+- [ ] **Step 5: 创建 `frontend/src/layouts/ReaderLayout.vue`**
 
 ```vue
 <script setup lang="ts">
@@ -3096,7 +3134,7 @@ import ThemeToggle from '../components/ThemeToggle.vue';
 </style>
 ```
 
-- [ ] **Step 5: 创建 `frontend/src/components/ThemeToggle.vue`**
+- [ ] **Step 6: 创建 `frontend/src/components/ThemeToggle.vue`**
 
 ```vue
 <script setup lang="ts">
@@ -3128,11 +3166,11 @@ function toggle() {
 </style>
 ```
 
-- [ ] **Step 6: 提交**
+- [ ] **Step 7: 提交**
 
 ```bash
-git add frontend/src/main.ts frontend/src/App.vue frontend/src/layouts frontend/src/components/ThemeToggle.vue
-git commit -m "feat: 布局组件、主题切换与 App 组装"
+git add frontend/src/main.ts frontend/src/App.vue frontend/src/layouts frontend/src/components/ThemeToggle.vue frontend/src/composables/useLenis.ts
+git commit -m "feat: 布局组件、主题切换与 Lenis 平滑滚动"
 ```
 
 ### Task 27: 路由与 API 客户端
