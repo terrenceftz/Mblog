@@ -119,3 +119,42 @@ describe('admin tags', () => {
     expect(del.status).toBe(200);
   });
 });
+
+describe('admin posts', () => {
+  const { app, ctx } = makeTestApp();
+  let token = '';
+
+  beforeAll(async () => {
+    resetRateLimit();
+    token = await loginAsAdmin(app);
+  });
+
+  it('文章 CRUD（含 FTS 搜索与渲染）', async () => {
+    const headers = authHeaders(token);
+    const create = await app.request('/api/admin/posts', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Hello World', contentMd: '# 测试\n\n正文内容', status: 'published' }),
+    });
+    expect(create.status).toBe(201);
+
+    const detail = await app.request('/api/admin/posts/1', { headers });
+    const d = await detail.json();
+    expect(d.data.contentHtml).toContain('<h1>测试</h1>');
+
+    // 公开搜索能命中（CJK 逐字分词）
+    const search = await app.request('/api/posts?q=正文');
+    const s = await search.json();
+    expect(s.data.total).toBe(1);
+
+    const update = await app.request('/api/admin/posts/1', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Hello Updated', contentMd: '新内容', status: 'published' }),
+    });
+    expect(update.status).toBe(200);
+
+    const del = await app.request('/api/admin/posts/1', { method: 'DELETE', headers });
+    expect(del.status).toBe(200);
+    const gone = await app.request('/api/posts/hello-updated');
+    expect(gone.status).toBe(404);
+  });
+});
