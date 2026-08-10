@@ -28,4 +28,11 @@ describe('admin auth', () => {
     const res = await app.request('/api/admin/posts');
     expect(res.status).toBe(401);
   });
+
+  it('无效 token 访问受保护路由返回 401', async () => {
+    const res = await app.request('/api/admin/posts', {
+      headers: { Authorization: 'Bearer not-a-real-token' },
+    });
+    expect(res.status).toBe(401);
+  });
 });

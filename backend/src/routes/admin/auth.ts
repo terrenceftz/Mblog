@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { users } from '../../db/schema';
 import { signToken } from '../../lib/jwt';
+import { rateLimit } from '../../middleware/rateLimit';
 import type { Db } from '../../db';
 
 // 预计算假哈希：用户不存在时也执行 bcrypt 比较，避免时序泄露用户是否存在
@@ -11,7 +12,7 @@ const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing', 10);
 export function authRoutes(ctx: Db) {
   const app = new Hono();
 
-  app.post('/login', async (c) => {
+  app.post('/login', rateLimit(5, 60_000), async (c) => {
     const body = await c.req.json().catch(() => null);
     const username = typeof body?.username === 'string' ? body.username.trim() : '';
     const password = typeof body?.password === 'string' ? body.password : '';
