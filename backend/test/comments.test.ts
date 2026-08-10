@@ -45,4 +45,18 @@ describe('public comments', () => {
     const res = await app.request('/api/comments');
     expect(res.status).toBe(400);
   });
+
+  it('友链列表只返回已审核', async () => {
+    const res = await app.request('/api/friend-links', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: '示例站', url: 'https://example.com', description: '你好' }),
+    });
+    expect(res.status).toBe(201);
+    const listRes = await app.request('/api/friend-links');
+    const list = await listRes.json();
+    expect(list.data).toHaveLength(0); // 待审核，不展示
+    // 隐私：不返回 status 字段
+    expect(list.data[0]).toBeUndefined();
+  });
 });
