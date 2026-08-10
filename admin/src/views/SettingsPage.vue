@@ -117,6 +117,20 @@ async function save() {
         </template>
       </fieldset>
 
+      <fieldset>
+        <legend>GitHub 项目展示</legend>
+        <label>开启展示
+          <select v-model="form.github_enabled">
+            <option value="1">开启</option>
+            <option value="0">关闭</option>
+          </select>
+        </label>
+        <label>GitHub 用户名
+          <input v-model="form.github_username" placeholder="octocat" />
+        </label>
+        <p class="menu-tip">前台 /projects 页面将自动拉取该账号的公开仓库（不含 fork，按星数排序）。需在导航菜单中添加「项目」链接。</p>
+      </fieldset>
+
       <div class="actions">
         <p v-if="saved" class="saved">✓ 已保存</p>
         <p v-if="error" class="error">{{ error }}</p>
