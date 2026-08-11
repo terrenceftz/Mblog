@@ -90,17 +90,17 @@
   padding: 48px 24px;
 }
 /* 首屏分栏：左侧圆形头像 + 右侧自我介绍 */
-/* 首屏分栏：文字居左、头像靠右（eonova 布局） */
+/* 首屏分栏：文字居左、头像紧邻其右（紧凑，eonova 布局） */
 [data-theme='normal'] .nh-hero-content.nh-hero-split {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 48px;
-  max-width: 1080px;
+  max-width: 860px;
   width: 100%;
   margin: 0 auto;
   text-align: left;
-  padding: 0 clamp(24px, 6vw, 72px);
+  padding: 0 24px;
 }
 [data-theme='normal'] .nh-avatar {
   flex-shrink: 0;
@@ -122,6 +122,10 @@
 }
 [data-theme='normal'] .nh-intro {
   min-width: 0;
+}
+/* BlurText island 内联化：避免块级 island 压垮 h1/p 的文字排版宽度 */
+[data-theme='normal'] .nh-hero .nh-intro astro-island {
+  display: contents;
 }
 [data-theme='normal'] .nh-hero::after {
   content: '';
@@ -152,17 +156,19 @@
   color: var(--color-text-heading);
   margin: 0 0 10px;
 }
-/* BlurText 逐词模糊揭示动效 */
-[data-theme='normal'] .blur-text {
+/* BlurText 逐词模糊揭示（排版由外层元素控制） */
+[data-theme='normal'] .blur-text-word {
+  display: inline-block;
+  will-change: transform, filter, opacity;
+}
+/* 趣味自我介绍行 */
+[data-theme='normal'] .nh-witty {
+  display: block;
   font-size: 18px;
   color: var(--color-text);
   margin: 0 0 8px;
   font-family: var(--font-ui);
   font-weight: 400;
-}
-[data-theme='normal'] .blur-text-word {
-  display: inline-block;
-  will-change: transform, filter, opacity;
 }
 [data-theme='normal'] .nh-desc {
   color: var(--color-text-muted);

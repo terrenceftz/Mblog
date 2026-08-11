@@ -90,10 +90,10 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
       <LiquidEther client:visible />
       <div class="nh-hero-content nh-hero-split">
         <div class="nh-intro">
-          <p class="nh-eyebrow">NOVA EON · BLOG</p>
-          <h1 class="nh-title">你好，我是{siteName}</h1>
-          <BlurText client:load text={introText} />
-          {settings.siteDesc && <p class="nh-desc">{settings.siteDesc}</p>}
+          <p class="nh-eyebrow"><BlurText client:load text="NOVA EON · BLOG" start-delay={0} delay={60} /></p>
+          <h1 class="nh-title"><BlurText client:load text={`你好，我是${siteName}`} start-delay={220} delay={80} /></h1>
+          <BlurText client:load class="nh-witty" text={introText} start-delay={520} delay={120} />
+          {settings.siteDesc && <p class="nh-desc"><BlurText client:load text={settings.siteDesc} start-delay={900} delay={80} /></p>}
         </div>
         <div class="nh-avatar"><img src={avatarUrl} alt={siteName} /></div>
       </div>

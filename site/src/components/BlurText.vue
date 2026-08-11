@@ -2,17 +2,19 @@
 import { computed, onMounted, ref } from 'vue';
 
 // BlurText：逐词「模糊 → 清晰」揭示动效（移植自 reactbits.dev）
-// 中文用 Intl.Segmenter 分词，保证逐词交错
+// 中文用 Intl.Segmenter 分词；渲染为内联 <span>，由外层元素（h1/p）控制排版
 const props = withDefaults(
   defineProps<{
     text: string;
+    /** 首词前的基础延迟 ms（用于多段文字级联） */
+    startDelay?: number;
     /** 每词间隔 ms */
     delay?: number;
     /** 单步时长（秒） */
     stepDuration?: number;
     direction?: 'top' | 'bottom';
   }>(),
-  { delay: 120, stepDuration: 0.35, direction: 'top' },
+  { startDelay: 0, delay: 80, stepDuration: 0.35, direction: 'top' },
 );
 
 const words = computed(() => {
@@ -42,7 +44,7 @@ onMounted(() => {
       ],
       {
         duration: props.stepDuration * 2 * 1000,
-        delay: i * props.delay,
+        delay: props.startDelay + i * props.delay,
         easing: 'cubic-bezier(0.33, 1, 0.68, 1)',
         fill: 'both',
       },
@@ -52,9 +54,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <p ref="el" class="blur-text">
+  <span ref="el" class="blur-text">
     <template v-for="(word, i) in words" :key="i">
       <span class="blur-text-word">{{ word }}</span>{{ i < words.length - 1 ? ' ' : '' }}
     </template>
-  </p>
+  </span>
 </template>
