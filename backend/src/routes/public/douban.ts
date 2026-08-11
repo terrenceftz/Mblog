@@ -1,3 +1,4 @@
+import { request as httpsRequest } from 'node:https';
 import { Hono } from 'hono';
 import { XMLParser } from 'fast-xml-parser';
 import { getSetting } from '../../lib/settings';
@@ -62,12 +63,66 @@ export async function fetchDoubanMovies(uid: string): Promise<DoubanMovie[]> {
   return movies;
 }
 
+// TMDB API 在部分网络下 DNS 被污染，先走正常域名，失败时直连 CloudFront IP（带 SNI）
+const TMDB_HOST = 'api.themoviedb.org';
+const TMDB_FALLBACK_IPS = ['13.32.36.72', '13.33.29.220', '13.226.240.46'];
+const TMDB_TIMEOUT = 8000;
+
+interface TmdbRes {
+  ok: boolean;
+  json(): Promise<unknown>;
+}
+
+async function tmdbFetch(path: string): Promise<TmdbRes | null> {
+  try {
+    const res = await fetch(`https://${TMDB_HOST}${path}`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(TMDB_TIMEOUT),
+    });
+    if (res.ok) return { ok: true, json: () => res.json() };
+  } catch {
+    // 正常域名不可达（DNS 污染/网络阻断），走 IP 兜底
+  }
+  for (const ip of TMDB_FALLBACK_IPS) {
+    try {
+      const res = await new Promise<TmdbRes | null>((resolve, reject) => {
+        const req = httpsRequest(
+          {
+            host: ip,
+            servername: TMDB_HOST,
+            port: 443,
+            path,
+            headers: { Host: TMDB_HOST, Accept: 'application/json' },
+          },
+          (r) => {
+            const chunks: Buffer[] = [];
+            r.on('data', (c) => chunks.push(Buffer.from(c)));
+            r.on('end', () => {
+              resolve({
+                ok: (r.statusCode ?? 0) >= 200 && (r.statusCode ?? 0) < 300,
+                json: async () => JSON.parse(Buffer.concat(chunks).toString('utf-8')),
+              });
+            });
+          },
+        );
+        req.setTimeout(TMDB_TIMEOUT, () => req.destroy(new Error('timeout')));
+        req.on('error', reject);
+        req.end();
+      });
+      if (res && res.ok) return res;
+    } catch {
+      // 尝试下一个 IP
+    }
+  }
+  return null;
+}
+
 // TMDB 搜索单部电影海报；失败/无结果回退豆瓣封面
 async function tmdbPoster(apiKey: string, query: string, fallback: string): Promise<string> {
+  const path = `/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${encodeURIComponent(query)}&language=zh-CN&include_adult=false`;
+  const res = await tmdbFetch(path);
+  if (!res || !res.ok) return fallback;
   try {
-    const url = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${encodeURIComponent(query)}&language=zh-CN&include_adult=false`;
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!res.ok) return fallback;
     const body = (await res.json()) as { results?: { poster_path?: string | null }[] };
     const posterPath = body.results?.find((r) => r.poster_path)?.poster_path;
     return posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : fallback;
