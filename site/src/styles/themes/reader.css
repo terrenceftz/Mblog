@@ -958,3 +958,12 @@
   object-fit: cover;
   display: block;
 }
+
+/* 目录 LineSidebar 结构在极简模式的适配：隐藏线标/序号，保留左侧线文字列表 */
+[data-theme='reader'] .article-toc .line-sidebar__marker,
+[data-theme='reader'] .article-toc .line-sidebar__index {
+  display: none;
+}
+[data-theme='reader'] .article-toc .line-sidebar__item {
+  padding: 0;
+}

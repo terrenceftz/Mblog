@@ -47,11 +47,17 @@ const { html: contentHtml, toc } = withTocIds(post.contentHtml);
   </article>
   {toc.length > 0 && (
     <Fragment slot="toc">
-      <nav class="article-toc" aria-label="文章目录">
+      <nav class="article-toc line-sidebar" aria-label="文章目录">
         <p class="article-toc-title">目录</p>
-        <ul>
-          {toc.map((t) => (
-            <li><a class={t.level === 3 ? 'toc-h3' : undefined} href={`#${t.id}`}>{t.text}</a></li>
+        <ul class="line-sidebar__list">
+          {toc.map((t, i) => (
+            <li class="line-sidebar__item">
+              <span class="line-sidebar__marker" aria-hidden="true" />
+              <a class={`line-sidebar__label ${t.level === 3 ? 'toc-h3' : ''}`.trim()} href={`#${t.id}`}>
+                <span class="line-sidebar__index">{String(i + 1).padStart(2, '0')}</span>
+                <span class="line-sidebar__text">{t.text}</span>
+              </a>
+            </li>
           ))}
         </ul>
       </nav>
@@ -60,24 +66,77 @@ const { html: contentHtml, toc } = withTocIds(post.contentHtml);
 </BaseLayout>
 
 <script>
-  // 文章目录滚动高亮当前章节
-  const tocLinks = [...document.querySelectorAll('.article-toc a')]
-    .map((a) => ({ a, id: a.getAttribute('href')?.slice(1) }))
-    .filter((x) => x.id);
-  if (tocLinks.length) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            for (const { a, id } of tocLinks) a.classList.toggle('toc-active', id === entry.target.id);
+  // 文章目录：滚动高亮 + LineSidebar 线标动效（reactbits 移植）
+  const sidebarList = document.querySelector('.article-toc .line-sidebar__list');
+  const sidebarItems = sidebarList ? [...sidebarList.querySelectorAll('.line-sidebar__item')] : [];
+  const links = sidebarItems.map((li) => li.querySelector('.line-sidebar__label'));
+
+  // 滚动高亮：IntersectionObserver 驱动 activeIndex
+  const activeIndex = { v: -1 };
+  let startLoop = () => {};
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const idx = links.findIndex((a) => a && a.getAttribute('href') === `#${entry.target.id}`);
+          if (idx >= 0) {
+            activeIndex.v = idx;
+            startLoop(); // 激活项变化 → 重启缓动循环
           }
         }
-      },
-      { rootMargin: '-80px 0px -70% 0px', threshold: 0 },
-    );
-    for (const { id } of tocLinks) {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    }
+      }
+    },
+    { rootMargin: '-80px 0px -70% 0px', threshold: 0 },
+  );
+  for (const a of links) {
+    const el = a && document.getElementById(a.getAttribute('href')?.slice(1));
+    if (el) observer.observe(el);
+  }
+
+  // LineSidebar：指针接近度 + 激活项 → rAF 缓动每个条目的 --effect（0..1）
+  if (sidebarItems.length) {
+    const smooth = (p) => p * p * (3 - 2 * p);
+    const PROXIMITY = 100;
+    const cur = sidebarItems.map(() => 0);
+    const tgt = sidebarItems.map(() => 0);
+    let raf = null;
+    let last = 0;
+
+    const frame = (now) => {
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      const k = 1 - Math.exp(-dt / 0.1); // 指数缓动，smoothing ≈ 100ms
+      let moving = false;
+      sidebarItems.forEach((li, i) => {
+        const target = Math.max(tgt[i] || 0, activeIndex.v === i ? 1 : 0);
+        const next = cur[i] + (target - cur[i]) * k;
+        cur[i] = Math.abs(target - next) < 0.0015 ? target : next;
+        li.style.setProperty('--effect', cur[i].toFixed(4));
+        if (cur[i] !== target) moving = true;
+      });
+      raf = moving ? requestAnimationFrame(frame) : null;
+    };
+    const start = () => {
+      if (raf != null) cancelAnimationFrame(raf);
+      last = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+    startLoop = start;
+
+    sidebarList.addEventListener('pointermove', (e) => {
+      const rect = sidebarList.getBoundingClientRect();
+      const pointerY = e.clientY - rect.top;
+      sidebarItems.forEach((li, i) => {
+        const center = li.offsetTop + li.offsetHeight / 2;
+        const d = Math.abs(pointerY - center);
+        tgt[i] = smooth(Math.max(0, 1 - d / PROXIMITY));
+      });
+      start();
+    });
+    sidebarList.addEventListener('pointerleave', () => {
+      tgt.fill(0);
+      start();
+    });
+    start();
   }
 </script>
