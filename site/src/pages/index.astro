@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import LiquidEther from '../components/LiquidEther.vue';
 import {
   getPosts, getPublicSettings, getCategories, getTags, getStats, getDouban, getProjects,
   type PostListItem, type Category, type Tag,
@@ -78,13 +79,16 @@ const catName = (id: number | null) => categories.find((c) => c.id === id)?.name
 
   <!-- ======== 正常主题首页：内容丰富模块（极简主题隐藏） ======== -->
   <div class="normal-home">
-    <!-- Hero -->
+    <!-- Hero（Liquid Ether 流体背景，仅正常主题） -->
     <section class="nh-hero">
-      <p class="nh-eyebrow">NOVA EON · BLOG</p>
-      <h1 class="nh-title">{siteName}</h1>
-      {settings.siteDesc && <p class="nh-desc">{settings.siteDesc}</p>}
-      <div class="nh-hero-banner"><img src="/banner.png" alt={siteName} /></div>
+      <LiquidEther client:visible />
+      <div class="nh-hero-content">
+        <p class="nh-eyebrow">NOVA EON · BLOG</p>
+        <h1 class="nh-title">{siteName}</h1>
+        {settings.siteDesc && <p class="nh-desc">{settings.siteDesc}</p>}
+      </div>
     </section>
+    <div class="nh-hero-banner"><img src="/banner.png" alt={siteName} /></div>
 
     <!-- 数据统计 -->
     <section class="nh-stats">

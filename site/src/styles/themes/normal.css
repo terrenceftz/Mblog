@@ -67,10 +67,31 @@
   padding: 24px 20px 80px;
 }
 
-/* Hero */
+/* Hero：Liquid Ether 流体背景 */
 [data-theme='normal'] .nh-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 56px 0 40px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+[data-theme='normal'] .nh-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 64px 24px;
+}
+[data-theme='normal'] .nh-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(9, 9, 11, 0.2) 0%, rgba(9, 9, 11, 0.72) 100%);
 }
 [data-theme='normal'] .nh-eyebrow {
   font-size: 12px;
