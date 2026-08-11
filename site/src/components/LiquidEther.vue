@@ -116,7 +116,8 @@ class CommonClass {
 
   init(container: HTMLElement) {
     this.container = container;
-    this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    // DPR 上限 1.5：全视口流体模拟在高分屏上可省 ~44% 像素，降低 GPU 负载（卡顿缓解）
+    this.pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
     this.resize();
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.autoClear = false;
