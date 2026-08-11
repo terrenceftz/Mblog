@@ -16,6 +16,25 @@ const MAX_SIZES: Record<string, number> = {
   'audio/mp4': 50 * 1024 * 1024,
 };
 
+/**
+ * 魔数嗅探：按文件头字节判断真实类型。
+ * - SVG 是文本格式、可嵌入脚本，一律拒绝（黑名单）。
+ * - 图片严格匹配；音频对 MIME 声明与嗅探结果不一致采取宽容策略（仅拒绝明显矛盾）。
+ * @returns 识别出的 MIME，无法识别时返回 null
+ */
+function sniffMime(buffer: Buffer): string | null {
+  const magic = buffer.subarray(0, 12).toString('latin1');
+  if (buffer.length >= 3 && magic[0] === '\xff' && magic[1] === '\xd8' && magic[2] === '\xff') return 'image/jpeg';
+  if (buffer.length >= 4 && magic.startsWith('\x89PNG')) return 'image/png';
+  if (buffer.length >= 3 && magic.startsWith('GIF')) return 'image/gif';
+  if (buffer.length >= 12 && magic.startsWith('RIFF') && magic.slice(8, 12) === 'WEBP') return 'image/webp';
+  if (buffer.length >= 3 && magic.startsWith('ID3')) return 'audio/mpeg';
+  // MPEG 帧同步：0xFFE0
+  if (buffer.length >= 2 && magic[0] === '\xff' && (buffer[1] & 0xe0) === 0xe0) return 'audio/mpeg';
+  if (buffer.length >= 4 && magic.startsWith('OggS')) return 'audio/ogg';
+  return null;
+}
+
 export function uploadAdminRoutes(ctx: Db) {
   const app = new Hono();
 
@@ -28,8 +47,21 @@ export function uploadAdminRoutes(ctx: Db) {
     const maxSize = MAX_SIZES[file.type];
     if (!maxSize) return c.json({ error: { code: 'INVALID', message: `不支持的文件类型: ${file.type}` } }, 400);
     if (file.size > maxSize) return c.json({ error: { code: 'INVALID', message: '文件过大' } }, 400);
+    // SVG 可携带脚本，禁止上传（防存储型 XSS）
+    if (file.type === 'image/svg+xml') {
+      return c.json({ error: { code: 'INVALID', message: '不支持 SVG 文件' } }, 400);
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const sniffed = sniffMime(buffer);
+    // 声明类型与魔数明显矛盾时拒绝；音频类型宽容处理（仅拒绝跨类别的明显矛盾）
+    if (sniffed && sniffed !== file.type) {
+      const bothAudio = sniffed.startsWith('audio/') && file.type.startsWith('audio/');
+      if (!bothAudio) {
+        return c.json({ error: { code: 'INVALID', message: '文件内容与声明类型不符' } }, 400);
+      }
+    }
+
     const storage = getStorage(ctx);
     const result = await storage.upload({ filename: file.name, mime: file.type, buffer });
     ctx.db.insert(mediaFiles).values({
