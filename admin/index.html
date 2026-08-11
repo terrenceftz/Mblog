@@ -7,13 +7,14 @@
     <meta name="theme-color" content="#f7f7f4" media="(prefers-color-scheme: light)" />
     <title>MBLOG 后台</title>
     <script>
-      // 首屏防闪白：在模块加载前同步应用主题
+      // 首屏防闪白：在模块加载前同步应用主题（data-theme 自定义 + data-bs-theme Tabler 暗色）
       (function () {
         try {
           var choice = localStorage.getItem('admin_theme') || 'auto';
           var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           var resolved = choice === 'auto' ? (dark ? 'dark' : 'light') : choice;
           document.documentElement.setAttribute('data-theme', resolved);
+          document.documentElement.setAttribute('data-bs-theme', resolved);
         } catch (e) {}
       })();
     </script>

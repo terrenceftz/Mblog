@@ -10,6 +10,8 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@tabler/core": "^1.4.0",
+    "@tabler/icons": "^3.46.0",
     "vditor": "^3.10.9",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"

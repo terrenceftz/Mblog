@@ -31,10 +31,12 @@ export function getResolvedTheme(): ResolvedTheme {
   return resolveTheme(getThemeChoice());
 }
 
-/** 应用主题到 <html data-theme> */
+/** 应用主题到 <html>：data-theme（自定义 CSS）+ data-bs-theme（Bootstrap/Tabler 暗色） */
 export function applyTheme(choice: ThemeChoice): ResolvedTheme {
   const resolved = resolveTheme(choice);
-  document.documentElement.setAttribute('data-theme', resolved);
+  const el = document.documentElement;
+  el.setAttribute('data-theme', resolved);
+  el.setAttribute('data-bs-theme', resolved);
   return resolved;
 }
 

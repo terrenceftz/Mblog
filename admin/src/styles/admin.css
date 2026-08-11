@@ -8,6 +8,44 @@
    组件样式只引用语义层与节奏层变量，禁止硬编码色值。
    ========================================================= */
 
+/* ---------- Tabler（Bootstrap 5.3）琥珀主题适配 ----------
+   Tabler 1.4 提供 card/btn/table/badge/form 等基础皮肤，
+   这里把 Bootstrap 主色变量覆盖为琥珀，与现有 token 一致。
+   Bootstrap 5.3 暗色由 <html data-bs-theme> 控制（见 theme.ts）。 */
+:root {
+  --bs-primary: #e8b64c;
+  --bs-primary-rgb: 232, 182, 76;
+  --bs-primary-bg-subtle: rgba(232, 182, 76, 0.12);
+  --bs-primary-border-subtle: rgba(232, 182, 76, 0.3);
+  --bs-primary-text-emphasis: #e8b64c;
+  --bs-link-color: #e8b64c;
+  --bs-link-hover-color: #f0c062;
+  --bs-focus-ring-color: rgba(232, 182, 76, 0.25);
+}
+[data-theme='light'] {
+  --bs-primary: #c28721; /* 浅底加深，保证 WCAG AA 对比度 */
+  --bs-primary-rgb: 194, 135, 33;
+  --bs-primary-bg-subtle: rgba(194, 135, 33, 0.12);
+  --bs-primary-border-subtle: rgba(194, 135, 33, 0.3);
+  --bs-primary-text-emphasis: #8a5e14;
+  --bs-link-color: #a6741a;
+  --bs-link-hover-color: #8a5e14;
+  --bs-focus-ring-color: rgba(194, 135, 33, 0.25);
+}
+
+/* .btn-primary：Bootstrap 5.3 按钮色走 --bs-btn-* 变量，统一琥珀 */
+.btn-primary {
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: var(--primary-hover);
+  --bs-btn-hover-border-color: var(--primary-hover);
+  --bs-btn-active-bg: var(--primary-hover);
+  --bs-btn-active-border-color: var(--primary-hover);
+  --bs-btn-disabled-bg: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
 /* ---------- 暗色主题（默认） ---------- */
 :root {
   color-scheme: dark; /* 原生滚动条/下拉框/输入框暗色渲染 */
