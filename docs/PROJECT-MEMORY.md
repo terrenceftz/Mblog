@@ -170,7 +170,8 @@ AdminLayout（暗色侧栏 + icons + 移动抽屉 + `isActive()` 精确导航判
 
 ## 6. 待办 / 下一步
 
-- **后台 UI 方案待定**（见 §9 迁移存档）：pure-admin 迁移已暂停，用户想先调研"成熟后台 UI/CSS 直接复用"的轻量方案再决定方向
+- **后台 Tabler 换肤已基本完成**（提交 c6af9a9~124812c）：基础（琥珀主色 + data-bs-theme 暗色）+ AdminLayout（navbar-vertical 侧栏 + page-wrapper）+ 10 个业务页面（card/card-body、soft badge、form-control、pagination）。**剩余可选打磨**：暗色下表格 hover/焦点细节、TagManager 胶囊样式微调、admin.css 里与 Tabler 重复的旧组件样式清理（冗余无害，暂留）
+- **admin-pure/ 目录保留**（pure-admin 迁移的产物，untracked，暂不删）：若以后想再评估 Element Plus 方案，10 个 EP 页面可参考
 - **后台 UI 打磨剩余项**（精修已提交）：PostList（行点击进编辑、tabular-nums、hover 细节）、CategoryManager / TagManager（add-row 与卡片一致 + 空态 + 编辑取消）
 - eonova.me 借鉴清单中 **low-priority 项**（会话实现时排除的部分）
 - 部署验证：OG 图中文需服务器 CJK 字体（check docker image）
@@ -232,6 +233,20 @@ npm test   # 83/83 通过
 **注意**：5173 上跑的是并行会话的 vite 实例（会热更新）。继续开发时如果并行会话还在，**别抢端口、别覆盖它的未提交改动**；tabler 换肤若有样式冲突，在 admin.css 里调整优先级。
 
 **防御**：若再出现 dev server EPERM 崩溃 + package.json 异常，先 `git status` 检查 admin 是否被覆盖；`.zcode/`（仓库根）是 ZCode 工具目录，**永远不要删**。
+
+### 2026-08-11 19:00 —— 后台 Tabler 换肤完成（轻量方案落地）
+
+用户放弃 pure-admin 全量迁移（太重），改为**现成 CSS 皮肤直接复用**：引入 **Tabler 1.4（@tabler/core，内置 Bootstrap 5.3.7）**，在现有 Vue 结构上换肤，未动业务逻辑。提交链：`c6af9a9`（基础）→ `897848d`（布局）→ `64a2210`（10 页面）→ `124812c`（TagPicker）。
+
+**关键技术约定**：
+1. **CSS 加载顺序**：`main.ts` 里 admin.css 先、`@tabler/core/dist/css/tabler.min.css` 后——Tabler 接管 `.card/.btn/.table/.badge` 等组件样式，自定义 token 管颜色
+2. **暗色机制**：`theme.ts` 的 `applyTheme()` 同时设置 `<html data-theme>`（自定义 CSS）和 `<html data-bs-theme>`（Bootstrap/Tabler 暗色）；index.html 内联防闪白脚本同样双属性
+3. **琥珀主色**：admin.css 顶部"Tabler 琥珀主题适配"区块覆盖 `--bs-primary`/`--bs-primary-rgb`/`.btn-primary` 的 `--bs-btn-*` 变量族（暗色 #e8b64c，浅色 #c28721 保 AA）
+4. **组件结构约定**：Tabler `.card` 必须包 `.card-body` 才有内边距；徽章用 soft 变体（`bg-success-soft`/`bg-warning-soft`/`bg-danger-soft`）；输入框 `.form-control`、下拉 `.form-select`；分页用 `.pagination` + `.page-item/.page-link`
+5. **布局**：AdminLayout 用 Tabler `navbar-vertical` 侧栏结构（保留自定义移动端抽屉 + 主题三态切换）；主区 `page-wrapper > page-body > container-xl`
+6. **并行会话**：GLM 会话也做了 Tabler 引入（方向一致，已合并）；**不要重复引入 tabler 依赖或重复改 main.ts 导入**
+
+**注意**：Login.vue 是 GLM 的全自定义设计（无 Tabler 类），保持不动。
 
 ## 9. 参考
 
