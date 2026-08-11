@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import {
   getPosts, getPublicSettings, getCategories, getTags, getStats, getDouban, getProjects,
-  type PostListItem,
+  type PostListItem, type Category, type Tag,
 } from '../lib/api';
 
 const settings = await getPublicSettings();
@@ -125,12 +125,12 @@ const catName = (id: number | null) => categories.find((c) => c.id === id)?.name
     <section class="nh-section">
       <div class="nh-section-head"><p class="nh-eyebrow">EXPLORE</p><h2>分类与标签</h2></div>
       <div class="nh-cats">
-        {categories.map((c) => (
+        {categories.map((c: Category) => (
           <a class="nh-cat" href={`/category/${c.slug}`}>{c.name}<span class="nh-cat-count">{c.postCount}</span></a>
         ))}
       </div>
       <div class="nh-tags">
-        {tags.map((t) => (
+        {tags.map((t: Tag) => (
           <a class="nh-tag" href={`/tag/${t.slug}`}>#{t.name}</a>
         ))}
       </div>
