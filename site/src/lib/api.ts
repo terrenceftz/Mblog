@@ -99,3 +99,11 @@ export interface DoubanData {
   stale?: boolean;
 }
 export const getDouban = () => get<DoubanData>('/douban');
+
+export interface StatsData {
+  postTotal: number;
+  commentTotal: number;
+  totalViews: number;
+  friendLinkCount: number;
+}
+export const getStats = () => get<StatsData>('/stats');

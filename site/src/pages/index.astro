@@ -1,8 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPosts, getPublicSettings, type PostListItem } from '../lib/api';
+import {
+  getPosts, getPublicSettings, getCategories, getTags, getStats, getDouban, getProjects,
+  type PostListItem,
+} from '../lib/api';
 
 const settings = await getPublicSettings();
+const siteName = settings.siteName || '我的博客';
 // 首页文章数：默认主题配置决定（双主题架构下 SSR 以默认主题为准）
 const defaultTheme = settings.theme === 'reader' ? settings.themeReader : settings.themeNormal;
 const pageSize = defaultTheme.homePageSize ?? 10;
@@ -11,13 +15,12 @@ const data = await getPosts({ page, pageSize });
 const total = data.total;
 const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-// 干支纪年：2026 -> 丙午（天干地支按年份取模）
+// 干支纪年：2026 -> 丙午
 const GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 const ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 function yearGanzhi(year: number): string {
   return GAN[(year - 4) % 10] + ZHI[(year - 4) % 12];
 }
-// 按年份分组（最新在前）
 function fmtMonthDay(ts: number): string {
   const d = new Date(ts);
   return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -29,40 +32,150 @@ for (const post of data.list) {
   if (last && last.year === y) last.items.push(post);
   else yearGroups.push({ year: y, ganzhi: yearGanzhi(y), items: [post] });
 }
+
+// 正常主题首页数据（各模块；失败时优雅降级为空）
+const [categories, tags, stats, doubanData, projectsData] = await Promise.all([
+  getCategories().catch(() => []),
+  getTags().catch(() => []),
+  getStats().catch(() => ({ postTotal: 0, commentTotal: 0, totalViews: 0, friendLinkCount: 0 })),
+  getDouban().catch(() => ({ enabled: false, movies: [] })),
+  getProjects().catch(() => ({ enabled: false, projects: [] })),
+]);
+const catName = (id: number | null) => categories.find((c) => c.id === id)?.name ?? '';
 ---
 <BaseLayout description={settings.siteDesc}>
-  <div class="content-stream">
-    {yearGroups.map((g) => (
-      <section class="year-group">
-        <h2 class="year-label" id={`year-${g.year}`} title={String(g.year)}>{g.ganzhi}</h2>
-        <ul class="year-list">
-          {g.items.map((post) => (
-            <li class="year-item">
-              <div class="item-main">
-                <span class="item-date">{fmtMonthDay(post.createdAt)}</span>
-                <a class="item-title" href={`/post/${post.slug}`}>{post.title}</a>
-              </div>
-              {post.summary && <p class="item-summary">{post.summary}</p>}
-              <span class="item-views">👁 {post.viewCount}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-    ))}
-    {data.list.length === 0 && <p class="post-empty">暂无文章</p>}
+
+  <!-- ======== 极简主题首页：干支时间线（normal 主题隐藏） ======== -->
+  <div class="reader-home">
+    <div class="content-stream">
+      {yearGroups.map((g) => (
+        <section class="year-group">
+          <h2 class="year-label" id={`year-${g.year}`} title={String(g.year)}>{g.ganzhi}</h2>
+          <ul class="year-list">
+            {g.items.map((post) => (
+              <li class="year-item">
+                <div class="item-main">
+                  <span class="item-date">{fmtMonthDay(post.createdAt)}</span>
+                  <a class="item-title" href={`/post/${post.slug}`}>{post.title}</a>
+                </div>
+                {post.summary && <p class="item-summary">{post.summary}</p>}
+                <span class="item-views">👁 {post.viewCount}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      {data.list.length === 0 && <p class="post-empty">暂无文章</p>}
+    </div>
+    {totalPages > 1 && (
+      <nav class="pagination">
+        {page > 1 && <a href={`/?page=${page - 1}`}>← 前页</a>}
+        <span class="page-info">{page} / {totalPages}</span>
+        {page < totalPages && <a href={`/?page=${page + 1}`}>后页 →</a>}
+      </nav>
+    )}
   </div>
 
-  {totalPages > 1 && (
-    <nav class="pagination">
-      {page > 1 && <a href={`/?page=${page - 1}`}>← 前页</a>}
-      <span class="page-info">{page} / {totalPages}</span>
-      {page < totalPages && <a href={`/?page=${page + 1}`}>后页 →</a>}
-    </nav>
-  )}
+  <!-- ======== 正常主题首页：内容丰富模块（极简主题隐藏） ======== -->
+  <div class="normal-home">
+    <!-- Hero -->
+    <section class="nh-hero">
+      <p class="nh-eyebrow">NOVA EON · BLOG</p>
+      <h1 class="nh-title">{siteName}</h1>
+      {settings.siteDesc && <p class="nh-desc">{settings.siteDesc}</p>}
+      <div class="nh-hero-banner"><img src="/banner.png" alt={siteName} /></div>
+    </section>
+
+    <!-- 数据统计 -->
+    <section class="nh-stats">
+      <div class="nh-stat"><span class="num">{stats.postTotal}</span><span class="label">文章</span></div>
+      <div class="nh-stat"><span class="num">{stats.commentTotal}</span><span class="label">评论</span></div>
+      <div class="nh-stat"><span class="num">{stats.totalViews}</span><span class="label">总浏览</span></div>
+      <div class="nh-stat"><span class="num">{stats.friendLinkCount}</span><span class="label">友链</span></div>
+    </section>
+
+    <!-- 最新文章 -->
+    <section class="nh-section">
+      <div class="nh-section-head"><p class="nh-eyebrow">LATEST POSTS</p><h2>最新文章</h2></div>
+      <div class="nh-post-grid">
+        {data.list.map((p) => (
+          <a class="nh-post-card" href={`/post/${p.slug}`}>
+            <div class="nh-post-cover">
+              {p.cover ? (
+                <img src={p.cover} alt="" loading="lazy" />
+              ) : (
+                <span class="nh-post-cover-fallback">{p.title.slice(0, 1)}</span>
+              )}
+            </div>
+            <div class="nh-post-body">
+              <h3 class="nh-post-title">{p.title}</h3>
+              {p.summary && <p class="nh-post-summary">{p.summary}</p>}
+              <div class="nh-post-meta">
+                <span>{fmtMonthDay(p.createdAt)}</span>
+                <span>👁 {p.viewCount}</span>
+                {catName(p.categoryId) && <span>{catName(p.categoryId)}</span>}
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- 分类与标签 -->
+    <section class="nh-section">
+      <div class="nh-section-head"><p class="nh-eyebrow">EXPLORE</p><h2>分类与标签</h2></div>
+      <div class="nh-cats">
+        {categories.map((c) => (
+          <a class="nh-cat" href={`/category/${c.slug}`}>{c.name}<span class="nh-cat-count">{c.postCount}</span></a>
+        ))}
+      </div>
+      <div class="nh-tags">
+        {tags.map((t) => (
+          <a class="nh-tag" href={`/tag/${t.slug}`}>#{t.name}</a>
+        ))}
+      </div>
+    </section>
+
+    <!-- 影音与项目 -->
+    <section class="nh-section">
+      <div class="nh-sub">
+        <div class="nh-section-head nh-sub-head">
+          <div><p class="nh-eyebrow">MOVIES</p><h2>最近观影</h2></div>
+          <a class="nh-more" href="/douban">查看全部 →</a>
+        </div>
+        {doubanData.movies.length > 0 && (
+          <div class="nh-douban">
+            {doubanData.movies.slice(0, 8).map((m) => (
+              <a class="nh-douban-item" href={m.url} target="_blank" rel="noopener noreferrer" title={m.title}>
+                {m.cover ? <img src={m.cover} alt={m.title} loading="lazy" /> : <span class="nh-douban-fallback">{m.title.slice(0, 1)}</span>}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+      <div class="nh-sub">
+        <div class="nh-section-head nh-sub-head">
+          <div><p class="nh-eyebrow">PROJECTS</p><h2>精选项目</h2></div>
+          <a class="nh-more" href="/projects">查看全部 →</a>
+        </div>
+        {projectsData.projects.length > 0 && (
+          <div class="nh-projects">
+            {projectsData.projects.slice(0, 6).map((p) => (
+              <a class="nh-project" href={p.url} target="_blank" rel="noopener noreferrer">
+                <span class="nh-project-name">{p.name}</span>
+                {p.description && <span class="nh-project-desc">{p.description}</span>}
+                {p.language && <span class="nh-project-lang">{p.language}</span>}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  </div>
 </BaseLayout>
 
 <style is:global>
-  /* 分页默认样式（normal 主题） */
+  /* 分页默认样式（极简模式由 reader.css 覆盖） */
   .pagination {
     display: flex; gap: 16px; align-items: center; justify-content: center;
     padding: 24px 0; max-width: var(--max-width); margin: 0 auto;
