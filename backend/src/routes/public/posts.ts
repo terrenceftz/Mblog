@@ -95,8 +95,11 @@ export function postsRoutes(ctx: Db) {
     if (!post) return c.json({ error: { code: 'NOT_FOUND', message: '文章不存在' } }, 404);
 
     // contentHtml 由写入时渲染存储（见 services/posts.ts）；此处返回存储值，仅递增阅读量
-    const viewCount = post.viewCount + 1;
-    ctx.db.update(posts).set({ viewCount }).where(eq(posts.id, post.id)).run();
+    // 单条 SQL 原子自增，避免 SELECT-then-SET 在并发下的丢更新
+    const row = ctx.sqlite
+      .prepare('UPDATE posts SET view_count = view_count + 1 WHERE id = ? RETURNING view_count')
+      .get(post.id) as { view_count: number };
+    const viewCount = row.view_count;
 
     const postTagList = ctx.db
       .select({ name: tags.name, slug: tags.slug })

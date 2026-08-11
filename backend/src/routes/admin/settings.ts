@@ -12,6 +12,7 @@ export function settingsAdminRoutes(ctx: Db) {
     const keys = Object.keys(DEFAULT_SETTINGS);
     const data = getSettings(ctx, keys);
     if (data.cos_secret_key) data.cos_secret_key = MASK;
+    if (data.tmdb_api_key) data.tmdb_api_key = MASK;
     return c.json({ data });
   });
 
@@ -24,11 +25,12 @@ export function settingsAdminRoutes(ctx: Db) {
     for (const [key, value] of Object.entries(body)) {
       if (!allowed.has(key) || typeof value !== 'string') continue;
       // 掩码占位符 → 保留已存密钥
-      if (key === 'cos_secret_key' && value === MASK) continue;
+      if ((key === 'cos_secret_key' || key === 'tmdb_api_key') && value === MASK) continue;
       setSetting(ctx, key, value);
     }
     const data = getSettings(ctx, Object.keys(DEFAULT_SETTINGS));
     if (data.cos_secret_key) data.cos_secret_key = MASK;
+    if (data.tmdb_api_key) data.tmdb_api_key = MASK;
     return c.json({ data });
   });
 

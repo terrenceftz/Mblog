@@ -86,20 +86,19 @@ export function postsAdminRoutes(ctx: Db) {
       if (tagCount !== tagIds.length) return c.json({ error: { code: 'INVALID', message: '存在无效标签' } }, 400);
     }
     const slug = typeof body.slug === 'string' && body.slug.trim() ? body.slug.trim() : undefined;
-    try {
-      await updatePost(ctx, id, {
-        title,
-        slug,
-        contentMd: typeof body.contentMd === 'string' ? body.contentMd : '',
-        summary: typeof body.summary === 'string' ? body.summary : undefined,
-        cover: typeof body.cover === 'string' ? body.cover : undefined,
-        categoryId,
-        status: body.status === 'published' ? 'published' : 'draft',
-        tagIds,
-      });
-    } catch {
-      return c.json({ error: { code: 'NOT_FOUND', message: '文章不存在' } }, 404);
-    }
+    // 显式检查文章是否存在：不存在返回 404，其余未预期错误交给全局错误处理返回 500
+    const exists = ctx.db.select({ id: posts.id }).from(posts).where(eq(posts.id, id)).get();
+    if (!exists) return c.json({ error: { code: 'NOT_FOUND', message: '文章不存在' } }, 404);
+    await updatePost(ctx, id, {
+      title,
+      slug,
+      contentMd: typeof body.contentMd === 'string' ? body.contentMd : '',
+      summary: typeof body.summary === 'string' ? body.summary : undefined,
+      cover: typeof body.cover === 'string' ? body.cover : undefined,
+      categoryId,
+      status: body.status === 'published' ? 'published' : 'draft',
+      tagIds,
+    });
     return c.json({ data: { id } });
   });
 
