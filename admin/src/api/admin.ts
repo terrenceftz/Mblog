@@ -86,6 +86,14 @@ export function adminBatchComments(ids: number[], action: 'approve' | 'reject' |
   return request<{ ok: true }>('/admin/comments/batch', { method: 'POST', body: JSON.stringify({ ids, action }) });
 }
 
+export interface TalkRow { id: number; content: string; ip: string; status: 'pending' | 'approved' | 'rejected'; createdAt: number }
+export function adminGetTalks(params: { status?: string } = {}) {
+  return request<TalkRow[]>(`/admin/talks${buildQuery(params)}`);
+}
+export function adminPatchTalk(id: number, status: TalkRow['status']) {
+  return request<{ id: number; status: string }>(`/admin/talks/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+}
+
 export function adminGetFriendLinks(params: { status?: string } = {}) {
   return request<FriendLinkRow[]>(`/admin/friend-links${buildQuery(params)}`);
 }

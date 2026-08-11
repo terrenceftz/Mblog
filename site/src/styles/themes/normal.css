@@ -1523,3 +1523,13 @@
 [data-theme='normal'] .nh-project.border-glow-card > .border-glow-inner {
   display: contents;
 }
+
+/* 说说页（复用全部文章页排版） */
+[data-theme='normal'] .talk-item .talk-content {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--color-text);
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

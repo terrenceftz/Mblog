@@ -11,22 +11,46 @@ function doApply(t: string) {
   document.documentElement.setAttribute('data-theme', t);
   window.dispatchEvent(new CustomEvent('mblog-theme-change', { detail: t }));
 }
-// animate=true：淡出（200ms 遮住布局变化）→ 切换主题 → 淡入；页面加载时不动画
-function apply(t: string, animate = true) {
+// 优先 View Transitions 圆形扩散（从点击处展开）；不支持/减弱动态时回落淡出
+function apply(t: string, animate = true, e?: MouseEvent) {
   if (!animate) {
     doApply(t);
     return;
   }
   const html = document.documentElement;
-  html.classList.add('theme-switching');
-  window.setTimeout(() => {
-    doApply(t);
-    requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove('theme-switching')));
-  }, 200);
+  const reducedMotion =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const supportsVT = typeof document !== 'undefined' && 'startViewTransition' in document;
+  if (!supportsVT || reducedMotion) {
+    html.classList.add('theme-switching');
+    window.setTimeout(() => {
+      doApply(t);
+      requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove('theme-switching')));
+    }, 200);
+    return;
+  }
+  const x = e?.clientX ?? window.innerWidth - 20;
+  const y = e?.clientY ?? 20;
+  const vt = (document as Document & {
+    startViewTransition: (cb: () => void) => { ready: Promise<void> };
+  }).startViewTransition(() => doApply(t));
+  const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+  vt.ready.then(() => {
+    document.documentElement.animate(
+      {
+        clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`],
+      },
+      {
+        duration: 500,
+        easing: 'ease-in',
+        pseudoElement: '::view-transition-new(root)',
+      },
+    );
+  });
 }
-function toggle() {
+function toggle(e: MouseEvent) {
   const cur = document.documentElement.getAttribute('data-theme') ?? current.value;
-  apply(cur === 'reader' ? 'normal' : 'reader');
+  apply(cur === 'reader' ? 'normal' : 'reader', true, e);
 }
 // onMounted 内读 localStorage，避免 SSR 期访问 window；同时把保存的主题应用到文档（回访用户加载即生效）
 onMounted(() => {

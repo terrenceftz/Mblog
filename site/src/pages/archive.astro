@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import GradientBlob from '../components/GradientBlob.vue';
 import { getArchive } from '../lib/api';
 
 const groups = await getArchive();
@@ -11,6 +12,7 @@ function fmtDate(ts: number): string {
 ---
 <BaseLayout title="归档" description="按月份归档的长文与笔记。">
   <div class="posts-page archive-page">
+    <GradientBlob />
     <header class="posts-header">
       <h1 class="posts-heading">归档</h1>
       <p class="posts-subtitle">按月份归档的长文与笔记。</p>

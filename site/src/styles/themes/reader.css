@@ -1077,3 +1077,12 @@
 [data-theme='reader'] .archive-page .posts-title-sm {
   font-size: 1.05rem;
 }
+
+/* 说说页（极简模式适配） */
+[data-theme='reader'] .talk-item .talk-content {
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

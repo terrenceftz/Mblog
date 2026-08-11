@@ -16,6 +16,7 @@ export const router = createRouter({
         { path: 'categories', name: 'admin-categories', component: () => import('../views/CategoryManager.vue') },
         { path: 'tags', name: 'admin-tags', component: () => import('../views/TagManager.vue') },
         { path: 'comments', name: 'admin-comments', component: () => import('../views/CommentManager.vue') },
+        { path: 'talks', name: 'admin-talks', component: () => import('../views/TalkManager.vue') },
         { path: 'friends', name: 'admin-friends', component: () => import('../views/FriendLinkManager.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('../views/SettingsPage.vue') },
         { path: 'themes', name: 'admin-themes', component: () => import('../views/ThemesPage.vue') },

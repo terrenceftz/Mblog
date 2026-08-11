@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import GradientBlob from '../components/GradientBlob.vue';
+import TalkForm from '../components/TalkForm.vue';
+import { getTalks, type Talk } from '../lib/api';
+
+const talks: Talk[] = await getTalks().catch(() => []);
+function fmtDate(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+---
+<BaseLayout title="说说" description="短动态与碎碎念。">
+  <div class="posts-page talk-page">
+    <GradientBlob />
+    <header class="posts-header">
+      <h1 class="posts-heading">说说</h1>
+      <p class="posts-subtitle">短动态与碎碎念。</p>
+      <p class="posts-count">共 {talks.length} 条</p>
+    </header>
+
+    <TalkForm client:load />
+
+    {talks.length > 0 ? (
+      <ul class="posts-list talk-list">
+        {talks.map((t) => (
+          <li class="posts-item talk-item">
+            <p class="talk-content">{t.content}</p>
+            <div class="posts-meta">
+              <time class="posts-date">{fmtDate(t.createdAt)}</time>
+            </div>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="posts-more-done" style="text-align:center">还没有说说，来写第一条~</p>
+    )}
+  </div>
+</BaseLayout>

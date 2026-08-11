@@ -20,6 +20,7 @@ function doLogout() {
         <router-link to="/categories">分类</router-link>
         <router-link to="/tags">标签</router-link>
         <router-link to="/comments">评论</router-link>
+        <router-link to="/talks">说说</router-link>
         <router-link to="/friends">友链</router-link>
         <router-link to="/settings">设置</router-link>
         <router-link to="/themes">主题</router-link>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// 全部文章页：分段加载（每段 pageSize 篇，客户端追加后续分页）
-import { computed, ref } from 'vue';
+// 全部文章页：无限滚动分段加载（每段 pageSize 篇）
+// 底部哨兵进入视口自动加载下一页；手动按钮兜底
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 interface CatItem { id: number; name: string; slug: string }
 interface ListPost {
@@ -25,6 +26,8 @@ const loading = ref(false);
 const error = ref('');
 const loaded = ref(props.initialCount);
 const done = computed(() => loaded.value >= props.total);
+const sentinel = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
 
 function catOf(id: number | null) {
   return props.cats?.find((c) => c.id === id);
@@ -52,6 +55,18 @@ async function loadMore() {
     loading.value = false;
   }
 }
+
+onMounted(() => {
+  // 无限滚动：哨兵可见且未到底时自动加载下一页
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting) loadMore();
+    },
+    { rootMargin: '160px 0px' },
+  );
+  if (sentinel.value) observer.observe(sentinel.value);
+});
+onBeforeUnmount(() => observer?.disconnect());
 </script>
 
 <template>
@@ -72,11 +87,14 @@ async function loadMore() {
       </li>
     </ul>
 
-    <div class="posts-more-bar">
+    <div ref="sentinel" class="posts-more-bar">
       <p v-if="error" class="posts-more-error">{{ error }}</p>
-      <button v-if="!done" type="button" class="posts-more-btn" :disabled="loading" @click="loadMore">
-        {{ loading ? '加载中…' : `加载更多（已加载 ${loaded} / ${total}）` }}
-      </button>
+      <template v-if="!done">
+        <p v-if="loading" class="posts-more-done">加载中…</p>
+        <button v-else type="button" class="posts-more-btn" @click="loadMore">
+          加载更多（已加载 {{ loaded }} / {{ total }}）
+        </button>
+      </template>
       <p v-else class="posts-more-done">已全部加载 · 共 {{ total }} 篇</p>
     </div>
   </div>

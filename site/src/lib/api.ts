@@ -3,7 +3,7 @@ const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
 
 export interface PostListItem {
   id: number; title: string; slug: string; summary: string; cover: string;
-  viewCount: number; categoryId: number | null; createdAt: number;
+  viewCount: number; likeCount: number; categoryId: number | null; createdAt: number;
   tags: { name: string; slug: string }[];
 }
 export interface PostDetail extends PostListItem {
@@ -21,6 +21,7 @@ export interface ThemeConfig {
 export interface PublicSettings {
   siteName: string;
   siteDesc: string;
+  siteUrl: string;
   theme: string;
   friendLinkEnabled: boolean;
   navMenu: { label: string; url: string }[];
@@ -35,6 +36,7 @@ export interface PublicSettings {
 export interface Category { id: number; name: string; slug: string; postCount: number }
 export interface Tag { id: number; name: string; slug: string; postCount: number }
 export interface ArchiveGroup { month: string; items: { createdAt: number; title: string; slug: string }[] }
+export interface Talk { id: number; content: string; createdAt: number }
 export interface FriendLink { id: number; name: string; url: string; description: string; avatar: string }
 export interface Project {
   name: string; description: string; url: string;
@@ -53,7 +55,7 @@ async function get<T>(path: string): Promise<T> {
 
 export function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
-    siteName: '我的博客', siteDesc: '', theme: 'normal', friendLinkEnabled: true,
+    siteName: '我的博客', siteDesc: '', siteUrl: 'http://localhost', theme: 'normal', friendLinkEnabled: true,
     themeNormal: {}, themeReader: {}, githubEnabled: false, githubUsername: '',
     doubanEnabled: false, doubanUid: '', turnstileSiteKey: '',
     navMenu: [
@@ -81,6 +83,7 @@ export const getCategories = () => get<Category[]>('/categories');
 export const getTags = () => get<Tag[]>('/tags');
 export const getArchive = () => get<ArchiveGroup[]>('/archive');
 export const getFriendLinks = () => get<FriendLink[]>('/friend-links');
+export const getTalks = () => get<Talk[]>('/talks');
 export const getProjects = () => get<ProjectsData>('/projects');
 export interface DoubanMovie {
   title: string;

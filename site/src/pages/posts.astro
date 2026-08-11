@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostLoadMore from '../components/PostLoadMore.vue';
+import GradientBlob from '../components/GradientBlob.vue';
 import { getPosts, getCategories, type PostListItem, type Category } from '../lib/api';
 
 // 分段加载：每段 8 篇，首段 SSR 渲染，后续由 PostLoadMore 客户端追加
@@ -17,6 +18,7 @@ function fmtDate(ts: number): string {
 ---
 <BaseLayout title="全部文章" description="长文、技术笔记与深度思考。">
   <div class="posts-page">
+    <GradientBlob />
     <header class="posts-header">
       <h1 class="posts-heading">全部文章</h1>
       <p class="posts-subtitle">长文、技术笔记与深度思考。</p>
