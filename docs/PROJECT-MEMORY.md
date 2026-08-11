@@ -179,7 +179,25 @@ AdminLayout（暗色侧栏 + icons + 移动抽屉 + `isActive()` 精确导航判
 9. **测试断言**：分页 shape 改 `{list,total}` 后，admin.test.ts:304/361、stats.test.ts:38 必须同步
 10. **字体/样式改动**：永远带 `[data-theme='normal']` 前缀，别碰 reader
 
-## 8. 参考
+## 8. 事故记录（重要！）
+
+### 2026-08-11 17:53 —— admin 目录被 pure-admin-thin 模板整体覆盖
+
+**现象**：后台 dev server 无故崩溃，报 EPERM（`.vite/deps_temp → .vite/deps` rename 失败）；`git status` 出现大量 `M`/`D`，`package.json` 变成 vue-pure-admin-thin 的（element-plus/pinia，dev 脚本是 pnpm 风格 `NODE_OPTIONS=… vite`，Windows cmd 下跑不起来）。
+
+**根因**：admin 目录被外部操作整体覆盖为 pure-admin-thin 模板（发生在 vite.config.ts 变化触发的重启时刻）。非本会话操作，疑似其他窗口误解压。
+
+**恢复命令（已验证）**：
+```bash
+git checkout -- admin/   # 恢复所有 M/D 文件（我们的代码全部在 HEAD 里）
+git clean -fd admin/     # 删除 pure-admin 的 untracked 残留（layout/store/views/login 等）
+rm -rf admin/.vite       # 清掉损坏的 vite 缓存
+cd admin && npm run dev  # 重启（脚本是纯 vite，无 NODE_OPTIONS）
+```
+
+**防御**：若再出现 dev server EPERM 崩溃 + package.json 异常，先 `git status` 检查 admin 是否被覆盖；`.zcode/`（仓库根）是 ZCode 工具目录，**永远不要删**。
+
+## 9. 参考
 
 - 灵感/借鉴：https://eonova.me 源码 https://github.com/eonova/eonova.me
 - Reactbits 组件移植（border-glow / pill-nav / blur-text / liquid-ether / line-sidebar / gradual-blur(已移除)）
