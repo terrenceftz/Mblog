@@ -1,12 +1,32 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { logout } from '../api/admin';
+import { getThemeChoice, setThemeChoice, type ThemeChoice } from '../lib/theme';
 import ToastContainer from '../components/ToastContainer.vue';
 
 const route = useRoute();
 const router = useRouter();
 const menuOpen = ref(false);
+
+// 主题切换：三态循环 dark → light → auto → dark
+const themeChoice = ref<ThemeChoice>(getThemeChoice());
+const themeLabel = computed(() =>
+  themeChoice.value === 'dark' ? '暗色' : themeChoice.value === 'light' ? '浅色' : '跟随系统'
+);
+const themeIcon = computed(() =>
+  themeChoice.value === 'light'
+    ? 'M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z'
+    : themeChoice.value === 'dark'
+    ? 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'
+    : 'M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'
+);
+function cycleTheme() {
+  const next: ThemeChoice =
+    themeChoice.value === 'dark' ? 'light' : themeChoice.value === 'light' ? 'auto' : 'dark';
+  themeChoice.value = next;
+  setThemeChoice(next);
+}
 
 function doLogout() {
   logout();
@@ -66,8 +86,20 @@ const navItems = [
         </router-link>
       </nav>
       <div class="admin-actions">
+        <button
+          type="button"
+          class="theme-toggle"
+          :title="'主题：' + themeLabel + '（点击切换）'"
+          :aria-label="'切换主题，当前' + themeLabel"
+          @click="cycleTheme"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path :d="themeIcon" />
+          </svg>
+          <span>{{ themeLabel }}</span>
+        </button>
         <a href="http://localhost:4321/" target="_blank" rel="noopener noreferrer">← 查看站点</a>
-        <button type="button" @click="doLogout">退出登录</button>
+        <button type="button" class="logout-btn" @click="doLogout">退出登录</button>
       </div>
     </aside>
     <div v-if="menuOpen" class="admin-mask" @click="menuOpen = false" />
@@ -81,87 +113,110 @@ const navItems = [
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background: #0b0b0e;
+  background: var(--bg);
 }
 .admin-side {
   width: 210px;
-  background: #101014;
-  color: #d1d5db;
+  background: var(--surface);
+  color: var(--text-muted);
   display: flex;
   flex-direction: column;
-  padding: 16px 0;
+  padding: var(--space-4) 0;
   position: sticky;
   top: 0;
   height: 100vh;
   max-height: 100vh;
   overflow-y: auto;
-  border-right: 1px solid #1f1f24;
+  border-right: 1px solid var(--border);
   flex-shrink: 0;
 }
 .admin-side nav {
   display: flex;
   flex-direction: column;
-  padding: 10px 0;
+  padding: var(--space-2) 0;
   flex: 1;
 }
 .admin-brand {
-  padding: 0 20px 16px;
+  padding: 0 var(--space-5) var(--space-4);
   font-weight: 700;
-  font-size: 16px;
-  color: #fafafa;
-  border-bottom: 1px solid #1f1f24;
+  font-size: var(--font-md);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 .admin-side nav a {
-  color: #9d9d95;
+  color: var(--text-muted);
   text-decoration: none;
-  padding: 10px 20px;
-  font-size: 14px;
+  padding: 10px var(--space-5);
+  font-size: var(--font-base);
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
   border-left: 2px solid transparent;
-  transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+  transition: color var(--transition-base), background-color var(--transition-base),
+    border-color var(--transition-base);
 }
 .admin-side nav a.active,
 .admin-side nav a:hover {
-  color: #e8b64c;
-  background: rgba(232, 182, 76, 0.08);
-  border-left-color: #e8b64c;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-left-color: var(--primary);
 }
 .admin-actions {
   margin-top: auto;
-  padding: 12px 20px;
+  padding: var(--space-3) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  border-top: 1px solid #1f1f24;
+  gap: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-md);
+  padding: 7px var(--space-3);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-sm);
+  transition: border-color var(--transition-base), color var(--transition-base),
+    background-color var(--transition-base);
+}
+.theme-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 .admin-actions a {
-  color: #9d9d95;
-  font-size: 13px;
+  color: var(--text-muted);
+  font-size: var(--font-sm);
   text-decoration: none;
+  transition: color var(--transition-base);
 }
 .admin-actions a:hover {
-  color: #e8b64c;
+  color: var(--primary);
 }
-.admin-actions button {
+.logout-btn {
   background: none;
-  border: 1px solid #3f3f46;
-  color: #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius-md);
   padding: 7px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-sm);
+  transition: border-color var(--transition-base), color var(--transition-base);
 }
-.admin-actions button:hover {
-  border-color: #f87171;
-  color: #f87171;
+.logout-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 .admin-main {
   flex: 1;
-  padding: 24px;
+  padding: var(--space-6);
   max-width: 1200px;
   min-width: 0;
 }
@@ -181,16 +236,16 @@ const navItems = [
     align-items: center;
     justify-content: space-between;
     height: 52px;
-    padding: 0 16px;
-    background: #101014;
-    border-bottom: 1px solid #1f1f24;
+    padding: 0 var(--space-4);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
     z-index: 120;
   }
   .admin-brand-sm {
     font-weight: 700;
-    color: #fafafa;
+    color: var(--text);
   }
   .admin-hamburger {
     display: flex;
@@ -201,7 +256,7 @@ const navItems = [
     height: 36px;
     background: none;
     border: none;
-    padding: 8px;
+    padding: var(--space-2);
     cursor: pointer;
   }
   .admin-hamburger .bar {
@@ -209,8 +264,8 @@ const navItems = [
     height: 2px;
     width: 100%;
     border-radius: 2px;
-    background: #f4f4f5;
-    transition: transform 0.25s ease, opacity 0.2s ease;
+    background: var(--text);
+    transition: transform 0.25s ease, opacity var(--transition-base);
   }
   .admin-hamburger.open .bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
   .admin-hamburger.open .bar:nth-child(2) { opacity: 0; }
@@ -225,7 +280,8 @@ const navItems = [
     z-index: 110;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    border-right: 1px solid #1f1f24;
+    border-right: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
   }
   .admin-side.open {
     transform: translateX(0);
@@ -238,7 +294,7 @@ const navItems = [
     z-index: 105;
   }
   .admin-main {
-    padding: 16px;
+    padding: var(--space-4);
   }
 }
 </style>

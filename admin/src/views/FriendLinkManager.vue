@@ -32,14 +32,18 @@ onMounted(load);
 
 <template>
   <div>
-    <div class="toolbar">
-      <h1 class="page-title">友链管理</h1>
-      <select v-model="filter" class="input" @change="load">
-        <option value="">全部</option>
-        <option value="pending">待审核</option>
-        <option value="approved">已通过</option>
-        <option value="rejected">已拒绝</option>
-      </select>
+    <div class="page-header">
+      <div class="page-header-titles">
+        <h1 class="page-title">友链管理</h1>
+      </div>
+      <div class="page-header-actions">
+        <select v-model="filter" class="input" @change="load">
+          <option value="">全部</option>
+          <option value="pending">待审核</option>
+          <option value="approved">已通过</option>
+          <option value="rejected">已拒绝</option>
+        </select>
+      </div>
     </div>
     <p v-if="error" class="error">{{ error }}</p>
     <div class="table-wrap">
@@ -65,12 +69,10 @@ onMounted(load);
 </template>
 
 <style scoped>
-.toolbar { justify-content: space-between; }
-.toolbar .page-title { margin: 0; }
 .url { color: var(--primary); text-decoration: none; }
 .url:hover { text-decoration: underline; }
 .desc-cell { max-width: 240px; color: var(--text-muted); }
 .op-cell { white-space: nowrap; }
-.op-cell .btn { margin-right: 8px; }
+.op-cell .btn { margin-right: var(--space-2); }
 .op-cell .btn:last-child { margin-right: 0; }
 </style>

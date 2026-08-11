@@ -1,10 +1,22 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0b0b0e" />
+    <meta name="theme-color" content="#0b0b0e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f7f7f4" media="(prefers-color-scheme: light)" />
     <title>MBLOG 后台</title>
+    <script>
+      // 首屏防闪白：在模块加载前同步应用主题
+      (function () {
+        try {
+          var choice = localStorage.getItem('admin_theme') || 'auto';
+          var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolved = choice === 'auto' ? (dark ? 'dark' : 'light') : choice;
+          document.documentElement.setAttribute('data-theme', resolved);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

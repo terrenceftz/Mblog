@@ -283,14 +283,14 @@ async function save() {
 .settings-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
   align-items: stretch;
   max-width: none;
 }
 .settings-form .card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
 }
 .card--full {
   grid-column: 1 / -1;
@@ -299,7 +299,7 @@ async function save() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   color: var(--text-muted);
 }
 .settings-form select {
@@ -308,23 +308,23 @@ async function save() {
 .field-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 4px 0;
 }
-.saved { color: var(--ok); font-size: 14px; }
-.menu-editor { display: flex; flex-direction: column; gap: 8px; }
-.menu-row { display: flex; gap: 8px; align-items: center; }
+.saved { color: var(--ok); font-size: var(--font-base); }
+.menu-editor { display: flex; flex-direction: column; gap: var(--space-2); }
+.menu-row { display: flex; gap: var(--space-2); align-items: center; }
 .menu-row .input { flex: 1; }
 .menu-row .input:first-child { flex: 0 0 140px; }
 .menu-add { align-self: flex-start; }
-.menu-tip { color: var(--text-muted); font-size: 12px; margin: 0; }
-.sync-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.menu-tip { color: var(--text-muted); font-size: var(--font-xs); margin: 0; }
+.sync-row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 
 @media (max-width: 900px) {
   .settings-form {

@@ -75,10 +75,10 @@ onMounted(load);
 </template>
 
 <style scoped>
-.add-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.add-row { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
 .add-row .input { flex: 1; max-width: 320px; }
-.table .input { padding: 4px 10px; font-size: 13px; }
+.table .input { padding: var(--space-1) 10px; font-size: var(--font-sm); }
 .op-cell { white-space: nowrap; }
-.op-cell .btn { margin-right: 8px; }
+.op-cell .btn { margin-right: var(--space-2); }
 .op-cell .btn:last-child { margin-right: 0; }
 </style>

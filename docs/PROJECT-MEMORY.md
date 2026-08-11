@@ -1,6 +1,6 @@
 # MBLOG 项目记忆文档（会话交接）
 
-> 最后更新：2026-08-11 17:30（当日会话结束时）
+> 最后更新：2026-08-11（后台 UI 精修 + 浅色双主题落地后）
 > 用途：跨会话记忆，供明天继续开发使用。开发前先读本文件 + `git log --oneline -20`。
 
 ---
@@ -118,7 +118,16 @@ AdminLayout（暗色侧栏 + icons + 移动抽屉 + `isActive()` 精确导航判
 
 ### 关键约定
 
-- **共享暗色系统**：`src/styles/admin.css`（cards/tables/buttons/badges/pagination/toast），含 `color-scheme: dark`、`:focus-visible`、`touch-action: manipulation`
+- **双主题 token 体系**（`src/styles/admin.css`，后台最核心的设计约定，spec 见 `docs/superpowers/specs/2026-08-11-admin-ui-polish-design.md`）：
+  - 三层 token：**语义层**（--bg/--surface/--surface-2/--surface-3 背景四档、--border/--border-strong 两档、--text/--text-muted/--text-subtle 三档、--primary 系、--ok/--warn/--danger/--info）、**阴影层**（--shadow-sm/md/lg/pop）、**节奏层**（--space-1..8、--radius-*、--font-xs..2xl、--transition-fast/base、--focus-ring）
+  - 暗色定义在 `:root`（默认，含 `color-scheme: dark`）；浅色覆盖在 `[data-theme='light']`（含 `color-scheme: light`）；节奏层暗浅共享
+  - **铁律：组件样式禁止硬编码色值，只引用 token；新色值先加 token 再用**。合法例外：ThemesPage 主题色板数据、Dashboard 图标/图表装饰色、Login blob 渐变
+  - 阴影体系（克制）：卡片默认无阴影，hover 加 `--shadow-sm`；浮层（toast/弹窗/下拉）用 `--shadow-lg`/`--shadow-pop`
+  - 通用结构类：`.page-header`（title + 右侧 `.page-header-actions` 操作槽，列表页"新建"/筛选移入）、`.btn` 三款（默认描边 / primary 实心 / `.btn.ghost` 透明次要款，hover 提亮+`translateY(-1px)`，active 按压反馈）、`.stagger` 入场动画（fade-rise 0.3s，统计卡/列表项）
+- **主题管理** `src/lib/theme.ts`：dark/light/auto 三态，用户选择存 `localStorage('admin_theme')`；**`<html data-theme>` 始终写解析后的具体值**（auto 也解析为 dark/light，CSS 只需匹配 `[data-theme='light']`）；`startThemeSystem()` 在 main.ts 挂载前同步应用（防闪白）+ 监听系统主题变化（仅 auto 时跟随）；index.html 内另有同款内联防闪白脚本 + `theme-color` meta 双 media
+- **主题切换器**：AdminLayout 侧栏底部 `.admin-actions`，三态循环按钮（dark → light → auto），太阳/月亮/自动图标 + 文字标签（`aria-label` 带当前状态）
+- **Vditor 主题联动**：PostEditor 按 `getResolvedTheme()` 建编辑器——dark 用 `'dark'`、浅色用 `'classic'`（Vditor 的 classic 即浅色）
+- **Login 浅色适配**：`:global([data-theme='light'])` 下 blob 光斑改低饱和琥珀/蓝
 - **Toast**：`src/lib/toast.ts` + `ToastContainer.vue`，所有操作反馈统一走 toast
 - **PostEditor**：暗色 Vditor（自定义 toolbar、上传 contract `format` wrapper）、封面上传、localStorage 自动保存草稿（`mblog_admin_draft_${new|edit_${id}}`）、字数统计、TagPicker
 - **TagPicker**：可搜索多选 + 内联创建；**必须用 `watch(() => props.tags, ...)` 同步异步 props**（直接初始化 ref 会拿到空数组）；默认折叠，仅搜索时显示选项
@@ -145,13 +154,14 @@ AdminLayout（暗色侧栏 + icons + 移动抽屉 + `isActive()` 精确导航判
 
 后台：
 - 全站暗色化（共享样式库 + Toast）、登录页重设计、设置页双列等高、侧栏自适应+导航激活修复、TagPicker（含 bugs 修复）、说说发布框、web-design-guidelines skill 审计修复
-- **仪表盘增强**（最后提交 `0fe6972`：图标统计卡 + 快捷操作）
+- **仪表盘增强**（提交 `0fe6972`：图标统计卡 + 快捷操作）
+- **UI 精修 + 浅色双主题**（spec: `docs/superpowers/specs/2026-08-11-admin-ui-polish-design.md`，改动在**工作区未提交**，16 文件 + 新增 `theme.ts`）：admin.css 三层 token 体系化、theme.ts 三态主题管理、侧栏主题切换器、`.page-header` 页头结构、`.btn.ghost`、阴影/间距/字号 scale 落地、组件硬编码色值清零（仅 ThemesPage 色板/Dashboard 图标色/Login blob 例外）、`.stagger` 入场动画、Vditor 与 Login 浅色适配
 
-提交历史（最近 15 条见文首 git log 输出），工作区干净。
+提交历史（最近 15 条见文首 git log 输出）。**当前工作区有未提交改动**：上一条 bullet 的全部内容（含新增 `theme.ts` 和 spec 文档），commit 时用类似 `feat(admin): 后台 UI 精修 + 浅色双主题` 的消息。
 
 ## 6. 待办 / 下一步
 
-- **整体优化后台 UI**（进行中）：Dashboard 已完成；剩余可打磨：PostList（行点击进编辑、hover 细节、tabular-nums）、CategoryManager / TagManager（add-row 与卡片一致 + 空态 + 编辑取消）、FriendLinkManager 润色、全局 admin.css 收尾
+- **后台 UI 打磨**：token 体系化 + 浅色双主题已落地（待 commit）；**剩余**：PostList（行点击进编辑、tabular-nums、hover 细节——本轮未动）、CategoryManager / TagManager（add-row 与卡片一致 + 空态 + 编辑取消，本轮只做了 token/页头迁移，一致性细节未验证）
 - eonova.me 借鉴清单中 **low-priority 项**（会话实现时排除的部分）
 - 部署验证：OG 图中文需服务器 CJK 字体（check docker image）
 - 若做：说说前台互动、评论区增强等（未定）

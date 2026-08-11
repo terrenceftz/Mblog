@@ -7,6 +7,7 @@ import {
   adminGetPost, adminCreatePost, adminUpdatePost,
   adminGetCategories, adminGetTags, uploadFile,
 } from '../api/admin';
+import { getResolvedTheme } from '../lib/theme';
 import TagPicker from '../components/TagPicker.vue';
 import { toast } from '../lib/toast';
 
@@ -171,7 +172,8 @@ onMounted(async () => {
     vditor = new Vditor('vditor', {
       height: 520,
       mode: 'wysiwyg',
-      theme: 'dark',
+      // Vditor 用 classic 表示浅色主题，dark 表示暗色
+      theme: getResolvedTheme() === 'dark' ? 'dark' : 'classic',
       toolbar: buildToolbar(),
       cache: { enable: false },
       upload: {
@@ -293,12 +295,19 @@ async function save(status: 'draft' | 'published', navigate: boolean) {
 </template>
 
 <style scoped>
-.editor-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-.page-title { font-size: 22px; margin: 0; }
-.actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.error { color: #f87171; margin: 0 0 12px; }
-.form-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: start; }
-.form-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+.editor-head .page-title { font-size: var(--font-2xl); margin: 0; }
+.actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.error { color: var(--danger); margin: 0 0 var(--space-3); }
+.form-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--space-5); align-items: start; }
+.form-main { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .field { position: relative; }
 .field .input { width: 100%; box-sizing: border-box; }
 .title-input { font-size: 20px; font-weight: 600; }
@@ -307,28 +316,44 @@ async function save(status: 'draft' | 'published', navigate: boolean) {
   right: 10px;
   bottom: 8px;
   font-size: 11px;
-  color: #5c5c66;
+  color: var(--text-subtle);
   pointer-events: none;
 }
-.form-side { display: flex; flex-direction: column; gap: 14px; }
+/* 摘要框：纵向自由拖拽，字数计数挪到左下角避开原生 resize 手柄 */
+.summary-input {
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+  line-height: 1.6;
+}
+.field:has(.summary-input) .char-count {
+  right: auto;
+  left: 10px;
+  /* 让出右下角给拖拽手柄，并加一点背景避免压字 */
+  background: var(--surface);
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+}
+.form-side { display: flex; flex-direction: column; gap: var(--space-3); }
 .form-side select,
 .form-side .input { width: 100%; box-sizing: border-box; }
 .cover-preview {
   display: block;
-  margin-top: 10px;
+  margin-top: var(--space-2);
   max-width: 100%;
   max-height: 140px;
-  border-radius: 8px;
-  border: 1px solid #26262a;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
   object-fit: cover;
 }
-/* Vditor 编辑器暗色微调（工具栏分组间距） */
-:deep(.vditor) { border-color: #26262a; border-radius: 10px; }
-:deep(.vditor-toolbar) { background: #101014; border-bottom-color: #26262a; }
-:deep(.vditor-toolbar__item) { color: #9d9d95; }
-:deep(.vditor-toolbar__item:hover), :deep(.vditor-toolbar__item--current) { color: #e8b64c; background: rgba(232,182,76,.1); }
-:deep(.vditor-toolbar__divider) { background: #26262a; }
-:deep(.vditor-reset) { background: #131316; color: #d4d4d8; }
+/* Vditor 编辑器融入主题：暗色覆写 */
+:deep(.vditor) { border-color: var(--border); border-radius: var(--radius-md); }
+:deep(.vditor-toolbar) { background: var(--surface-2); border-bottom-color: var(--border); }
+:deep(.vditor-toolbar__item) { color: var(--text-muted); }
+:deep(.vditor-toolbar__item:hover),
+:deep(.vditor-toolbar__item--current) { color: var(--primary); background: var(--primary-soft); }
+:deep(.vditor-toolbar__divider) { background: var(--border); }
+:deep(.vditor-reset) { background: var(--surface); color: var(--text); }
 
 @media (max-width: 900px) {
   .form-grid { grid-template-columns: 1fr; }

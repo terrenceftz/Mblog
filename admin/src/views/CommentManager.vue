@@ -92,14 +92,18 @@ onMounted(load);
 
 <template>
   <div>
-    <div class="toolbar">
-      <h1 class="page-title">评论管理</h1>
-      <select v-model="filter" class="input" @change="changeFilter">
-        <option value="">全部</option>
-        <option value="pending">待审核</option>
-        <option value="approved">已通过</option>
-        <option value="rejected">已拒绝</option>
-      </select>
+    <div class="page-header">
+      <div class="page-header-titles">
+        <h1 class="page-title">评论管理</h1>
+      </div>
+      <div class="page-header-actions">
+        <select v-model="filter" class="input" @change="changeFilter">
+          <option value="">全部</option>
+          <option value="pending">待审核</option>
+          <option value="approved">已通过</option>
+          <option value="rejected">已拒绝</option>
+        </select>
+      </div>
     </div>
     <div class="toolbar batch-toolbar">
       <label class="select-all">
@@ -156,20 +160,32 @@ onMounted(load);
 </template>
 
 <style scoped>
-.toolbar { justify-content: space-between; }
-.toolbar .page-title { margin: 0; }
 .batch-toolbar { justify-content: flex-start; }
-.select-all { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); margin-right: 8px; }
-.batch-info { color: var(--text-muted); font-size: 13px; margin-left: 8px; }
+.select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-base);
+  color: var(--text-muted);
+  margin-right: var(--space-2);
+}
+.batch-info { color: var(--text-muted); font-size: var(--font-sm); margin-left: var(--space-2); }
 input[type='checkbox'] { accent-color: var(--primary); }
 .checkbox-cell { width: 40px; }
 .content-cell { max-width: 360px; white-space: pre-wrap; }
 .op-cell { white-space: nowrap; }
-.op-cell .btn { margin-right: 8px; }
+.op-cell .btn { margin-right: var(--space-2); }
 .op-cell .btn:last-child { margin-right: 0; }
-.link-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; }
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-base);
+  transition: color var(--transition-base);
+}
 .link-btn:hover { color: var(--primary); }
-.reply-box { display: flex; flex-direction: column; gap: 8px; }
+.reply-box { display: flex; flex-direction: column; gap: var(--space-2); }
 .reply-textarea { width: 260px; resize: vertical; font-family: inherit; }
-.reply-actions { display: flex; align-items: center; gap: 8px; }
+.reply-actions { display: flex; align-items: center; gap: var(--space-2); }
 </style>

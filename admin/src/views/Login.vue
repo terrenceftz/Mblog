@@ -95,10 +95,10 @@ async function submit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0b0b0e;
+  background: var(--bg);
   position: relative;
   overflow: hidden;
-  padding: 24px;
+  padding: var(--space-6);
 }
 /* 氛围光斑 */
 .login-bg {
@@ -133,17 +133,20 @@ async function submit() {
   transform: translate(-50%, -50%);
   background: rgba(249, 115, 22, 0.1);
 }
+/* 浅色主题下光斑更柔和 */
+:global([data-theme='light']) .b1 { background: rgba(217, 154, 43, 0.16); }
+:global([data-theme='light']) .b2 { background: rgba(79, 124, 247, 0.14); }
+:global([data-theme='light']) .b3 { background: rgba(217, 154, 43, 0.08); }
 
 .login-card {
   position: relative;
   width: 380px;
   max-width: 100%;
-  background: rgba(19, 19, 22, 0.82);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(38, 38, 42, 0.9);
-  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 36px 30px 26px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-pop);
   animation: card-in 0.45s ease-out;
 }
 @keyframes card-in {
@@ -160,8 +163,8 @@ async function submit() {
   height: 52px;
   margin: 0 auto 14px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #e8b64c, #f97316);
-  color: #09090b;
+  background: linear-gradient(135deg, var(--primary), #f97316);
+  color: var(--primary-contrast);
   font-size: 26px;
   font-weight: 800;
   display: flex;
@@ -172,21 +175,21 @@ async function submit() {
 .login-brand h1 {
   font-size: 19px;
   font-weight: 700;
-  color: #fafafa;
+  color: var(--text);
   margin: 0 0 4px;
 }
 .login-sub {
-  font-size: 12px;
+  font-size: var(--font-xs);
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #9d9d95;
+  color: var(--text-muted);
   margin: 0;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 .field {
   display: flex;
@@ -194,27 +197,27 @@ async function submit() {
   gap: 6px;
 }
 .field-label {
-  font-size: 12px;
-  color: #9d9d95;
+  font-size: var(--font-xs);
+  color: var(--text-muted);
 }
 .field input {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #26262a;
-  background: #131316;
-  color: #f4f4f5;
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-md);
   padding: 11px 13px;
-  font-size: 14px;
+  font-size: var(--font-base);
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 .field input::placeholder {
-  color: #5c5c66;
+  color: var(--text-subtle);
 }
 .field input:focus {
-  border-color: #e8b64c;
-  box-shadow: 0 0 0 3px rgba(232, 182, 76, 0.15);
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
 }
 .pw-wrap {
   position: relative;
@@ -234,35 +237,37 @@ async function submit() {
   justify-content: center;
   background: none;
   border: none;
-  color: #71717a;
+  color: var(--text-subtle);
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-base);
 }
 .pw-toggle:hover {
-  color: #e8b64c;
+  color: var(--primary);
 }
 
 .error {
-  color: #f87171;
-  font-size: 13px;
+  color: var(--danger);
+  font-size: var(--font-sm);
   margin: 0;
 }
 
 .submit {
   border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #e8b64c, #f59e0b);
-  color: #09090b;
-  font-size: 15px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary), #f59e0b);
+  color: var(--primary-contrast);
+  font-size: var(--font-lg);
   font-weight: 700;
   letter-spacing: 0.2em;
-  padding: 12px;
+  padding: var(--space-3);
   cursor: pointer;
   margin-top: 4px;
-  transition: filter 0.2s ease, transform 0.1s ease;
+  transition: filter var(--transition-base), transform 0.1s ease, box-shadow var(--transition-base);
 }
 .submit:hover:not(:disabled) {
   filter: brightness(1.08);
+  box-shadow: var(--shadow-sm);
 }
 .submit:active:not(:disabled) {
   transform: scale(0.99);
@@ -275,13 +280,13 @@ async function submit() {
 .login-back {
   display: block;
   text-align: center;
-  margin-top: 20px;
-  font-size: 13px;
-  color: #71717a;
+  margin-top: var(--space-5);
+  font-size: var(--font-sm);
+  color: var(--text-subtle);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color var(--transition-base);
 }
 .login-back:hover {
-  color: #e8b64c;
+  color: var(--primary);
 }
 </style>

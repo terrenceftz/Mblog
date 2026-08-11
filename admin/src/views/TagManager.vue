@@ -65,9 +65,16 @@ onMounted(load);
 </template>
 
 <style scoped>
-.add-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.add-row { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
 .add-row .input { flex: 1; max-width: 320px; }
-.tag-list { display: flex; flex-wrap: wrap; gap: 10px; }
-.tag-chip { display: flex; align-items: center; gap: 8px; border-radius: 999px; padding: 6px 14px; font-size: 14px; }
-.tag-chip .tag-edit { width: 120px; padding: 4px 10px; font-size: 13px; }
+.tag-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.tag-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: var(--font-base);
+}
+.tag-chip .tag-edit { width: 120px; padding: var(--space-1) 10px; font-size: var(--font-sm); }
 </style>

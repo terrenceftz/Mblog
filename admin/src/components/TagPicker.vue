@@ -97,7 +97,7 @@ async function create() {
 .tag-picker {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .tag-chips {
   display: flex;
@@ -108,12 +108,12 @@ async function create() {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(232, 182, 76, 0.12);
-  border: 1px solid rgba(232, 182, 76, 0.4);
-  color: #e8b64c;
-  border-radius: 999px;
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: var(--radius-full);
   padding: 3px 8px 3px 11px;
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 .chip-x {
   background: none;
@@ -123,6 +123,7 @@ async function create() {
   font-size: 11px;
   padding: 0;
   opacity: 0.7;
+  transition: opacity var(--transition-fast);
 }
 .chip-x:hover {
   opacity: 1;
@@ -135,7 +136,7 @@ async function create() {
   left: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #5c5c66;
+  color: var(--text-subtle);
   pointer-events: none;
 }
 .tag-search input {
@@ -148,44 +149,46 @@ async function create() {
   flex-direction: column;
   max-height: 180px;
   overflow-y: auto;
-  border: 1px solid #26262a;
-  border-radius: 8px;
-  background: #101014;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
   padding: 4px;
+  box-shadow: var(--shadow-md);
 }
 .tag-option,
 .tag-create {
   text-align: left;
   background: none;
   border: none;
-  color: #d4d4d8;
-  padding: 8px 10px;
-  border-radius: 6px;
+  color: var(--text);
+  padding: var(--space-2) 10px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-sm);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 .tag-option:hover,
 .tag-create:hover {
-  background: rgba(232, 182, 76, 0.1);
-  color: #e8b64c;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 .tag-create {
-  color: #e8b64c;
+  color: var(--primary);
   font-weight: 600;
-  border-bottom: 1px solid #26262a;
-  border-radius: 6px 6px 0 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 .tag-count {
   font-size: 11px;
-  color: #5c5c66;
+  color: var(--text-subtle);
 }
 .tag-none {
   margin: 0;
-  padding: 8px 10px;
-  font-size: 13px;
-  color: #5c5c66;
+  padding: var(--space-2) 10px;
+  font-size: var(--font-sm);
+  color: var(--text-subtle);
 }
 </style>

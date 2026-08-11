@@ -36,9 +36,9 @@ onMounted(async () => {
     <p v-if="error" class="error">{{ error }}</p>
 
     <!-- 统计卡片 -->
-    <div v-if="stats" class="stat-grid">
+    <div v-if="stats" class="stat-grid stagger">
       <div v-for="card in statCards" :key="card.key" class="card stat-card">
-        <div class="stat-icon" :style="{ color: card.color }">
+        <div class="stat-icon" :style="{ color: card.color, background: card.color + '1a' }">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path :d="card.icon" />
           </svg>
@@ -50,7 +50,7 @@ onMounted(async () => {
       </div>
       <!-- 待审核评论：可点击跳转 -->
       <router-link v-if="stats.pendingComments > 0" to="/comments?status=pending" class="card stat-card stat-warn">
-        <div class="stat-icon" style="color: #fbbf24">
+        <div class="stat-icon stat-icon-warn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
           </svg>
@@ -66,14 +66,14 @@ onMounted(async () => {
     <!-- 快捷操作 -->
     <div class="quick-section">
       <h2 class="quick-title">快捷操作</h2>
-      <div class="quick-grid">
+      <div class="quick-grid stagger">
         <button
           v-for="action in quickActions"
           :key="action.label"
           class="card quick-card"
           @click="router.push(action.to)"
         >
-          <div class="quick-icon" :style="{ color: action.color }">
+          <div class="quick-icon" :style="{ color: action.color, background: action.color + '1a' }">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path :d="action.icon" />
             </svg>
@@ -89,18 +89,20 @@ onMounted(async () => {
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px;
-  margin-bottom: 32px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
 }
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 16px;
-  transition: border-color 0.2s ease, transform 0.15s ease;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4);
+  transition: border-color var(--transition-base), transform var(--transition-fast),
+    box-shadow var(--transition-base);
 }
 .stat-card:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 .stat-warn {
   display: flex;
@@ -109,7 +111,7 @@ onMounted(async () => {
   border-color: rgba(251, 191, 36, 0.4);
 }
 .stat-warn:hover {
-  border-color: #fbbf24;
+  border-color: var(--warn);
 }
 .stat-icon {
   flex-shrink: 0;
@@ -118,51 +120,56 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-md);
+}
+.stat-icon-warn {
+  color: var(--warn);
+  background: rgba(251, 191, 36, 0.12);
 }
 .stat-body { min-width: 0; }
 .stat-card .num {
   font-size: 26px;
   font-weight: 700;
-  color: #fafafa;
+  color: var(--text);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
-.warn-num { color: #fbbf24; }
+.warn-num { color: var(--warn); }
 .stat-card .label {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-xs);
   margin-top: 2px;
 }
 
 .quick-title {
-  font-size: 15px;
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--text);
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-3);
 }
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
 }
 .quick-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 20px 14px;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-3);
   text-align: center;
   border: 1px solid var(--border);
   cursor: pointer;
   font: inherit;
   color: var(--text-muted);
-  transition: border-color 0.2s ease, transform 0.15s ease, color 0.2s ease;
+  transition: border-color var(--transition-base), transform var(--transition-fast),
+    color var(--transition-base), box-shadow var(--transition-base);
 }
 .quick-card:hover {
-  border-color: var(--border-strong);
+  border-color: var(--primary);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
   color: var(--text);
 }
 .quick-icon {
@@ -171,10 +178,9 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg);
 }
 .quick-card span {
-  font-size: 13px;
+  font-size: var(--font-sm);
 }
 </style>

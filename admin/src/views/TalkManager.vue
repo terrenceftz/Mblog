@@ -65,14 +65,18 @@ onMounted(load);
 
 <template>
   <div>
-    <div class="toolbar">
-      <h1 class="page-title">说说管理</h1>
-      <select v-model="filter" class="input" @change="changeFilter">
-        <option value="">全部</option>
-        <option value="pending">待审核</option>
-        <option value="approved">已通过</option>
-        <option value="rejected">已拒绝</option>
-      </select>
+    <div class="page-header">
+      <div class="page-header-titles">
+        <h1 class="page-title">说说管理</h1>
+      </div>
+      <div class="page-header-actions">
+        <select v-model="filter" class="input" @change="changeFilter">
+          <option value="">全部</option>
+          <option value="pending">待审核</option>
+          <option value="approved">已通过</option>
+          <option value="rejected">已拒绝</option>
+        </select>
+      </div>
     </div>
 
     <!-- 作者发布说说：免审核直发 -->
@@ -127,28 +131,58 @@ onMounted(load);
 </template>
 
 <style scoped>
-.toolbar { justify-content: space-between; }
-.toolbar .page-title { margin: 0; }
-.compose-card { margin-bottom: 16px; border-color: var(--border-strong); }
-.compose-textarea { width: 100%; box-sizing: border-box; resize: vertical; font-family: inherit; min-height: 76px; line-height: 1.7; }
-.compose-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.compose-card { margin-bottom: var(--space-4); border-color: var(--border-strong); }
+.compose-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  min-height: 76px;
+  line-height: 1.7;
+}
+.compose-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
 .compose-count {
-  font-size: 12px;
+  font-size: var(--font-xs);
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
-  transition: color 0.2s ease;
+  transition: color var(--transition-base);
 }
-.compose-count.near { color: #fbbf24; }
+.compose-count.near { color: var(--warn); }
 .compose-count.over { color: var(--danger); }
 .compose-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
-.talk-list { display: flex; flex-direction: column; gap: 10px; }
-.talk-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.talk-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.talk-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  transition: border-color var(--transition-base);
+}
+.talk-row:hover { border-color: var(--border-strong); }
 .talk-main { min-width: 0; }
-.talk-content { margin: 0 0 6px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
-.talk-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--text-muted); }
-.talk-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.talk-content {
+  margin: 0 0 6px;
+  font-size: var(--font-base);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.talk-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+.talk-actions { display: flex; gap: var(--space-2); flex-shrink: 0; }
 </style>

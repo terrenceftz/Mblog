@@ -49,9 +49,11 @@ onMounted(() => load().catch((e) => { error.value = e instanceof Error ? e.messa
 
 <template>
   <div>
-    <div class="toolbar">
-      <h1 class="page-title">文章管理</h1>
-      <div class="toolbar-actions">
+    <div class="page-header">
+      <div class="page-header-titles">
+        <h1 class="page-title">文章管理</h1>
+      </div>
+      <div class="page-header-actions">
         <select v-model="statusFilter" class="input" @change="changeFilter">
           <option value="">全部状态</option>
           <option value="published">已发布</option>
@@ -90,12 +92,9 @@ onMounted(() => load().catch((e) => { error.value = e instanceof Error ? e.messa
 </template>
 
 <style scoped>
-.toolbar { justify-content: space-between; }
-.toolbar .page-title { margin: 0; }
-.toolbar-actions { display: flex; gap: 10px; align-items: center; }
 .title-link { color: var(--primary); text-decoration: none; }
 .title-link:hover { text-decoration: underline; }
 .op-cell { white-space: nowrap; }
-.op-cell .btn { margin-right: 8px; }
+.op-cell .btn { margin-right: var(--space-2); }
 .op-cell .btn:last-child { margin-right: 0; }
 </style>

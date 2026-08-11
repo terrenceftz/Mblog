@@ -124,18 +124,50 @@ function resetTheme() {
 </template>
 
 <style scoped>
-.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.tabs .btn.active { background: var(--primary); border-color: var(--primary); color: var(--primary-contrast); font-weight: 600; }
-.theme-form { display: flex; flex-direction: column; gap: 16px; max-width: 560px; }
-.color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
-.color-grid label { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
-.color-grid input[type='color'] { width: 100%; height: 40px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 4px; cursor: pointer; }
-.num-row { display: flex; gap: 16px; }
-.num-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); }
+.tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
+.tabs .btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-contrast);
+  font-weight: 600;
+}
+.theme-form { display: flex; flex-direction: column; gap: var(--space-4); max-width: 560px; }
+.color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-3); }
+.color-grid label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}
+.color-grid input[type='color'] {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  cursor: pointer;
+}
+.num-row { display: flex; gap: var(--space-4); }
+.num-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}
 .num-row .input { width: 140px; }
-.content-row { display: flex; flex-direction: column; gap: 12px; }
-.content-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); }
+.content-row { display: flex; flex-direction: column; gap: var(--space-3); }
+.content-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}
 .content-row textarea { resize: vertical; font-family: inherit; }
-.actions { display: flex; align-items: center; gap: 12px; }
-.saved { color: var(--ok); font-size: 14px; }
+.actions { display: flex; align-items: center; gap: var(--space-3); }
+.saved { color: var(--ok); font-size: var(--font-base); }
 </style>
