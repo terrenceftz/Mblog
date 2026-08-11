@@ -9,6 +9,8 @@ export interface PostDetail extends PostListItem {
   contentHtml: string;
   tags: { name: string; slug: string }[];
   category: { id: number; name: string; slug: string } | null;
+  prev: { title: string; slug: string } | null;
+  next: { title: string; slug: string } | null;
 }
 export interface Page<T> { list: T[]; total: number }
 export interface ThemeConfig {

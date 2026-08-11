@@ -52,6 +52,27 @@ const { html: contentHtml, toc } = withTocIds(post.contentHtml);
         </ul>
       </footer>
     )}
+    {/* 上一篇 / 下一篇 */}
+    {(post.prev || post.next) && (
+      <nav class="post-nav" aria-label="前后文章">
+        {post.prev ? (
+          <a class="post-nav-item prev" href={`/post/${post.prev.slug}`}>
+            <span class="post-nav-label">← 上一篇</span>
+            <span class="post-nav-title">{post.prev.title}</span>
+          </a>
+        ) : (
+          <span class="post-nav-item empty" aria-hidden="true" />
+        )}
+        {post.next ? (
+          <a class="post-nav-item next" href={`/post/${post.next.slug}`}>
+            <span class="post-nav-label">下一篇 →</span>
+            <span class="post-nav-title">{post.next.title}</span>
+          </a>
+        ) : (
+          <span class="post-nav-item empty" aria-hidden="true" />
+        )}
+      </nav>
+    )}
     <CommentSection client:load postId={post.id} />
   </article>
   {toc.length > 0 && (
