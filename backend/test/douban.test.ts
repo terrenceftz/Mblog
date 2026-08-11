@@ -49,6 +49,7 @@ describe('fetchDoubanMovies', () => {
       expect(movies[0]).toEqual({
         title: '辛德勒的名单',
         altTitle: "Schindler's List",
+        year: '1993',
         url: 'https://movie.douban.com/subject/1295124/',
         cover: 'https://img3.doubanio.com/view/photo/s_ratio_poster/public/p492406163.jpg',
         rating: 5,
@@ -57,6 +58,7 @@ describe('fetchDoubanMovies', () => {
       });
       expect(movies[1].rating).toBe(4);
       expect(movies[1].ratingText).toBe('推荐');
+      expect(movies[1].year).toBe('2014');
     } finally {
       vi.unstubAllGlobals();
     }
@@ -121,15 +123,22 @@ describe('TMDB 海报', () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, text: async () => SAMPLE_COLLECT })
       .mockResolvedValueOnce({ ok: true, text: async () => EMPTY_COLLECT })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [{ poster_path: '/a.jpg' }] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [{ poster_path: null }] }) });
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ results: [{ title: '辛德勒的名单', original_title: "Schindler's List", release_date: '1993-11-30', poster_path: '/a.jpg' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ results: [{ title: 'Something Else', original_title: 'Other', release_date: '2010-01-01', poster_path: '/b.jpg' }] }),
+      })
+      .mockResolvedValue({ ok: true, json: async () => ({ results: [] }) });
     vi.stubGlobal('fetch', fetchMock);
     try {
       const movies = await syncDoubanMovies('1017197', 'testkey');
       expect(movies).toHaveLength(2);
       expect(movies[0].cover).toBe('https://image.tmdb.org/t/p/w500/a.jpg');
       expect(movies[1].cover).toContain('/api/cover?url='); // 无 poster_path → 回退豆瓣封面并走代理
-      expect(fetchMock).toHaveBeenCalledTimes(4); // 收藏页 2 次（含空页终止）+ 2 部电影 TMDB
+      expect(fetchMock).toHaveBeenCalledTimes(5); // 收藏页 2 次 + 电影1 TMDB 1 次 + 电影2 TMDB 2 次（标题+别名均未命中）
     } finally {
       vi.unstubAllGlobals();
     }

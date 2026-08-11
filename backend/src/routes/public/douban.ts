@@ -7,6 +7,8 @@ export interface DoubanMovie {
   title: string;
   /** 豆瓣条目英文原片名（内部用于 TMDB 搜索） */
   altTitle?: string;
+  /** 上映年份（从条目 intro 提取，用于 TMDB 消歧） */
+  year?: string;
   url: string;
   cover: string;
   rating: number; // 1-5，0=未评分
@@ -58,13 +60,15 @@ export async function fetchDoubanMovies(uid: string): Promise<DoubanMovie[]> {
         .map((s) => s.replace(/<[^>]+>/g, '').trim())
         .filter(Boolean);
       const altTitle = segs[segs.length - 1] ?? '';
+      const intro = /<li class="intro">([\s\S]*?)<\/li>/.exec(chunk)?.[1] ?? '';
+      const year = /(\d{4})-\d{2}-\d{2}/.exec(intro)?.[1] ?? '';
       const cover = /<img[^>]+src="([^"]+)"/.exec(chunk)?.[1] ?? '';
       const ratingClass = /class="rating(\d)-t"/.exec(chunk)?.[1];
       const rating = ratingClass ? Number(ratingClass) : 0;
       const ratingText = ['', '很差', '较差', '还行', '推荐', '力荐'][rating] ?? '';
       const date = /<span class="date">([^<]+)<\/span>/.exec(chunk)?.[1]?.trim() ?? '';
       if (title && url) {
-        movies.push({ title, altTitle, url, cover, rating, ratingText, date });
+        movies.push({ title, altTitle, year, url, cover, rating, ratingText, date });
         if (movies.length >= MAX_ITEMS) return movies;
       }
     }
@@ -133,18 +137,34 @@ async function tmdbFetch(path: string): Promise<TmdbRes | null> {
   return null;
 }
 
-// TMDB 搜索单部电影海报；失败/无结果回退豆瓣封面
-async function tmdbPoster(apiKey: string, query: string, fallback: string): Promise<string> {
-  const path = `/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${encodeURIComponent(query)}&language=zh-CN&include_adult=false`;
-  const res = await tmdbFetch(path);
-  if (!res || !res.ok) return fallback;
-  try {
-    const body = (await res.json()) as { results?: { poster_path?: string | null }[] };
-    const posterPath = body.results?.find((r) => r.poster_path)?.poster_path;
-    return posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : fallback;
-  } catch {
-    return fallback;
+function norm(s: string): string {
+  return s.toLowerCase().replace(/[\s'’"·–—-]+/g, '');
+}
+
+// 严格匹配 TMDB：中文名精确命中（title/original_title 即中文）→ 英文别名精确命中；
+// 两者都要求年份 ±1 内；匹配不到回退豆瓣封面，避免张冠李戴
+async function tmdbPoster(apiKey: string, title: string, altTitle: string, year: string, fallback: string): Promise<string> {
+  const queries = [title, altTitle].filter(Boolean);
+  for (const q of queries) {
+    const path = `/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${encodeURIComponent(q)}&language=zh-CN&include_adult=false`;
+    const res = await tmdbFetch(path);
+    if (!res || !res.ok) continue;
+    try {
+      const body = (await res.json()) as {
+        results?: { title?: string; original_title?: string; release_date?: string; poster_path?: string | null }[];
+      };
+      for (const r of body.results ?? []) {
+        const nameMatch = norm(r.title ?? '') === norm(q) || norm(r.original_title ?? '') === norm(q);
+        if (!nameMatch) continue;
+        const rYear = (r.release_date ?? '').slice(0, 4);
+        if (year && rYear && Math.abs(Number(rYear) - Number(year)) > 1) continue;
+        if (r.poster_path) return `https://image.tmdb.org/t/p/w500${r.poster_path}`;
+      }
+    } catch {
+      // 解析失败，尝试下一个查询
+    }
   }
+  return fallback;
 }
 
 // TMDB 搜索批量并行（每批 6 个，兼顾速率限制）；失败项回退豆瓣封面
@@ -155,7 +175,7 @@ export async function enrichWithTmdb(movies: DoubanMovie[], apiKey: string): Pro
   for (let i = 0; i < movies.length; i += BATCH) {
     const batch = movies.slice(i, i + BATCH);
     const results = await Promise.all(
-      batch.map(async (m) => ({ m, cover: await tmdbPoster(apiKey, m.altTitle || m.title, m.cover) })),
+      batch.map(async (m) => ({ m, cover: await tmdbPoster(apiKey, m.title, m.altTitle ?? '', m.year ?? '', m.cover) })),
     );
     for (const { m, cover } of results) out[i + batch.indexOf(m)] = { ...m, cover };
   }
