@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { adminGetSettings, adminPutSettings, adminSyncDouban } from '../api/admin';
+import {
+  adminGetSettings, adminPutSettings, adminSyncDouban, adminChangePassword,
+} from '../api/admin';
 
 const form = ref<Record<string, string>>({});
 const saved = ref(false);
@@ -8,16 +10,56 @@ const error = ref('');
 const syncing = ref(false);
 const syncMsg = ref('');
 const syncError = ref('');
+
+// 修改密码
+const oldPassword = ref('');
+const newPassword = ref('');
+const confirmPassword = ref('');
+const pwdMsg = ref('');
+const pwdError = ref('');
+const pwdChanging = ref(false);
+async function changePassword() {
+  pwdMsg.value = '';
+  pwdError.value = '';
+  if (newPassword.value !== confirmPassword.value) {
+    pwdError.value = '两次输入的新密码不一致';
+    return;
+  }
+  if (newPassword.value.length < 8) {
+    pwdError.value = '新密码长度不能少于 8 位';
+    return;
+  }
+  pwdChanging.value = true;
+  try {
+    const r = await adminChangePassword(oldPassword.value, newPassword.value);
+    pwdMsg.value = r.message || '密码已更新';
+    oldPassword.value = '';
+    newPassword.value = '';
+    confirmPassword.value = '';
+  } catch (e) {
+    pwdError.value = e instanceof Error ? e.message : '修改密码失败';
+  } finally {
+    pwdChanging.value = false;
+  }
+}
+
 async function syncDouban() {
   syncing.value = true;
   syncMsg.value = '';
   syncError.value = '';
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 30000);
   try {
-    const r = await adminSyncDouban();
+    const r = await adminSyncDouban(ac.signal);
     syncMsg.value = `已同步 ${r.count} 部，缓存已预热`;
   } catch (e) {
-    syncError.value = e instanceof Error ? e.message : '同步失败';
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      syncError.value = '同步超时（30 秒），请稍后重试';
+    } else {
+      syncError.value = e instanceof Error ? e.message : '同步失败';
+    }
   } finally {
+    clearTimeout(timer);
     syncing.value = false;
   }
 }
@@ -25,14 +67,18 @@ async function syncDouban() {
 const menuItems = ref<{ label: string; url: string }[]>([]);
 
 onMounted(async () => {
-  form.value = await adminGetSettings();
   try {
-    const parsed = JSON.parse(form.value.nav_menu || '[]');
-    menuItems.value = Array.isArray(parsed)
-      ? parsed.filter((i: { label?: string; url?: string }) => i && typeof i.label === 'string' && typeof i.url === 'string')
-      : [];
-  } catch {
-    menuItems.value = [];
+    form.value = await adminGetSettings();
+    try {
+      const parsed = JSON.parse(form.value.nav_menu || '[]');
+      menuItems.value = Array.isArray(parsed)
+        ? parsed.filter((i: { label?: string; url?: string }) => i && typeof i.label === 'string' && typeof i.url === 'string')
+        : [];
+    } catch {
+      menuItems.value = [];
+    }
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '加载设置失败';
   }
 });
 
@@ -47,10 +93,17 @@ async function save() {
   saved.value = false;
   error.value = '';
   try {
-    form.value.nav_menu = JSON.stringify(
+    const payload: Record<string, string> = { ...form.value };
+    payload.nav_menu = JSON.stringify(
       menuItems.value.filter((i) => i.label.trim() && i.url.trim()),
     );
-    form.value = await adminPutSettings(form.value);
+    // 掩码占位符 '********' 或留空 = 保持已存密钥不变（后端同样按此约定保留原值），
+    // 因此保存时不把占位符/空值写回，避免覆盖真实密钥。
+    for (const key of ['cos_secret_key', 'tmdb_api_key'] as const) {
+      const v = payload[key];
+      if (!v || v === '********') delete payload[key];
+    }
+    form.value = await adminPutSettings(payload);
     saved.value = true;
     setTimeout(() => (saved.value = false), 2000);
   } catch (e) {
@@ -159,7 +212,7 @@ async function save() {
           <input v-model="form.douban_uid" placeholder="douban 主页 /people/ 后的数字" />
         </label>
         <label>TMDB API Key（海报图源）
-          <input v-model="form.tmdb_api_key" placeholder="themoviedb.org 申请的 key" />
+          <input v-model="form.tmdb_api_key" type="password" placeholder="留空或 **** 表示保持不变" />
         </label>
         <div class="sync-row">
           <button type="button" class="btn" :disabled="syncing" @click="syncDouban">
@@ -168,7 +221,27 @@ async function save() {
           <span v-if="syncMsg" class="saved">{{ syncMsg }}</span>
           <span v-if="syncError" class="error">{{ syncError }}</span>
         </div>
-        <p class="menu-tip">同步会拉取「看过」的电影与 TMDB 海报并预热缓存，避免前台首次访问卡顿。</p>
+        <p class="menu-tip">同步会使用已保存的设置——请先点「保存设置」再同步。拉取「看过」的电影与 TMDB 海报并预热缓存，避免前台首次访问卡顿（超过 30 秒自动超时）。</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>修改密码</legend>
+        <label>当前密码
+          <input v-model="oldPassword" type="password" autocomplete="current-password" />
+        </label>
+        <label>新密码（至少 8 位）
+          <input v-model="newPassword" type="password" autocomplete="new-password" />
+        </label>
+        <label>确认新密码
+          <input v-model="confirmPassword" type="password" autocomplete="new-password" />
+        </label>
+        <div class="sync-row">
+          <button type="button" class="btn" :disabled="pwdChanging" @click="changePassword">
+            {{ pwdChanging ? '提交中…' : '修改密码' }}
+          </button>
+          <span v-if="pwdMsg" class="saved">{{ pwdMsg }}</span>
+          <span v-if="pwdError" class="error">{{ pwdError }}</span>
+        </div>
       </fieldset>
 
       <div class="actions">
