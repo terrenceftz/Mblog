@@ -1056,3 +1056,24 @@
   font-size: 0.75rem;
   color: var(--color-text-muted);
 }
+
+/* 归档页（复用全部文章页排版） */
+[data-theme='reader'] .archive-page .archive-group {
+  margin-top: 32px;
+}
+[data-theme='reader'] .archive-month {
+  font-family: var(--font-mono);
+  font-size: 0.833rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 8px;
+  margin: 0 0 2px;
+}
+[data-theme='reader'] .archive-page .posts-item {
+  padding: 14px 0;
+}
+[data-theme='reader'] .archive-page .posts-title-sm {
+  font-size: 1.05rem;
+}

@@ -1,32 +1,39 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import GradualBlur from '../components/GradualBlur.vue';
 import { getArchive } from '../lib/api';
 
 const groups = await getArchive();
+const totalPosts = groups.reduce((n, g) => n + g.items.length, 0);
+function fmtDate(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+}
 ---
-<BaseLayout title="归档">
-  <h1 class="page-title">归档</h1>
-  {groups.map((g) => (
-    <section class="archive-group">
-      <h2 class="month">{g.month}</h2>
-      <ul>
-        {g.items.map((item) => (
-          <li>
-            <span class="date">{new Date(item.createdAt).toLocaleDateString('zh-CN')}</span>
-            <a href={`/post/${item.slug}`}>{item.title}</a>
-          </li>
-        ))}
-      </ul>
-    </section>
-  ))}
-</BaseLayout>
+<BaseLayout title="归档" description="按月份归档的长文与笔记。">
+  <div class="posts-page archive-page">
+    <header class="posts-header">
+      <h1 class="posts-heading">归档</h1>
+      <p class="posts-subtitle">按月份归档的长文与笔记。</p>
+      <p class="posts-count">共 {totalPosts} 篇</p>
+    </header>
 
-<style is:global>
-  .archive-group { margin-bottom: 24px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
-  .month { font-size: 16px; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; }
-  .archive-group ul { list-style: none; padding: 0; }
-  .archive-group li { padding: 6px 0; display: flex; gap: 12px; }
-  .date { color: var(--color-text-muted); font-size: 13px; min-width: 90px; }
-  .archive-group a { color: var(--color-text); text-decoration: none; }
-  .archive-group a:hover { color: var(--color-primary); }
-</style>
+    {groups.map((g) => (
+      <section class="archive-group">
+        <h2 class="archive-month">{g.month}</h2>
+        <ul class="posts-list">
+          {g.items.map((item) => (
+            <li class="posts-item">
+              <div class="posts-meta">
+                <time class="posts-date" datetime={new Date(item.createdAt).toISOString()}>{fmtDate(item.createdAt)}</time>
+              </div>
+              <h3 class="posts-title posts-title-sm"><a href={`/post/${item.slug}`}>{item.title}</a></h3>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+  {/* 滚动渐进模糊：固定视口底部 */}
+  <GradualBlur client:load position="bottom" target="page" height="9rem" strength={3} div-count={7} curve="ease-out" z-index={40} />
+</BaseLayout>
