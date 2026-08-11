@@ -84,16 +84,21 @@ interface TmdbRes {
   json(): Promise<unknown>;
 }
 
+let tmdbDnsPoisoned = false; // 当前进程内域名不可达（DNS 污染）则后续跳过域名尝试，直接走 IP
+
 async function tmdbFetch(path: string): Promise<TmdbRes | null> {
-  try {
-    const res = await fetch(`https://${TMDB_HOST}${path}`, {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(TMDB_TIMEOUT),
-    });
-    if (res.ok) return { ok: true, json: () => res.json() };
-  } catch {
-    // 正常域名不可达（DNS 污染/网络阻断），走 IP 兜底
+  if (!tmdbDnsPoisoned) {
+    try {
+      const res = await fetch(`https://${TMDB_HOST}${path}`, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(3000), // 正常网络 <1s 返回；被污染网络 3s 内判死
+      });
+      if (res.ok) return { ok: true, json: () => res.json() };
+    } catch {
+      tmdbDnsPoisoned = true;
+    }
   }
+  // 原有 IP 兜底逻辑保持不变
   for (const ip of TMDB_FALLBACK_IPS) {
     try {
       const res = await new Promise<TmdbRes | null>((resolve, reject) => {
@@ -142,13 +147,17 @@ async function tmdbPoster(apiKey: string, query: string, fallback: string): Prom
   }
 }
 
-// 为电影列表批量补充 TMDB 海报（无 key 时原样返回）
+// TMDB 搜索批量并行（每批 6 个，兼顾速率限制）；失败项回退豆瓣封面
 export async function enrichWithTmdb(movies: DoubanMovie[], apiKey: string): Promise<DoubanMovie[]> {
   if (!apiKey) return movies;
-  const out: DoubanMovie[] = [];
-  for (const m of movies) {
-    const query = m.altTitle || m.title;
-    out.push({ ...m, cover: await tmdbPoster(apiKey, query, m.cover) });
+  const out: DoubanMovie[] = new Array(movies.length);
+  const BATCH = 6;
+  for (let i = 0; i < movies.length; i += BATCH) {
+    const batch = movies.slice(i, i + BATCH);
+    const results = await Promise.all(
+      batch.map(async (m) => ({ m, cover: await tmdbPoster(apiKey, m.altTitle || m.title, m.cover) })),
+    );
+    for (const { m, cover } of results) out[i + batch.indexOf(m)] = { ...m, cover };
   }
   return out;
 }
