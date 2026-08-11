@@ -1,16 +1,17 @@
 # MBLOG 项目记忆文档（会话交接）
 
-> 最后更新：2026-08-11（pure-admin 迁移暂停，已存档；环境升级为 Node 24）
+> 最后更新：2026-08-11 深夜（Gemini UI 接入完成 + 设置页整理，明日继续）
 > 用途：跨会话记忆，供明天继续开发使用。开发前先读本文件 + `git log --oneline -20`。
 
 ---
 
-## 0. 环境变更（2026-08-11 重要！）
+## 0. 环境（2026-08-11 定稿）
 
-- **Node 已升级到 v24.19.0（winget OpenJS.NodeJS.LTS）**，pnpm 11.21（corepack enable）。旧 Node 20.16 的 msi 因 node.exe 被进程占用（ZCode 自身）无法装回，**保持 Node 24 是当前唯一可行状态**。
-- **better-sqlite3 已升级 v11→v13**（`npm install better-sqlite3@^13`）修复 Node 24 ABI（v11 无 Node24 预编译、源码编译需 VS 工具链）。83/83 测试通过。**后端 node_modules 若被重装，必须保持 v13+，否则 ABI 崩（NODE_MODULE_VERSION 137 vs 115）**。
-- site（Astro + sharp 0.34）在 Node 24 下正常（已实测 200）。
-- 旧 dev server 进程与 Node 升级的坑：MSI 替换 node.exe 前必须先停所有 node 进程（本次 1603 错误根因）。
+- **Node v24.19.0**（winget OpenJS.NodeJS.LTS）+ **pnpm 11.21**（corepack enable）。旧 Node 20.16 无法装回（node.exe 被 ZCode 占用，MSI 1603）。**保持 Node 24**。
+- **better-sqlite3 = ^12.11.1**（最终版本，有 Node 24 prebuild；**不要升 v13**——v13 无 prebuild 需 VS 工具链编译必失败）。后端重装依赖后务必 `npm test` 验证（当前 83/83 通过）。
+- site（Astro + sharp 0.34）在 Node 24 下正常。
+- 坑：MSI 替换 node.exe 前必须停所有 node 进程；Windows 下 npm 脚本用 cross-env 写环境变量；pnpm 11 的 build 许可在 `pnpm-workspace.yaml` 的 allowBuilds。
+- 后台 dev server 目前由 ZCode 会话后台托管（5173 端口，日志 /tmp/admin-dev3.log）；后端 tsx watch 3000；site astro 4321。
 
 
 
@@ -123,26 +124,21 @@ index（双渲染 `.reader-home`/`.normal-home`）、posts.astro（全部文章�
 
 ### Views（src/views/）
 
-AdminLayout（暗色侧栏 + icons + 移动抽屉 + `isActive()` 精确导航判断）、Login、Dashboard（刚重写）、PostList、PostEditor、CategoryManager、TagManager、CommentManager、FriendLinkManager、TalkManager、SettingsPage、ThemesPage
+**Gemini 生成 UI（2026-08-11 接入，全部页面已接真实后端）**：AdminLayout（navbar-vertical 侧栏 + page-wrapper + 主题三态切换）、Login（blob 玻璃拟态 + 用户名/密码）、Dashboard、PostList、PostEditor（真实 Vditor）、CategoryManager、TagManager、CommentManager、TalkManager、FriendLinkManager、SettingsPage（7 卡）、ThemesPage（配色细节 + 实时预览）
 
 ### 关键约定
 
-- **双主题 token 体系**（`src/styles/admin.css`，后台最核心的设计约定，spec 见 `docs/superpowers/specs/2026-08-11-admin-ui-polish-design.md`）：
-  - 三层 token：**语义层**（--bg/--surface/--surface-2/--surface-3 背景四档、--border/--border-strong 两档、--text/--text-muted/--text-subtle 三档、--primary 系、--ok/--warn/--danger/--info）、**阴影层**（--shadow-sm/md/lg/pop）、**节奏层**（--space-1..8、--radius-*、--font-xs..2xl、--transition-fast/base、--focus-ring）
-  - 暗色定义在 `:root`（默认，含 `color-scheme: dark`）；浅色覆盖在 `[data-theme='light']`（含 `color-scheme: light`）；节奏层暗浅共享
-  - **铁律：组件样式禁止硬编码色值，只引用 token；新色值先加 token 再用**。合法例外：ThemesPage 主题色板数据、Dashboard 图标/图表装饰色、Login blob 渐变
-  - 阴影体系（克制）：卡片默认无阴影，hover 加 `--shadow-sm`；浮层（toast/弹窗/下拉）用 `--shadow-lg`/`--shadow-pop`
-  - 通用结构类：`.page-header`（title + 右侧 `.page-header-actions` 操作槽，列表页"新建"/筛选移入）、`.btn` 三款（默认描边 / primary 实心 / `.btn.ghost` 透明次要款，hover 提亮+`translateY(-1px)`，active 按压反馈）、`.stagger` 入场动画（fade-rise 0.3s，统计卡/列表项）
-- **主题管理** `src/lib/theme.ts`：dark/light/auto 三态，用户选择存 `localStorage('admin_theme')`；**`<html data-theme>` 始终写解析后的具体值**（auto 也解析为 dark/light，CSS 只需匹配 `[data-theme='light']`）；`startThemeSystem()` 在 main.ts 挂载前同步应用（防闪白）+ 监听系统主题变化（仅 auto 时跟随）；index.html 内另有同款内联防闪白脚本 + `theme-color` meta 双 media
-- **主题切换器**：AdminLayout 侧栏底部 `.admin-actions`，三态循环按钮（dark → light → auto），太阳/月亮/自动图标 + 文字标签（`aria-label` 带当前状态）
-- **Vditor 主题联动**：PostEditor 按 `getResolvedTheme()` 建编辑器——dark 用 `'dark'`、浅色用 `'classic'`（Vditor 的 classic 即浅色）
-- **Login 浅色适配**：`:global([data-theme='light'])` 下 blob 光斑改低饱和琥珀/蓝
-- **Toast**：`src/lib/toast.ts` + `ToastContainer.vue`，所有操作反馈统一走 toast
-- **PostEditor**：暗色 Vditor（自定义 toolbar、上传 contract `format` wrapper）、封面上传、localStorage 自动保存草稿（`mblog_admin_draft_${new|edit_${id}}`）、字数统计、TagPicker
-- **TagPicker**：可搜索多选 + 内联创建；**必须用 `watch(() => props.tags, ...)` 同步异步 props**（直接初始化 ref 会拿到空数组）；默认折叠，仅搜索时显示选项
-- **TalkManager**：compose 发布框（发送图标、450 字琥珀 / 500 字红提示）；**talk 发布者=作者，直发免审核**（无需审核流程）
-- **Dashboard**（最新）：彩色图标统计卡（postTotal/published/commentTotal/totalViews）+ 条件显示的待审核评论卡 + 快捷操作面板
-- 分页响应 `{ list, total }`；表格行 hover、空态
+- **设计体系**：Gemini 的 `--mb-*` 变量体系（`src/styles/admin.css`，@import tabler 1.4 + Bootstrap 5.3.7）。**自定义样式用 --mb-primary/--mb-bg-* 等**（看 admin.css 顶部定义），不用旧的 --bg/--surface token（已废弃但 CSS 里残留无害）
+- **API 适配层** `src/api/admin.ts`：Gemini 的 `api.xxx()` 方法签名 + 类型，实现接真实后端（fetch 封装 `src/api/client.ts`）；字段映射（postCount←postTotal、created_at 格式化、archived→draft、spam→rejected）；真实后端类型在 `src/api/posts.ts`
+- **主题机制** `src/lib/theme.ts`：`mblog_theme` key（dark/light/system 三态），兼容旧 `admin_theme` 一次性迁移；`<html>` 双属性 `data-theme` + `data-bs-theme`；index.html 内联防闪白脚本同逻辑
+- **主题切换器**：AdminLayout 侧栏底部三按钮（浅色/暗色/跟随系统）
+- **Toast**：`src/lib/toast.ts`（toast.success/error/warning 风格）+ `ToastContainer.vue`（在 AdminLayout 内，登录页无容器）
+- **PostEditor**：真实 Vditor（wysiwyg，工具栏含图片上传 + 音频插入按钮）、封面上传、**草稿自动保存**（localStorage `mblog_admin_draft_${new|edit_${id}}`，3s 防抖）、离开确认（window.confirm）、字数统计、TagPicker（el-select 风格多选）
+- **TalkManager**：compose 发布框（450/500 字数变色提示）；talk 发布者=作者，直发免审核；删除走 DELETE /talks/:id（后端 2026-08-11 新增）
+- **Dashboard**：统计卡（postCount/commentCount/todayViews/待审核）+ 快捷操作 + 最新评论/说说列表（真实数据）
+- **设置页**：7 卡结构（站点基础信息含博主名称/头像、存储与上传、评论验证 Turnstile、前台功能、导航菜单、修改密码、豆瓣同步）；密钥掩码 '********' 表示不变
+- **博主信息**：settings.author（博主名称）/settings.avatar（博主头像）是前台首屏数据源（后台设置卡唯一入口，主题页无头像输入）
+- 分页响应 `{ list, total }`；Gemini 版列表页拉全量 pageSize=100（无分页 UI，文章超 100 需补）
 
 ### 已知修复模式（避免回退）
 
@@ -150,32 +146,44 @@ AdminLayout（暗色侧栏 + icons + 移动抽屉 + `isActive()` 精确导航判
 - 设置页：双列 grid + field-pair + card--full 等高布局
 - 登录页：暗色卡片 + blob 背景 + 密码显隐
 
-## 5. 本轮会话已完成的工作（2026-08-11）
+## 5. 今日已完成的工作（2026-08-11，按时间线）
 
-前台（部分已多日完成，本轮重点是）：
-- 全部文章页 `/posts`（eonova 风格列表 + 分段加载）
-- 文章页 banner 布局迭代（压题→居中→圆形→最终"标题在 banner 内"横版）
-- LineSidebar 目录动效、prev/next 导航、JSON-LD、Like、移动端 TOC、GradientBlob
-- Turnstile 评论验证（math-captcha fallback）、评论 website 字段
-- View Transitions 圆形主题切换、顶部渐变光
-- 移动端适配（MobileHeader 汉堡菜单、宽度自适应、横向溢出修复）
-- Talk 改作者直发免审核（公开表单移除）
+**上午-下午（旧会话）**：
+- 后台 UI 精修 + 浅色双主题（2c871fb）、仪表盘增强（0fe6972）、web-design-guidelines 审计修复
 
-后台：
-- 全站暗色化（共享样式库 + Toast）、登录页重设计、设置页双列等高、侧栏自适应+导航激活修复、TagPicker（含 bugs 修复）、说说发布框、web-design-guidelines skill 审计修复
-- **仪表盘增强**（提交 `0fe6972`：图标统计卡 + 快捷操作）
-- **UI 精修 + 浅色双主题**（spec: `docs/superpowers/specs/2026-08-11-admin-ui-polish-design.md`，改动在**工作区未提交**，16 文件 + 新增 `theme.ts`）：admin.css 三层 token 体系化、theme.ts 三态主题管理、侧栏主题切换器、`.page-header` 页头结构、`.btn.ghost`、阴影/间距/字号 scale 落地、组件硬编码色值清零（仅 ThemesPage 色板/Dashboard 图标色/Login blob 例外）、`.stagger` 入场动画、Vditor 与 Login 浅色适配
+**今天主线的三个大阶段**：
+1. **pure-admin 迁移（尝试→暂停）**：环境升级 Node 24 + pnpm、thin 模板落地到 `admin-pure/`、基础设施对接、10 个 EP 页面写完（typecheck/build 通过）。**因用户改选轻量方案而暂停**，`admin-pure/` 目录保留未提交（untracked）。
+2. **Tabler 换肤（完成，c6af9a9~124812c）**：引入 @tabler/core 1.4（内置 Bootstrap 5.3.7）全局换肤——admin.css 先加载 + Tabler 后加载接管 .card/.btn/.table/.badge；data-bs-theme 暗色联动；琥珀主色覆盖（--bs-primary 族）；AdminLayout 改 navbar-vertical 侧栏 + page-wrapper；10 页面类名适配（soft badge/form-control/pagination）。
+3. **Gemini UI 接入（完成，e4f55b8~e4fcec9）**：用户让 Gemini 按提示词（docs/prompts/admin-ui-gemini.md）生成了完整后台 UI（仓库 terrenceftz/mblog-ui），全量接入：
+   - **API 适配层**（admin/src/api/admin.ts）：保留 Gemini `api.xxx()` 签名与类型，实现接真实后端 + 字段映射（postCount←postTotal、views←viewCount、created_at 格式化、archived→draft、spam→rejected、postTitle 拉文章标题）
+   - 12 个视图 + components + admin.css（--mb-* 设计体系）全用 Gemini 版；真实类型在 src/api/posts.ts
+   - 路由/链接适配：dashboard 路由、/posts/:id、/friends
+   - PostEditor：Gemini 布局 + **真实 Vditor**（上传/暗色联动/离开确认/封面上传）+ **草稿自动保存**（3s 防抖 localStorage）+ **音频插入**（工具栏按钮）
+   - 功能补全（46a7044）：SettingsPage 补 Turnstile/友链/GitHub/导航/存储/改密码；ThemesPage 补配色 5 色/头像/简介；后端 +DELETE /talks/:id；friendLinks POST 修正
+   - **设置页整理**（e4fcec9）：10 卡合并为 7 卡（删 SEO/ICP/keywords，API 密钥并入存储卡，友链+GitHub 合并为前台功能卡）
+   - **博主名称/头像与前台首屏打通**（ca6ae2d）：后端 DEFAULT_SETTINGS +author/avatar + public settings 返回；前台 hero 名称/头像优先读博主设置；主题页移除重复头像入口
+   - **头像已上传**：/uploads/1786451490681-2d99db44-eba1-4e06-850f-3621cdfe1646.jpg 已写入 settings.avatar（用户桌面图片）
 
-提交历史（最近 15 条见文首 git log 输出）。**工作区当前干净**（UI 精修已随 `2c871fb` 提交，`8004f9e` 为事故记录文档提交）。
+**并行会话事故**：GLM 会话（另一窗口）曾误判 Tabler 覆盖为事故回滚（17:53 记录），后并行做 Tabler 引入已合并；better-sqlite3 由 GLM 降级为 v12（cd844fb）。
+
+**当前提交链**（工作区干净，仅 untracked：.zcode/ admin-pure/ docs/prompts/）：
+`e4fcec9`（设置页整理）→ `ca6ae2d`（博主打通）→ `46a7044`（功能补全）→ `400334c`（Gemini 全量接入）→ `e4f55b8`（适配层）→ `c6af9a9~124812c`（Tabler 换肤）→ `2c871fb`（UI 精修）
 
 ## 6. 待办 / 下一步
 
-- **后台 Tabler 换肤已基本完成**（提交 c6af9a9~124812c）：基础（琥珀主色 + data-bs-theme 暗色）+ AdminLayout（navbar-vertical 侧栏 + page-wrapper）+ 10 个业务页面（card/card-body、soft badge、form-control、pagination）。**剩余可选打磨**：暗色下表格 hover/焦点细节、TagManager 胶囊样式微调、admin.css 里与 Tabler 重复的旧组件样式清理（冗余无害，暂留）
-- **admin-pure/ 目录保留**（pure-admin 迁移的产物，untracked，暂不删）：若以后想再评估 Element Plus 方案，10 个 EP 页面可参考
-- **后台 UI 打磨剩余项**（精修已提交）：PostList（行点击进编辑、tabular-nums、hover 细节）、CategoryManager / TagManager（add-row 与卡片一致 + 空态 + 编辑取消）
-- eonova.me 借鉴清单中 **low-priority 项**（会话实现时排除的部分）
-- 部署验证：OG 图中文需服务器 CJK 字体（check docker image）
-- 若做：说说前台互动、评论区增强等（未定）
+**明日优先**：
+- **验收 Gemini UI**：浏览器 5173 逐页过一遍（登录→10 页面→暗/浅主题切换→Vditor 编辑/上传→草稿恢复→设置保存→豆瓣同步），发现细节问题再调
+- **博主名称**：settings.author 目前为空（头像已设），用户需在后台填名称或确认默认
+- 设置页/主题页保存后**刷新前台验证**（site 4321）：首屏头像、主题配色、默认主题、导航菜单、GitHub/友链开关
+- admin-pure/ 目录处置：确认保留或删除（占 ~大量 node_modules 空间）
+
+**已知剩余打磨项**：
+- 暗色下表格 hover/焦点细节、TagManager 胶囊样式微调（Tabler 时代遗留）
+- PostList 行点击进编辑、tabular-nums（更早遗留）
+- Gemini 版 PostList 无分页（拉全量 100 条）——文章超 100 后需加分页
+- CommentManager postTitle 通过适配层拉文章标题映射（已有，验证准确性）
+
+**长期**：eonova low-priority 项、OG 图 CJK 字体部署验证、说说前台互动（未定）
 
 ## 7. 已知坑（踩过，别再来一遍）
 
@@ -184,11 +192,14 @@ AdminLayout（暗色侧栏 + icons + 移动抽屉 + `isActive()` 精确导航判
 3. **Grid 自动放置错位**：TOC 等要显式指定 grid-row/grid-column
 4. **PillNav 折叠**：主题切换后必须重算（见上）；`getClientRects().length===0` 分支
 5. **`router-link-active` 前缀匹配**：`to="/"` 会常亮，需自定义 `isActive()`
-6. **IAB 浏览器自动化**（cua/playwright click）不稳定，交互验证可能失败——用 DOM/hydration 检查代替，别浪费时间
-7. **Windows 路径**：Git Bash 下用 forward slashes
-8. **Settings 卡片**：改布局时别误粘贴重复卡片（发生过一次）
+6. **IAB 浏览器自动化**（cua/playwright click）不稳定，交互验证可能失败——用 DOM/hydration 检查代替，别浪费时间；IAB 的 evaluate 只读（localStorage 读取会被拒）；dom_cua 的 node_id click 可能不生效，用 cua 坐标 click
+7. **Windows 路径**：Git Bash 下用 forward slashes；**python 读不到 /tmp**（MSYS 虚拟路径）——python 处理文件用仓库内路径或临时文件放 Windows 真实路径
+8. **Settings 卡片**：改布局时别误粘贴重复卡片（发生过一次）；**python 批量改 Vue 模板后必查 div 配平**（本次 10 卡合并时丢 5 个闭合标签，编译 500）
 9. **测试断言**：分页 shape 改 `{list,total}` 后，admin.test.ts:304/361、stats.test.ts:38 必须同步
 10. **字体/样式改动**：永远带 `[data-theme='normal']` 前缀，别碰 reader
+11. **后台 settings 白名单**：后端 admin PUT /settings 只接受 DEFAULT_SETTINGS 里的 key（lib/settings.ts）——新增设置字段必须先加 DEFAULT_SETTINGS，否则静默丢弃
+12. **vite 裸导入解析**：`import 'tabler/dist/css/...'` 包名写错会 Failed to resolve（正确 @tabler/core）；vite 启动后才 npm 装的包需重启 dev server 才能解析
+13. **后端 settings 掩码**：MASKED_KEYS（cos_secret_key/tmdb_api_key/turnstile_secret_key）GET 返回 ********，PUT 收到占位符保留原值
 
 ## 8. 事故记录（重要！）
 
