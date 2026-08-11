@@ -59,6 +59,70 @@ describe('admin auth', () => {
   });
 });
 
+describe('admin change password', () => {
+  const { app } = makeTestApp();
+  let token = '';
+
+  beforeAll(async () => {
+    resetRateLimit();
+    token = await loginAsAdmin(app);
+  });
+
+  it('未登录访问改密接口返回 401', async () => {
+    const res = await app.request('/api/admin/password', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ oldPassword: 'admin123', newPassword: 'new-secret-pass-123' }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('新密码过短返回 400 WEAK_PASSWORD', async () => {
+    const headers = authHeaders(token);
+    const res = await app.request('/api/admin/password', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ oldPassword: 'admin123', newPassword: 'short' }),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error.code).toBe('WEAK_PASSWORD');
+  });
+
+  it('原密码错误返回 401 INVALID_PASSWORD', async () => {
+    const headers = authHeaders(token);
+    const res = await app.request('/api/admin/password', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ oldPassword: 'wrong-old', newPassword: 'new-secret-pass-123' }),
+    });
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error.code).toBe('INVALID_PASSWORD');
+  });
+
+  it('正确修改密码后旧密码失效、新密码可登录', async () => {
+    const headers = authHeaders(token);
+    const res = await app.request('/api/admin/password', {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ oldPassword: 'admin123', newPassword: 'new-secret-pass-123' }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.message).toBe('密码已更新');
+
+    const oldLogin = await app.request('/api/admin/login', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+    });
+    expect(oldLogin.status).toBe(401);
+
+    const newLogin = await app.request('/api/admin/login', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'new-secret-pass-123' }),
+    });
+    expect(newLogin.status).toBe(200);
+  });
+});
+
 describe('admin categories', () => {
   const { app } = makeTestApp();
   let token = '';
@@ -190,6 +254,17 @@ describe('admin posts', () => {
       body: JSON.stringify({ title: 'Second', contentMd: 'x', slug: 'dup-slug', status: 'draft' }),
     });
     expect(dup.status).toBe(409);
+  });
+
+  it('更新不存在的文章返回 404', async () => {
+    const headers = authHeaders(token);
+    const res = await app.request('/api/admin/posts/9999', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'No', contentMd: 'x' }),
+    });
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error.code).toBe('NOT_FOUND');
   });
 });
 
@@ -351,6 +426,54 @@ describe('admin upload & stats', () => {
     expect(mediaBody.data.total).toBe(1);
   });
 
+  it('魔数与声明类型不符时拒绝上传', async () => {
+    const headers = authHeaders(token);
+    // 声明 PNG，但内容头是 JPEG 魔数（FF D8 FF）
+    const form = new FormData();
+    form.append('file', new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00])], { type: 'image/png' }), 'fake.png');
+    const res = await app.request('/api/admin/upload', {
+      method: 'POST',
+      headers,
+      body: form,
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error.code).toBe('INVALID');
+  });
+
+  it('拒绝上传 SVG（可携带脚本）', async () => {
+    const headers = authHeaders(token);
+    const form = new FormData();
+    form.append('file', new Blob([`<svg xmlns="http://www.w3.org/2000/svg"></svg>`], { type: 'image/svg+xml' }), 'a.svg');
+    const res = await app.request('/api/admin/upload', {
+      method: 'POST',
+      headers,
+      body: form,
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('音频类型宽容处理（声明 audio/mpeg 但为 Ogg 魔数时仍放行）', async () => {
+    const headers = authHeaders(token);
+    const form = new FormData();
+    // OggS 魔数 + 声明 audio/mpeg：跨音频子类视为宽容
+    form.append('file', new Blob([new Uint8Array([0x4f, 0x67, 0x67, 0x53, 0x00])], { type: 'audio/mpeg' }), 'a.mp3');
+    const res = await app.request('/api/admin/upload', {
+      method: 'POST',
+      headers,
+      body: form,
+    });
+    expect(res.status).toBe(201);
+  });
+
+  it('所有响应携带 nosniff 安全头', async () => {
+    const headers = authHeaders(token);
+    const res = await app.request('/api/admin/stats', { headers });
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    const pub = await app.request('/api/health');
+    expect(pub.headers.get('x-content-type-options')).toBe('nosniff');
+  });
+
   it('统计接口', async () => {
     const headers = authHeaders(token);
     const res = await app.request('/api/admin/stats', { headers });
@@ -393,5 +516,30 @@ describe('admin settings', () => {
     const pub = await app.request('/api/settings/public');
     const pubBody = await pub.json();
     expect(pubBody.data.theme).toBe('reader');
+  });
+
+  it('TMDB API Key 掩码往返（写入/读取均不泄露明文）', async () => {
+    const headers = authHeaders(token);
+    const put = await app.request('/api/admin/settings', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ tmdb_api_key: 'tmdb-secret-key-123' }),
+    });
+    expect(put.status).toBe(200);
+    const putBody = await put.json();
+    expect(putBody.data.tmdb_api_key).toBe('********'); // 写入响应即掩码
+
+    const get = await app.request('/api/admin/settings', { headers });
+    const getBody = await get.json();
+    expect(getBody.data.tmdb_api_key).toBe('********');
+
+    // 用掩码再 PUT，密钥应保留而非覆盖为空
+    const put2 = await app.request('/api/admin/settings', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ tmdb_api_key: '********' }),
+    });
+    expect(put2.status).toBe(200);
+    const get2 = await app.request('/api/admin/settings', { headers });
+    const get2Body = await get2.json();
+    expect(get2Body.data.tmdb_api_key).toBe('********');
   });
 });

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { users } from '../../db/schema';
 import { signToken } from '../../lib/jwt';
+import { authMiddleware } from '../../middleware/auth';
 import { rateLimit } from '../../middleware/rateLimit';
 import type { Db } from '../../db';
 
@@ -26,6 +27,28 @@ export function authRoutes(ctx: Db) {
     }
     const token = await signToken({ username: user.username });
     return c.json({ data: { token } });
+  });
+
+  // authRoutes 挂载在全局鉴权中间件之前，故此处按路由单独启用鉴权
+  app.post('/password', authMiddleware, async (c) => {
+    const body = await c.req.json().catch(() => null);
+    const oldPassword = typeof body?.oldPassword === 'string' ? body.oldPassword : '';
+    const newPassword = typeof body?.newPassword === 'string' ? body.newPassword : '';
+    if (!oldPassword || !newPassword) {
+      return c.json({ error: { code: 'INVALID', message: '请输入原密码和新密码' } }, 400);
+    }
+    if (newPassword.length < 8) {
+      return c.json({ error: { code: 'WEAK_PASSWORD', message: '新密码长度不能少于 8 位' } }, 400);
+    }
+    const user = c.get('user') as { username: string };
+    const row = ctx.db.select().from(users).where(eq(users.username, user.username)).get();
+    if (!row) return c.json({ error: { code: 'NOT_FOUND', message: '用户不存在' } }, 404);
+    if (!bcrypt.compareSync(oldPassword, row.passwordHash)) {
+      return c.json({ error: { code: 'INVALID_PASSWORD', message: '原密码错误' } }, 401);
+    }
+    const passwordHash = bcrypt.hashSync(newPassword, 10);
+    ctx.db.update(users).set({ passwordHash }).where(eq(users.id, row.id)).run();
+    return c.json({ data: { message: '密码已更新' } });
   });
 
   return app;
