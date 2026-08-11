@@ -1058,6 +1058,28 @@
 [data-theme='normal'] .article-layout .article-toc .toc-h3 {
   padding-left: 16px;
 }
+/* 目录过长时的滚动体验：细滚动条 + 底部渐隐提示 */
+[data-theme='normal'] .article-layout .article-toc {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+[data-theme='normal'] .article-layout .article-toc::-webkit-scrollbar {
+  width: 4px;
+}
+[data-theme='normal'] .article-layout .article-toc::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+}
+[data-theme='normal'] .article-layout .article-toc.has-more::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  display: block;
+  height: 28px;
+  margin-top: -28px;
+  background: linear-gradient(to top, var(--color-bg), transparent);
+  pointer-events: none;
+}
 @media (max-width: 1100px) {
   [data-theme='normal'] .page-layout.article-layout {
     grid-template-columns: 1fr;

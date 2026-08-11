@@ -139,4 +139,13 @@ const { html: contentHtml, toc } = withTocIds(post.contentHtml);
     });
     start();
   }
+
+  // 目录过长：内容超出可视区时给底部加渐隐提示（has-more）
+  const tocEl = document.querySelector('.article-toc');
+  const updateTocFade = () => {
+    if (!tocEl) return;
+    tocEl.classList.toggle('has-more', tocEl.scrollHeight > tocEl.clientHeight + 4);
+  };
+  updateTocFade();
+  window.addEventListener('resize', updateTocFade);
 </script>
