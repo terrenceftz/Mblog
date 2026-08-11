@@ -20,6 +20,10 @@ export interface ThemeConfig {
 }
 export interface PublicSettings {
   siteName: string;
+  /** 博主名称（前台首屏"你好，我是X"，后台站点设置可配） */
+  author: string;
+  /** 博主头像（前台首屏头像，后台站点设置可配，回退主题配置） */
+  avatar: string;
   siteDesc: string;
   siteUrl: string;
   theme: string;
@@ -55,7 +59,7 @@ async function get<T>(path: string): Promise<T> {
 
 export function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
-    siteName: '我的博客', siteDesc: '', siteUrl: 'http://localhost', theme: 'normal', friendLinkEnabled: true,
+    siteName: '我的博客', author: '', avatar: '', siteDesc: '', siteUrl: 'http://localhost', theme: 'normal', friendLinkEnabled: true,
     themeNormal: {}, themeReader: {}, githubEnabled: false, githubUsername: '',
     doubanEnabled: false, doubanUid: '', turnstileSiteKey: '',
     navMenu: [

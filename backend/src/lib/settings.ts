@@ -4,6 +4,9 @@ import type { Db } from '../db';
 
 export const DEFAULT_SETTINGS: Record<string, string> = {
   site_name: '我的博客',
+  // 博主信息（前台首屏"你好，我是X"与头像，后台站点设置可配）
+  author: '',
+  avatar: '',
   site_description: '',
   site_url: 'http://localhost',
   default_theme: 'normal',

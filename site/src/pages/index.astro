@@ -9,7 +9,8 @@ import {
 } from '../lib/api';
 
 const settings = Astro.locals.settings ?? (await getPublicSettings());
-const siteName = settings.siteName || '我的博客';
+// 博主名称/头像：优先后台「站点设置→站点基础信息」的博主名称/头像，回退站点名与主题配置
+const siteName = settings.author || settings.siteName || '我的博客';
 // 首页文章数：默认主题配置决定（双主题架构下 SSR 以默认主题为准）
 const defaultTheme = settings.theme === 'reader' ? settings.themeReader : settings.themeNormal;
 const pageSize = defaultTheme.homePageSize ?? 10;
@@ -48,7 +49,7 @@ const catName = (id: number | null) => categories.find((c) => c.id === id)?.name
 
 // 首屏头像与自我介绍（后台「正常模式主题设置」可配，缺省回退默认）
 const themeNormal = settings.themeNormal ?? {};
-const avatarUrl = themeNormal.avatar || '/avatar.jpg';
+const avatarUrl = settings.avatar || themeNormal.avatar || '/avatar.jpg';
 const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博主';
 ---
 <BaseLayout description={settings.siteDesc}>

@@ -196,9 +196,8 @@ onMounted(() => {
             <h3 class="card-title fw-bold m-0">首屏内容（仅经典模式生效）</h3>
           </div>
           <div class="card-body">
-            <div class="mb-3">
-              <label class="form-label small fw-medium">首屏头像 URL</label>
-              <input type="text" v-model="currentColors().avatar" class="form-control" placeholder="留空使用 /avatar.jpg" />
+            <div class="alert alert-info py-2 small mb-3">
+              首屏头像与博主名称统一在「站点设置 → 站点基础信息」中配置（博主头像 URL / 博主名称），此处无需重复设置。
             </div>
             <div>
               <label class="form-label small fw-medium">首屏自我介绍（BlurText 逐词模糊揭示）</label>

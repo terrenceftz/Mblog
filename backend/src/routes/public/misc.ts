@@ -81,10 +81,11 @@ ${items}
       github_enabled: githubEnabled, github_username: githubUsername,
       douban_enabled: doubanEnabled, douban_uid: doubanUid,
       turnstile_site_key: turnstileSiteKey,
+      author: author, avatar: avatar,
     } = getSettings(ctx, [
       'site_name', 'site_description', 'site_url', 'default_theme', 'friend_link_enabled', 'nav_menu',
       'theme_normal', 'theme_reader', 'github_enabled', 'github_username',
-      'douban_enabled', 'douban_uid', 'turnstile_site_key',
+      'douban_enabled', 'douban_uid', 'turnstile_site_key', 'author', 'avatar',
     ]);
 
     // 解析导航菜单 JSON；非法/空则回退默认
@@ -110,6 +111,8 @@ ${items}
         doubanEnabled: doubanEnabled === '1',
         doubanUid,
         turnstileSiteKey,
+        author,
+        avatar,
       },
     });
   });
