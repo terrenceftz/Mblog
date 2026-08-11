@@ -505,11 +505,27 @@
 
 /* ---------- 全部文章页（eonova 极简纵向列表 + 分段加载） ---------- */
 [data-theme='normal'] .posts-page {
+  position: relative;
   max-width: 720px;
   margin: 0 auto;
-  padding: 48px 20px 80px;
+  padding: 56px 20px 80px;
+}
+/* 顶部渐变光装饰（与文章页同款琥珀径向光） */
+[data-theme='normal'] .posts-page::before {
+  content: '';
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(680px, 80%);
+  height: 300px;
+  background: radial-gradient(ellipse at center, rgba(232, 182, 76, 0.16), transparent 68%);
+  pointer-events: none;
+  z-index: 0;
 }
 [data-theme='normal'] .posts-header {
+  position: relative;
+  z-index: 1;
   text-align: center;
   margin-bottom: 40px;
 }
