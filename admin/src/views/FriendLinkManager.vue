@@ -6,9 +6,14 @@ import {
 
 const list = ref<FriendLinkRow[]>([]);
 const filter = ref('');
+const error = ref('');
 
 async function load() {
-  list.value = await adminGetFriendLinks({ status: filter.value || undefined });
+  try {
+    list.value = await adminGetFriendLinks({ status: filter.value || undefined });
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '加载失败';
+  }
 }
 async function setStatus(l: FriendLinkRow, status: FriendLinkRow['status']) {
   await adminPutFriendLink(l.id, { status });
@@ -33,6 +38,7 @@ onMounted(load);
         <option value="rejected">已拒绝</option>
       </select>
     </div>
+    <p v-if="error" class="error">{{ error }}</p>
     <table class="table">
       <thead><tr><th>站名</th><th>网址</th><th>简介</th><th>状态</th><th>操作</th></tr></thead>
       <tbody>
@@ -69,5 +75,6 @@ onMounted(load);
 .link-btn { background: none; border: none; color: #3b82f6; cursor: pointer; margin-right: 8px; }
 .link-btn.warn { color: #d97706; }
 .link-btn.danger { color: #dc2626; }
+.error { color: #dc2626; font-size: 14px; margin: 0 0 8px; }
 .empty { color: #6b7280; text-align: center; padding: 32px 0; }
 </style>

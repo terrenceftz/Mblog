@@ -10,12 +10,17 @@ const filter = ref('');
 const selected = ref<number[]>([]);
 const replyingId = ref<number | null>(null);
 const replyContent = ref('');
+const error = ref('');
 
 async function load() {
-  list.value = await adminGetComments({ status: filter.value || undefined });
-  // 过滤掉已被删除/移出列表的选中项
-  const ids = new Set(list.value.map((c) => c.id));
-  selected.value = selected.value.filter((id) => ids.has(id));
+  try {
+    list.value = await adminGetComments({ status: filter.value || undefined });
+    // 过滤掉已被删除/移出列表的选中项
+    const ids = new Set(list.value.map((c) => c.id));
+    selected.value = selected.value.filter((id) => ids.has(id));
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '加载失败';
+  }
 }
 async function setStatus(c: CommentRow, status: CommentRow['status']) {
   await adminPatchComment(c.id, status);
@@ -80,6 +85,7 @@ onMounted(load);
       <button class="btn danger" :disabled="!selected.length" @click="batch('delete')">删除</button>
       <span v-if="selected.length" class="batch-info">已选 {{ selected.length }} 项</span>
     </div>
+    <p v-if="error" class="error">{{ error }}</p>
     <table class="table">
       <thead>
         <tr>
@@ -143,5 +149,6 @@ onMounted(load);
 .reply-box { display: flex; flex-direction: column; gap: 8px; }
 .reply-textarea { width: 260px; padding: 8px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; resize: vertical; }
 .reply-actions { display: flex; align-items: center; gap: 8px; }
+.error { color: #dc2626; font-size: 14px; margin: 0 0 8px; }
 .empty { color: #6b7280; text-align: center; padding: 32px 0; }
 </style>

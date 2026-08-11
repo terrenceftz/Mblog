@@ -3,16 +3,22 @@ import { onMounted, ref } from 'vue';
 import { getStats } from '../api/admin';
 
 const stats = ref<Awaited<ReturnType<typeof getStats>> | null>(null);
+const error = ref('');
 
 onMounted(async () => {
-  stats.value = await getStats();
+  try {
+    stats.value = await getStats();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '加载失败';
+  }
 });
 </script>
 
 <template>
   <div>
     <h1 class="page-title">仪表盘</h1>
-    <div v-if="stats" class="stat-grid">
+    <p v-if="error" class="error">{{ error }}</p>
+    <div v-else-if="stats" class="stat-grid">
       <div class="stat-card"><div class="num">{{ stats.postTotal }}</div><div class="label">文章总数</div></div>
       <div class="stat-card"><div class="num">{{ stats.published }}</div><div class="label">已发布</div></div>
       <div class="stat-card"><div class="num">{{ stats.commentTotal }}</div><div class="label">评论总数</div></div>
@@ -31,4 +37,5 @@ onMounted(async () => {
 .stat-card.warn .num { color: #d97706; }
 .stat-card .label { color: #6b7280; font-size: 13px; margin-top: 4px; }
 .loading { color: #6b7280; }
+.error { color: #dc2626; font-size: 14px; }
 </style>

@@ -26,6 +26,8 @@ export const router = createRouter({
 
 router.beforeEach((to) => {
   const token = localStorage.getItem('admin_token');
+  // 未登录访问受保护页面 → 登录页
   if (to.meta.requiresAuth && !token) return { name: 'login' };
-  if (to.name === 'login' && token) return { name: 'dashboard' };
+  // 登录页：token 存在但可能已过期（过期 token 由 client.ts 在首次 401 时清除并跳转登录），
+  // 因此不再强制把带 token 的访问从 /login 弹回后台——否则过期 token 用户会陷入 登录页→后台→401→登录页 的死循环。
 });

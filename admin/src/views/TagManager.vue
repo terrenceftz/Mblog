@@ -7,9 +7,14 @@ import {
 const list = ref<TagRow[]>([]);
 const name = ref('');
 const editing = ref<TagRow | null>(null);
+const error = ref('');
 
 async function load() {
-  list.value = await adminGetTags();
+  try {
+    list.value = await adminGetTags();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '加载失败';
+  }
 }
 async function add() {
   if (!name.value.trim()) return;
@@ -37,6 +42,7 @@ onMounted(load);
       <input v-model="name" placeholder="新标签名称" @keyup.enter="add" />
       <button class="btn primary" @click="add">添加</button>
     </div>
+    <p v-if="error" class="error">{{ error }}</p>
     <div class="tag-list">
       <div v-for="t in list" :key="t.id" class="tag-chip">
         <template v-if="editing?.id === t.id">
@@ -64,4 +70,5 @@ onMounted(load);
 .tag-chip input { width: 100px; padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 6px; }
 .link-btn { background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 13px; }
 .link-btn.danger { color: #dc2626; }
+.error { color: #dc2626; font-size: 14px; margin: 0 0 8px; }
 </style>

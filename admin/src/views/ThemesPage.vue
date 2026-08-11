@@ -42,9 +42,13 @@ function mergeStored(raw: string | undefined, d: ThemeForm): ThemeForm {
 }
 
 onMounted(async () => {
-  allSettings.value = await adminGetSettings();
-  forms.value.normal = mergeStored(allSettings.value.theme_normal, DEFAULTS.normal);
-  forms.value.reader = mergeStored(allSettings.value.theme_reader, DEFAULTS.reader);
+  try {
+    allSettings.value = await adminGetSettings();
+    forms.value.normal = mergeStored(allSettings.value.theme_normal, DEFAULTS.normal);
+    forms.value.reader = mergeStored(allSettings.value.theme_reader, DEFAULTS.reader);
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '加载主题设置失败';
+  }
 });
 
 async function save() {
