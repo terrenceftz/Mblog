@@ -1,9 +1,18 @@
 # MBLOG 项目记忆文档（会话交接）
 
-> 最后更新：2026-08-11（后台 UI 精修 + 浅色双主题落地后）
+> 最后更新：2026-08-11（pure-admin 迁移暂停，已存档；环境升级为 Node 24）
 > 用途：跨会话记忆，供明天继续开发使用。开发前先读本文件 + `git log --oneline -20`。
 
 ---
+
+## 0. 环境变更（2026-08-11 重要！）
+
+- **Node 已升级到 v24.19.0（winget OpenJS.NodeJS.LTS）**，pnpm 11.21（corepack enable）。旧 Node 20.16 的 msi 因 node.exe 被进程占用（ZCode 自身）无法装回，**保持 Node 24 是当前唯一可行状态**。
+- **better-sqlite3 已升级 v11→v13**（`npm install better-sqlite3@^13`）修复 Node 24 ABI（v11 无 Node24 预编译、源码编译需 VS 工具链）。83/83 测试通过。**后端 node_modules 若被重装，必须保持 v13+，否则 ABI 崩（NODE_MODULE_VERSION 137 vs 115）**。
+- site（Astro + sharp 0.34）在 Node 24 下正常（已实测 200）。
+- 旧 dev server 进程与 Node 升级的坑：MSI 替换 node.exe 前必须先停所有 node 进程（本次 1603 错误根因）。
+
+
 
 ## 1. 项目概览
 
@@ -157,11 +166,12 @@ AdminLayout（暗色侧栏 + icons + 移动抽屉 + `isActive()` 精确导航判
 - **仪表盘增强**（提交 `0fe6972`：图标统计卡 + 快捷操作）
 - **UI 精修 + 浅色双主题**（spec: `docs/superpowers/specs/2026-08-11-admin-ui-polish-design.md`，改动在**工作区未提交**，16 文件 + 新增 `theme.ts`）：admin.css 三层 token 体系化、theme.ts 三态主题管理、侧栏主题切换器、`.page-header` 页头结构、`.btn.ghost`、阴影/间距/字号 scale 落地、组件硬编码色值清零（仅 ThemesPage 色板/Dashboard 图标色/Login blob 例外）、`.stagger` 入场动画、Vditor 与 Login 浅色适配
 
-提交历史（最近 15 条见文首 git log 输出）。**当前工作区有未提交改动**：上一条 bullet 的全部内容（含新增 `theme.ts` 和 spec 文档），commit 时用类似 `feat(admin): 后台 UI 精修 + 浅色双主题` 的消息。
+提交历史（最近 15 条见文首 git log 输出）。**工作区当前干净**（UI 精修已随 `2c871fb` 提交，`8004f9e` 为事故记录文档提交）。
 
 ## 6. 待办 / 下一步
 
-- **后台 UI 打磨**：token 体系化 + 浅色双主题已落地（待 commit）；**剩余**：PostList（行点击进编辑、tabular-nums、hover 细节——本轮未动）、CategoryManager / TagManager（add-row 与卡片一致 + 空态 + 编辑取消，本轮只做了 token/页头迁移，一致性细节未验证）
+- **后台 UI 方案待定**（见 §9 迁移存档）：pure-admin 迁移已暂停，用户想先调研"成熟后台 UI/CSS 直接复用"的轻量方案再决定方向
+- **后台 UI 打磨剩余项**（精修已提交）：PostList（行点击进编辑、tabular-nums、hover 细节）、CategoryManager / TagManager（add-row 与卡片一致 + 空态 + 编辑取消）
 - eonova.me 借鉴清单中 **low-priority 项**（会话实现时排除的部分）
 - 部署验证：OG 图中文需服务器 CJK 字体（check docker image）
 - 若做：说说前台互动、评论区增强等（未定）
@@ -212,6 +222,14 @@ npm test   # 83/83 通过
 **教训**：本机（HUAWEI 机器）无 VS Build Tools + 有 Python 3.12——任何需要 node-gyp 编译的原生依赖升级都会失败；优先选有 prebuilt 的版本（better-sqlite3 用 v12.x 不要用 v13.x，sharp 无碍）。
 
 **环境变更记录**：Node 版本现在是 v24.19.0（v20 时代的旧二进制都会失效，装原生依赖后务必 `npm test` / 手动 require 验证）。
+
+### 2026-08-11 18:48 —— 并行会话引入 Tabler 换肤（admin）
+
+并行会话（另一个窗口）给后台引入 **Tabler（@tabler/core ^1.4 + @tabler/icons ^3.46）** 全局换肤：main.ts 里 admin.css 先加载（自定义 token），Tabler 后加载接管 `.card/.btn/.table/.badge` 组件样式。其改动未提交（工作区 M：main.ts/theme.ts/admin.css/package.json/index.html）。
+
+**我做的修复**：它写的 `import 'tabler/dist/css/tabler.min.css'` 路径错误（裸包名不存在，应为 `@tabler/core/...`），已改为 `@tabler/core/dist/css/tabler.min.css`；并 `npm install` 补装依赖。dev server 恢复正常。
+
+**注意**：5173 上跑的是并行会话的 vite 实例（会热更新）。继续开发时如果并行会话还在，**别抢端口、别覆盖它的未提交改动**；tabler 换肤若有样式冲突，在 admin.css 里调整优先级。
 
 **防御**：若再出现 dev server EPERM 崩溃 + package.json 异常，先 `git status` 检查 admin 是否被覆盖；`.zcode/`（仓库根）是 ZCode 工具目录，**永远不要删**。
 
