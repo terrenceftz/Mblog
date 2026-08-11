@@ -8,7 +8,7 @@ import {
   type PostListItem, type Category, type Tag,
 } from '../lib/api';
 
-const settings = await getPublicSettings();
+const settings = Astro.locals.settings ?? (await getPublicSettings());
 const siteName = settings.siteName || '我的博客';
 // 首页文章数：默认主题配置决定（双主题架构下 SSR 以默认主题为准）
 const defaultTheme = settings.theme === 'reader' ? settings.themeReader : settings.themeNormal;

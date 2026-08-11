@@ -17,7 +17,8 @@ interface Props {
 
 const { title = '', description = '', layout = 'full' } = Astro.props;
 // 服务端读取默认主题与导航菜单，直接注入 <html data-theme>，避免闪烁
-const settings = await getPublicSettings();
+// 优先复用 middleware 每请求一次的 settings，避免重复 HTTP 往返
+const settings = Astro.locals.settings ?? (await getPublicSettings());
 const siteName = settings.siteName || '我的博客';
 const defaultTheme = settings.theme || 'normal';
 const year = new Date().getFullYear();
