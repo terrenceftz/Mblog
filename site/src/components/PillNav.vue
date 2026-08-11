@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import gsap from 'gsap/dist/gsap.js'; // CJS 构建，避免 SSR 下 ESM 入口加载失败
+import ThemeToggle from './ThemeToggle.vue';
 
 // PillNav 药丸导航（移植自 reactbits.dev，GSAP 实现）
 // 悬停：圆形从底部升起填充药丸 + 文字上滑翻转；初始加载：宽度展开
@@ -116,6 +117,9 @@ onBeforeUnmount(() => {
             <span :ref="(el) => (whiteRefs[i] = el)" class="pill-label-hover">{{ item.label }}</span>
           </span>
         </a>
+      </li>
+      <li class="pill-theme">
+        <ThemeToggle variant="icon" />
       </li>
     </ul>
   </div>
