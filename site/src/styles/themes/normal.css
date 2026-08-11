@@ -37,6 +37,17 @@
   z-index: 100;
   background: transparent;
 }
+/* 药丸导航水平居中；切换按钮固定右侧 */
+[data-theme='normal'] .site-header .inner {
+  justify-content: center;
+  position: relative;
+}
+[data-theme='normal'] .site-header .inner .theme-toggle {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+}
 
 /* ---------- 顶栏主题切换图标 ---------- */
 [data-theme='normal'] .site-header .theme-toggle {
