@@ -157,7 +157,7 @@ async function tmdbPoster(apiKey: string, title: string, altTitle: string, year:
         const nameMatch = norm(r.title ?? '') === norm(q) || norm(r.original_title ?? '') === norm(q);
         if (!nameMatch) continue;
         const rYear = (r.release_date ?? '').slice(0, 4);
-        if (year && rYear && Math.abs(Number(rYear) - Number(year)) > 1) continue;
+        if (year && (!rYear || Math.abs(Number(rYear) - Number(year)) > 1)) continue;
         if (r.poster_path) return `https://image.tmdb.org/t/p/w500${r.poster_path}`;
       }
     } catch {
