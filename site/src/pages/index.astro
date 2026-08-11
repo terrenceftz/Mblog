@@ -85,7 +85,7 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
 
   <!-- ======== 正常主题首页：内容丰富模块（极简主题隐藏） ======== -->
   <div class="normal-home">
-    <!-- 首屏（Liquid Ether 流体背景；左侧头像 + 右侧自我介绍打字机动效） -->
+    <!-- 首屏（Liquid Ether 流体背景；左侧文字 + 右侧头像，统计气泡弹出于头像右侧） -->
     <section class="nh-hero">
       <LiquidEther client:visible />
       <div class="nh-hero-content nh-hero-split">
@@ -95,20 +95,20 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
           <BlurText client:load class="nh-witty" text={introText} start-delay={520} delay={120} />
           {settings.siteDesc && <p class="nh-desc"><BlurText client:load text={settings.siteDesc} start-delay={900} delay={80} /></p>}
         </div>
-        <div class="nh-avatar"><img src={avatarUrl} alt={siteName} /></div>
+        <div class="nh-avatar-wrap">
+          <div class="nh-avatar"><img src={avatarUrl} alt={siteName} /></div>
+          <div class="nh-stats-bubbles">
+            <div class="nh-bubble b1"><span class="num">{stats.postTotal}</span><span class="label">文章</span></div>
+            <div class="nh-bubble b2"><span class="num">{stats.commentTotal}</span><span class="label">评论</span></div>
+            <div class="nh-bubble b3"><span class="num">{stats.totalViews}</span><span class="label">浏览</span></div>
+            <div class="nh-bubble b4"><span class="num">{stats.friendLinkCount}</span><span class="label">友链</span></div>
+          </div>
+        </div>
       </div>
     </section>
 
     <div class="nh-container">
-    <!-- 数据统计 -->
-    <section class="nh-stats">
-      <div class="nh-stat"><span class="num">{stats.postTotal}</span><span class="label">文章</span></div>
-      <div class="nh-stat"><span class="num">{stats.commentTotal}</span><span class="label">评论</span></div>
-      <div class="nh-stat"><span class="num">{stats.totalViews}</span><span class="label">总浏览</span></div>
-      <div class="nh-stat"><span class="num">{stats.friendLinkCount}</span><span class="label">友链</span></div>
-    </section>
-
-    <!-- 最新文章 -->
+    <!-- 最新文章（首屏底部露出，引导下滑） -->
     <section class="nh-section">
       <div class="nh-section-head"><p class="nh-eyebrow">LATEST POSTS</p><h2>最新文章</h2></div>
       <div class="nh-post-grid">
