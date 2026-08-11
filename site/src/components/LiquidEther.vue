@@ -1367,9 +1367,9 @@ watch(
 </script>
 
 <template>
-  <canvas
+  <div
     ref="canvasRef"
-    class="liquid-ether-canvas"
-    style="position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none;"
-  ></canvas>
+    class="liquid-ether-container"
+    style="position:absolute; inset:0; width:100%; height:100%; overflow:hidden; touch-action:none;"
+  ></div>
 </template>
