@@ -50,3 +50,26 @@ const { html: contentHtml, toc } = withTocIds(post.contentHtml);
     </Fragment>
   )}
 </BaseLayout>
+
+<script>
+  // 文章目录滚动高亮当前章节
+  const tocLinks = [...document.querySelectorAll('.article-toc a')]
+    .map((a) => ({ a, id: a.getAttribute('href')?.slice(1) }))
+    .filter((x) => x.id);
+  if (tocLinks.length) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            for (const { a, id } of tocLinks) a.classList.toggle('toc-active', id === entry.target.id);
+          }
+        }
+      },
+      { rootMargin: '-80px 0px -70% 0px', threshold: 0 },
+    );
+    for (const { id } of tocLinks) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    }
+  }
+</script>
