@@ -32,9 +32,9 @@
 
 /* ---------- 顶栏 ---------- */
 [data-theme='normal'] .site-header {
-  background: rgba(9, 9, 11, 0.8);
+  background: rgba(9, 9, 11, 0.35);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: none;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -62,28 +62,32 @@
 
 /* ---------- 正常主题首页模块 ---------- */
 [data-theme='normal'] .normal-home {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 24px 20px 80px;
+  /* 全出血：首屏 Hero 铺满视口；内容区由 .nh-container 约束 */
 }
 
-/* Hero：Liquid Ether 流体背景 */
+/* 内容区容器（首屏下方各模块） */
+[data-theme='normal'] .nh-container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+
+/* 首屏：Liquid Ether 流体背景，整屏高度，底部渐变渐黑融入背景 */
 [data-theme='normal'] .nh-hero {
   position: relative;
   overflow: hidden;
-  min-height: 320px;
+  min-height: 100svh;
+  margin-top: -57px; /* 覆盖到 sticky 顶栏之下，流体贯穿整屏 */
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
 }
 [data-theme='normal'] .nh-hero-content {
   position: relative;
   z-index: 2;
-  padding: 64px 24px;
+  padding: 48px 24px;
 }
 [data-theme='normal'] .nh-hero::after {
   content: '';
@@ -91,7 +95,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(ellipse at center, rgba(9, 9, 11, 0.2) 0%, rgba(9, 9, 11, 0.72) 100%);
+  background: linear-gradient(to bottom, rgba(9, 9, 11, 0.15) 0%, rgba(9, 9, 11, 0.45) 55%, var(--color-bg) 100%);
 }
 /* island 铺满 Hero（覆盖 Astro 的 display:contents），触发 client:visible 水合 */
 [data-theme='normal'] .nh-hero astro-island {
