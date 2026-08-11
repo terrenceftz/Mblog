@@ -1,194 +1,133 @@
 <script setup lang="ts">
-// 可搜索的标签多选选择器：选中标签收成可移除胶囊，输入框实时过滤，支持大量标签与内联新建
-import { computed, ref, watch } from 'vue';
-import { adminCreateTag, type TagRow } from '../api/admin';
-import { toast } from '../lib/toast';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { api, type Tag } from '../api/admin';
 
-const props = defineProps<{ tags: TagRow[]; modelValue: number[] }>();
-const emit = defineEmits<{ 'update:modelValue': [number[]] }>();
+const props = defineProps<{
+  modelValue: string[];
+}>();
 
-const allTags = ref<TagRow[]>([...props.tags]);
-// PostEditor 的 tags 是异步加载的，props 到达后需同步（保留本地新建的标签）
-watch(
-  () => props.tags,
-  (val) => {
-    const ids = new Set(val.map((t) => t.id));
-    const local = allTags.value.filter((t) => !ids.has(t.id));
-    allTags.value = [...val, ...local];
-  },
-  { deep: true },
-);
-const query = ref('');
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string[]): void;
+}>();
 
-const selected = computed(() => allTags.value.filter((t) => props.modelValue.includes(t.id)));
-const filtered = computed(() => {
-  const q = query.value.trim().toLowerCase();
-  return allTags.value.filter(
-    (t) => !props.modelValue.includes(t.id) && (!q || t.name.toLowerCase().includes(q)),
+const allTags = ref<Tag[]>([]);
+const searchInput = ref('');
+const isOpen = ref(false);
+const containerRef = ref<HTMLElement | null>(null);
+
+const availableTags = computed(() => {
+  const query = searchInput.value.trim().toLowerCase();
+  return allTags.value.filter((tag) => {
+    const isAlreadySelected = props.modelValue.includes(tag.name);
+    if (isAlreadySelected) return false;
+    if (!query) return true;
+    return tag.name.toLowerCase().includes(query) || tag.slug.toLowerCase().includes(query);
+  });
+});
+
+async function loadTags() {
+  allTags.value = await api.getTags();
+}
+
+function selectTag(tagName: string) {
+  if (!props.modelValue.includes(tagName)) {
+    emit('update:modelValue', [...props.modelValue, tagName]);
+  }
+  searchInput.value = '';
+}
+
+function removeTag(tagName: string) {
+  emit(
+    'update:modelValue',
+    props.modelValue.filter((t) => t !== tagName)
   );
-});
-const canCreate = computed(() => {
-  const q = query.value.trim();
-  return q.length > 0 && !allTags.value.some((t) => t.name === q);
-});
+}
 
-function toggle(t: TagRow) {
-  const cur = [...props.modelValue];
-  const i = cur.indexOf(t.id);
-  if (i >= 0) cur.splice(i, 1);
-  else cur.push(t.id);
-  emit('update:modelValue', cur);
+async function handleCreateTag() {
+  const name = searchInput.value.trim();
+  if (!name) return;
+  if (props.modelValue.includes(name)) {
+    searchInput.value = '';
+    return;
+  }
+  // Add to tag list via API if not present
+  const newTag = await api.addTag(name);
+  if (!allTags.value.some((t) => t.id === newTag.id)) {
+    allTags.value.push(newTag);
+  }
+  selectTag(newTag.name);
+  searchInput.value = '';
 }
-function remove(id: number) {
-  emit('update:modelValue', props.modelValue.filter((x) => x !== id));
-}
-async function create() {
-  const name = query.value.trim();
-  if (!name || !canCreate.value) return;
-  try {
-    const created = await adminCreateTag({ name });
-    allTags.value.push({ ...created, postCount: 0 });
-    emit('update:modelValue', [...props.modelValue, created.id]);
-    query.value = '';
-    toast(`标签「${name}」已创建`, 'success');
-  } catch {
-    toast('标签创建失败', 'error');
+
+function handleClickOutside(event: MouseEvent) {
+  if (containerRef.value && !containerRef.value.contains(event.target as Node)) {
+    isOpen.value = false;
   }
 }
+
+onMounted(() => {
+  loadTags();
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <template>
-  <div class="tag-picker">
-    <!-- 已选标签胶囊 -->
-    <div v-if="selected.length" class="tag-chips">
-      <span v-for="t in selected" :key="t.id" class="chip">
-        {{ t.name }}
-        <button type="button" class="chip-x" :aria-label="`移除 ${t.name}`" @click="remove(t.id)">✕</button>
+  <div ref="containerRef" class="tag-picker-container position-relative">
+    <div class="tag-picker-box d-flex flex-wrap align-items-center gap-1 p-2 rounded border bg-input" @click="isOpen = true">
+      <!-- Selected Tag Chips -->
+      <span v-for="tag in modelValue" :key="tag" class="tag-chip">
+        <span>{{ tag }}</span>
+        <span class="tag-remove" @click.stop="removeTag(tag)">&times;</span>
       </span>
+
+      <!-- Input for searching / creating -->
+      <input
+        type="text"
+        v-model="searchInput"
+        class="form-control-plaintext form-control-sm flex-grow-1 min-w-0 px-1 py-0 shadow-none"
+        placeholder="搜索或输入回车添加标签..."
+        @focus="isOpen = true"
+        @keydown.enter.prevent="handleCreateTag"
+      />
     </div>
 
-    <div class="tag-search">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-      <input v-model="query" class="form-control" placeholder="搜索标签…" />
-    </div>
+    <!-- Dropdown Menu -->
+    <div v-if="isOpen" class="dropdown-menu show w-100 mt-1 shadow-sm border p-1 max-h-48 overflow-auto" style="z-index: 1050; max-height: 200px;">
+      <div v-if="availableTags.length === 0 && !searchInput.trim()" class="text-muted p-2 small text-center">
+        暂无更多标签
+      </div>
 
-    <!-- 仅在搜索时显示可选项与内联新建 -->
-    <div v-if="query.trim()" class="tag-options">
-      <button v-if="canCreate" type="button" class="tag-create" @click="create">
-        ＋ 创建标签「{{ query.trim() }}」
-      </button>
-      <button
-        v-for="t in filtered"
-        :key="t.id"
-        type="button"
-        class="tag-option"
-        @click="toggle(t)"
+      <div v-else-if="availableTags.length === 0 && searchInput.trim()" class="dropdown-item rounded py-1 px-2 cursor-pointer small" @click="handleCreateTag">
+        按 Enter 创建新标签 <span class="fw-bold text-primary">"{{ searchInput }}"</span>
+      </div>
+
+      <div
+        v-for="tag in availableTags"
+        :key="tag.id"
+        class="dropdown-item rounded py-1 px-2 cursor-pointer small d-flex align-items-center justify-content-between"
+        @click="selectTag(tag.name)"
       >
-        {{ t.name }}<span v-if="t.postCount" class="tag-count">{{ t.postCount }}</span>
-      </button>
-      <p v-if="!filtered.length && !canCreate" class="tag-none">无匹配标签</p>
+        <span>{{ tag.name }}</span>
+        <span class="badge badge-soft-secondary ms-2">{{ tag.postCount || 0 }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.tag-picker {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+.min-w-0 {
+  min-width: 100px;
 }
-.tag-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.bg-input {
+  background-color: var(--mb-bg-input);
+  border-color: var(--mb-border-color) !important;
 }
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--primary-soft);
-  border: 1px solid var(--primary);
-  color: var(--primary);
-  border-radius: var(--radius-full);
-  padding: 3px 8px 3px 11px;
-  font-size: var(--font-sm);
-}
-.chip-x {
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  font-size: 11px;
-  padding: 0;
-  opacity: 0.7;
-  transition: opacity var(--transition-fast);
-}
-.chip-x:hover {
-  opacity: 1;
-}
-.tag-search {
-  position: relative;
-}
-.tag-search svg {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-subtle);
-  pointer-events: none;
-}
-.tag-search input {
-  width: 100%;
-  box-sizing: border-box;
-  padding-left: 30px;
-}
-.tag-options {
-  display: flex;
-  flex-direction: column;
-  max-height: 180px;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  padding: 4px;
-  box-shadow: var(--shadow-md);
-}
-.tag-option,
-.tag-create {
-  text-align: left;
-  background: none;
-  border: none;
-  color: var(--text);
-  padding: var(--space-2) 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: var(--font-sm);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-.tag-option:hover,
-.tag-create:hover {
-  background: var(--primary-soft);
-  color: var(--primary);
-}
-.tag-create {
-  color: var(--primary);
-  font-weight: 600;
-  border-bottom: 1px solid var(--border);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-}
-.tag-count {
-  font-size: 11px;
-  color: var(--text-subtle);
-}
-.tag-none {
-  margin: 0;
-  padding: var(--space-2) 10px;
-  font-size: var(--font-sm);
-  color: var(--text-subtle);
+.tag-picker-box {
+  min-height: 42px;
+  cursor: text;
 }
 </style>
