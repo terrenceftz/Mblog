@@ -110,6 +110,15 @@ select:focus {
   padding: 4px 10px;
   font-size: 13px;
 }
+/* 键盘导航可见焦点 */
+.btn:focus-visible,
+.input:focus-visible,
+select:focus-visible,
+.pagination button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 
 /* 表格 */
 .table-wrap {

@@ -78,11 +78,22 @@ onMounted(load);
     <!-- 作者发布说说：免审核直发 -->
     <div class="card compose-card">
       <div class="card-title">写说说</div>
-      <textarea v-model="compose" class="input compose-textarea" rows="3" maxlength="500" placeholder="写点什么…（发布者为作者，直接发布）" />
+      <textarea
+        v-model="compose"
+        class="input compose-textarea"
+        rows="3"
+        maxlength="500"
+        placeholder="此刻的想法…（发布者为作者，直接发布）"
+      />
       <div class="compose-foot">
-        <span class="compose-count">{{ compose.length }}/500</span>
-        <button class="btn primary" :disabled="posting || !compose.trim()" @click="publish">
-          {{ posting ? '发布中…' : '发布说说' }}
+        <span class="compose-count" :class="{ near: compose.length >= 450, over: compose.length >= 500 }">
+          {{ compose.length }}/500
+        </span>
+        <button class="btn primary compose-btn" :disabled="posting || !compose.trim()" @click="publish">
+          <svg v-if="!posting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+          {{ posting ? '发布中…' : '发布' }}
         </button>
       </div>
     </div>
@@ -118,10 +129,22 @@ onMounted(load);
 <style scoped>
 .toolbar { justify-content: space-between; }
 .toolbar .page-title { margin: 0; }
-.compose-card { margin-bottom: 16px; }
-.compose-textarea { resize: vertical; font-family: inherit; }
-.compose-foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 8px; }
-.compose-count { font-size: 12px; color: var(--text-muted); }
+.compose-card { margin-bottom: 16px; border-color: var(--border-strong); }
+.compose-textarea { resize: vertical; font-family: inherit; min-height: 76px; line-height: 1.7; }
+.compose-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.compose-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+.compose-count.near { color: #fbbf24; }
+.compose-count.over { color: var(--danger); }
+.compose-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .talk-list { display: flex; flex-direction: column; gap: 10px; }
 .talk-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .talk-main { min-width: 0; }
