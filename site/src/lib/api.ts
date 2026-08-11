@@ -14,6 +14,7 @@ export interface Page<T> { list: T[]; total: number }
 export interface ThemeConfig {
   bg?: string; text?: string; muted?: string; primary?: string; border?: string;
   fontSize?: number; homePageSize?: number;
+  avatar?: string; intro?: string;
 }
 export interface PublicSettings {
   siteName: string;

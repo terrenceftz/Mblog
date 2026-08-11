@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import LiquidEther from '../components/LiquidEther.vue';
-import AnimatedIntro from '../components/AnimatedIntro.vue';
+import BlurText from '../components/BlurText.vue';
 import {
   getPosts, getPublicSettings, getCategories, getTags, getStats, getDouban, getProjects,
   type PostListItem, type Category, type Tag,
@@ -44,6 +44,11 @@ const [categories, tags, stats, doubanData, projectsData] = await Promise.all([
   getProjects().catch(() => ({ enabled: false, projects: [] })),
 ]);
 const catName = (id: number | null) => categories.find((c) => c.id === id)?.name ?? '';
+
+// 首屏头像与自我介绍（后台「正常模式主题设置」可配，缺省回退默认）
+const themeNormal = settings.themeNormal ?? {};
+const avatarUrl = themeNormal.avatar || '/avatar.jpg';
+const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博主';
 ---
 <BaseLayout description={settings.siteDesc}>
 
@@ -84,13 +89,13 @@ const catName = (id: number | null) => categories.find((c) => c.id === id)?.name
     <section class="nh-hero">
       <LiquidEther client:visible />
       <div class="nh-hero-content nh-hero-split">
-        <div class="nh-avatar"><img src="/avatar.jpg" alt={siteName} /></div>
         <div class="nh-intro">
           <p class="nh-eyebrow">NOVA EON · BLOG</p>
           <h1 class="nh-title">你好，我是{siteName}</h1>
-          <AnimatedIntro client:load />
+          <BlurText client:load text={introText} />
           {settings.siteDesc && <p class="nh-desc">{settings.siteDesc}</p>}
         </div>
+        <div class="nh-avatar"><img src={avatarUrl} alt={siteName} /></div>
       </div>
     </section>
 

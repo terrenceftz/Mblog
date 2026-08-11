@@ -6,11 +6,12 @@ type ThemeKey = 'normal' | 'reader';
 interface ThemeForm {
   bg: string; text: string; muted: string; primary: string; border: string;
   fontSize: number; homePageSize: number;
+  avatar: string; intro: string;
 }
 // 与 CSS 内置默认一致的初始值（保存时全量写入，所见即所得）
 const DEFAULTS: Record<ThemeKey, ThemeForm> = {
-  normal: { bg: '#09090b', text: '#f4f4f5', muted: '#9d9d95', primary: '#e8b64c', border: '#26262a', fontSize: 16, homePageSize: 10 },
-  reader: { bg: '#f3f0e9', text: '#3a3837', muted: '#b0aba4', primary: '#8b3525', border: '#e5e1da', fontSize: 17, homePageSize: 10 },
+  normal: { bg: '#09090b', text: '#f4f4f5', muted: '#9d9d95', primary: '#e8b64c', border: '#26262a', fontSize: 16, homePageSize: 10, avatar: '', intro: '一个喜欢折腾代码和生活的博主' },
+  reader: { bg: '#f3f0e9', text: '#3a3837', muted: '#b0aba4', primary: '#8b3525', border: '#e5e1da', fontSize: 17, homePageSize: 10, avatar: '', intro: '一个喜欢折腾代码和生活的博主' },
 };
 
 const activeTab = ref<ThemeKey>('normal');
@@ -35,6 +36,8 @@ function mergeStored(raw: string | undefined, d: ThemeForm): ThemeForm {
     border: typeof parsed.border === 'string' && parsed.border ? parsed.border : d.border,
     fontSize: Number.isInteger(parsed.fontSize) ? (parsed.fontSize as number) : d.fontSize,
     homePageSize: Number.isInteger(parsed.homePageSize) ? (parsed.homePageSize as number) : d.homePageSize,
+    avatar: typeof parsed.avatar === 'string' ? (parsed.avatar as string) : d.avatar,
+    intro: typeof parsed.intro === 'string' ? (parsed.intro as string) : d.intro,
   };
 }
 
@@ -92,6 +95,16 @@ function resetTheme() {
         </label>
       </div>
 
+      <!-- 首屏内容（仅正常主题生效）：头像 + 自我介绍 -->
+      <div v-if="activeTab === 'normal'" class="content-row">
+        <label>首屏头像 URL
+          <input v-model="forms[activeTab].avatar" placeholder="留空使用 /avatar.jpg" />
+        </label>
+        <label>首屏自我介绍（BlurText 逐词模糊揭示）
+          <textarea v-model="forms[activeTab].intro" rows="3" placeholder="一段简短风趣的自我介绍…"></textarea>
+        </label>
+      </div>
+
       <div class="actions">
         <p v-if="saved" class="saved">✓ 已保存</p>
         <p v-if="error" class="error">{{ error }}</p>
@@ -117,6 +130,14 @@ function resetTheme() {
 .num-row { display: flex; gap: 16px; }
 .num-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #6b7280; }
 .num-row input { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; width: 140px; }
+.content-row { display: flex; flex-direction: column; gap: 12px; }
+.content-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #6b7280; }
+.content-row input,
+.content-row textarea {
+  padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px;
+  font-size: 14px; font-family: inherit; width: 100%; box-sizing: border-box;
+}
+.content-row textarea { resize: vertical; }
 .actions { display: flex; align-items: center; gap: 12px; }
 .btn { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; color: #374151; cursor: pointer; padding: 8px 16px; }
 .btn.primary { background: #3b82f6; color: #fff; border: none; padding: 10px 20px; }
