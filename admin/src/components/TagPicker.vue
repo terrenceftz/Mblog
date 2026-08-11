@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // 可搜索的标签多选选择器：选中标签收成可移除胶囊，输入框实时过滤，支持大量标签与内联新建
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { adminCreateTag, type TagRow } from '../api/admin';
 import { toast } from '../lib/toast';
 
@@ -8,6 +8,16 @@ const props = defineProps<{ tags: TagRow[]; modelValue: number[] }>();
 const emit = defineEmits<{ 'update:modelValue': [number[]] }>();
 
 const allTags = ref<TagRow[]>([...props.tags]);
+// PostEditor 的 tags 是异步加载的，props 到达后需同步（保留本地新建的标签）
+watch(
+  () => props.tags,
+  (val) => {
+    const ids = new Set(val.map((t) => t.id));
+    const local = allTags.value.filter((t) => !ids.has(t.id));
+    allTags.value = [...val, ...local];
+  },
+  { deep: true },
+);
 const query = ref('');
 
 const selected = computed(() => allTags.value.filter((t) => props.modelValue.includes(t.id)));
