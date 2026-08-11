@@ -86,8 +86,16 @@ const navItems = [
   position: sticky;
   top: 0;
   height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
   border-right: 1px solid #1f1f24;
   flex-shrink: 0;
+}
+.admin-side nav {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+  flex: 1;
 }
 .admin-brand {
   padding: 0 20px 16px;
@@ -95,11 +103,7 @@ const navItems = [
   font-size: 16px;
   color: #fafafa;
   border-bottom: 1px solid #1f1f24;
-}
-.admin-side nav {
-  display: flex;
-  flex-direction: column;
-  padding: 10px 0;
+  flex-shrink: 0;
 }
 .admin-side nav a {
   color: #9d9d95;
@@ -109,6 +113,7 @@ const navItems = [
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
   border-left: 2px solid transparent;
   transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
