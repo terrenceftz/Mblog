@@ -39,15 +39,8 @@
   top: 0;
   z-index: 100;
 }
-[data-theme='normal'] .site-header .nav a {
-  color: var(--color-text-muted);
-  transition: color 0.2s ease;
-}
-[data-theme='normal'] .site-header .nav a:hover {
-  color: var(--color-primary);
-}
 
-/* ---------- 站徽 + 导航悬停效果（mboker 风格） ---------- */
+/* ---------- 站徽（mboker 紫色 logo） ---------- */
 [data-theme='normal'] .site-header .site-logo {
   display: inline-flex;
   align-items: center;
@@ -63,12 +56,19 @@
 [data-theme='normal'] .site-header .site-logo:hover svg {
   transform: scale(1.06);
 }
-/* 导航悬停：悬停某一项时其余项变淡 */
-[data-theme='normal'] .site-header .nav a {
-  transition: opacity 0.25s ease, color 0.2s ease;
+/* 顶栏主题切换图标 */
+[data-theme='normal'] .site-header .theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.18s ease;
 }
-[data-theme='normal'] .site-header .nav:hover > a:not(:hover) {
-  opacity: 0.4;
+[data-theme='normal'] .site-header .theme-toggle:hover {
+  color: var(--color-primary);
 }
 
 /* ---------- 侧栏（极简用）在正常主题隐藏 ---------- */
@@ -790,21 +790,6 @@
 }
 [data-theme='normal'] .markdown-body blockquote {
   border-left-color: var(--color-primary);
-}
-
-/* 顶栏主题切换图标按钮（去边框，与导航同色） */
-[data-theme='normal'] .site-header .theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  border: none;
-  background: transparent;
-  padding: 0;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: color 0.18s ease;
-}
-[data-theme='normal'] .site-header .theme-toggle:hover {
-  color: var(--color-primary);
 }
 
 /* ---------- 文章页目录（正常主题，eonova 风格右侧栏） ---------- */

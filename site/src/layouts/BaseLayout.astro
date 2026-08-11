@@ -4,6 +4,7 @@ import '../styles/themes/normal.css';
 import '../styles/themes/reader.css';
 import 'highlight.js/styles/github.css';
 import ThemeToggle from '../components/ThemeToggle.vue';
+import PillNav from '../components/PillNav.vue';
 import { getPublicSettings, type ThemeConfig } from '../lib/api';
 import { TECH_LOGOS } from '../lib/techLogos';
 
@@ -110,16 +111,8 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
             </g>
           </svg>
         </a>
-        <nav class="nav">
-          {navItems.map((item) =>
-            item.url.startsWith('http') ? (
-              <a href={item.url} target="_blank" rel="noopener noreferrer">{item.label}</a>
-            ) : (
-              <a href={item.url}>{item.label}</a>
-            ),
-          )}
-          <ThemeToggle client:load variant="icon" />
-        </nav>
+        <PillNav client:load items={navItems} path={path} />
+        <ThemeToggle client:load variant="icon" />
       </div>
     </header>
 
