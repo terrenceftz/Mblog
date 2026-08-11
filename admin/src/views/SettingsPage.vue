@@ -127,24 +127,22 @@ async function save() {
     <form class="settings-form" @submit.prevent="save">
       <div class="card">
         <div class="card-title">站点信息</div>
-        <label>站点名称
-          <input v-model="form.site_name" class="input" placeholder="我的博客" />
-        </label>
+        <div class="field-pair">
+          <label>站点名称
+            <input v-model="form.site_name" class="input" placeholder="我的博客" />
+          </label>
+          <label>默认主题
+            <select v-model="form.default_theme">
+              <option value="normal">正常主题</option>
+              <option value="reader">极简阅读</option>
+            </select>
+          </label>
+        </div>
         <label>站点简介
           <input v-model="form.site_description" class="input" />
         </label>
         <label>站点地址（用于 RSS）
           <input v-model="form.site_url" class="input" placeholder="https://example.com" />
-        </label>
-      </div>
-
-      <div class="card">
-        <div class="card-title">主题</div>
-        <label>默认主题
-          <select v-model="form.default_theme">
-            <option value="normal">正常主题</option>
-            <option value="reader">极简阅读</option>
-          </select>
         </label>
       </div>
 
@@ -159,17 +157,17 @@ async function save() {
       </div>
 
       <div class="card">
-        <div class="card-title">评论人机验证（Cloudflare Turnstile）</div>
+        <div class="card-title">评论人机验证（Turnstile）</div>
         <label>Site Key
           <input v-model="form.turnstile_site_key" class="input" placeholder="在 Cloudflare → Turnstile 创建站点后获取" />
         </label>
         <label>Secret Key
           <input v-model="form.turnstile_secret_key" class="input" type="password" placeholder="留空或 **** 表示保持不变" />
         </label>
-        <p class="menu-tip">配齐两项后，评论将使用 Turnstile 云验证（访客大多无感）；留空则自动回落数学验证码。</p>
+        <p class="menu-tip">配齐后评论用云验证；留空回落数学验证码。</p>
       </div>
 
-      <div class="card">
+      <div class="card card--full">
         <div class="card-title">导航菜单（前台顶栏）</div>
         <div class="menu-editor">
           <div v-for="(item, index) in menuItems" :key="index" class="menu-row">
@@ -178,7 +176,7 @@ async function save() {
             <button type="button" class="btn sm bad" @click="removeMenuRow(index)">✕</button>
           </div>
           <button type="button" class="btn sm" @click="addMenuRow">＋ 添加菜单项</button>
-          <p class="menu-tip">提示：`/` 为首页；以 http 开头的链接会在新窗口打开；留空名称或链接的行会被忽略。</p>
+          <p class="menu-tip">`/` 为首页；http 开头新窗口打开；留空行忽略。</p>
         </div>
       </div>
 
@@ -191,18 +189,22 @@ async function save() {
           </select>
         </label>
         <template v-if="form.storage_provider === 'cos'">
-          <label>SecretId
-            <input v-model="form.cos_secret_id" class="input" />
-          </label>
-          <label>SecretKey
-            <input v-model="form.cos_secret_key" class="input" type="password" placeholder="留空或 **** 表示保持不变" />
-          </label>
-          <label>Bucket
-            <input v-model="form.cos_bucket" class="input" placeholder="my-blog-1250000000" />
-          </label>
-          <label>Region
-            <input v-model="form.cos_region" class="input" placeholder="ap-guangzhou" />
-          </label>
+          <div class="field-pair">
+            <label>SecretId
+              <input v-model="form.cos_secret_id" class="input" />
+            </label>
+            <label>SecretKey
+              <input v-model="form.cos_secret_key" class="input" type="password" placeholder="留空或 **** 表示保持不变" />
+            </label>
+          </div>
+          <div class="field-pair">
+            <label>Bucket
+              <input v-model="form.cos_bucket" class="input" placeholder="my-blog-1250000000" />
+            </label>
+            <label>Region
+              <input v-model="form.cos_region" class="input" placeholder="ap-guangzhou" />
+            </label>
+          </div>
         </template>
       </div>
 
@@ -217,20 +219,22 @@ async function save() {
         <label>GitHub 用户名
           <input v-model="form.github_username" class="input" placeholder="octocat" />
         </label>
-        <p class="menu-tip">前台 /projects 页面将自动拉取该账号的公开仓库（不含 fork，按星数排序）。需在导航菜单中添加「项目」链接。</p>
+        <p class="menu-tip">前台 /projects 自动拉取公开仓库（不含 fork）。</p>
       </div>
 
-      <div class="card">
+      <div class="card card--full">
         <div class="card-title">豆瓣影音展示</div>
-        <label>开启展示
-          <select v-model="form.douban_enabled">
-            <option value="1">开启</option>
-            <option value="0">关闭</option>
-          </select>
-        </label>
-        <label>豆瓣用户 ID
-          <input v-model="form.douban_uid" class="input" placeholder="douban 主页 /people/ 后的数字" />
-        </label>
+        <div class="field-pair">
+          <label>开启展示
+            <select v-model="form.douban_enabled">
+              <option value="1">开启</option>
+              <option value="0">关闭</option>
+            </select>
+          </label>
+          <label>豆瓣用户 ID
+            <input v-model="form.douban_uid" class="input" placeholder="douban 主页 /people/ 后的数字" />
+          </label>
+        </div>
         <label>TMDB API Key（海报图源）
           <input v-model="form.tmdb_api_key" class="input" type="password" placeholder="留空或 **** 表示保持不变" />
         </label>
@@ -241,7 +245,7 @@ async function save() {
           <span v-if="syncMsg" class="saved">{{ syncMsg }}</span>
           <span v-if="syncError" class="error">{{ syncError }}</span>
         </div>
-        <p class="menu-tip">同步会使用已保存的设置——请先点「保存设置」再同步。拉取「看过」的电影与 TMDB 海报并预热缓存，避免前台首次访问卡顿（超过 30 秒自动超时）。</p>
+        <p class="menu-tip">同步使用已保存设置——先「保存设置」再同步。拉取「看过」并预热 TMDB 海报缓存（超时 30 秒）。</p>
       </div>
 
       <div class="card">
@@ -264,7 +268,7 @@ async function save() {
         </div>
       </div>
 
-      <div class="actions">
+      <div class="actions card--full">
         <p v-if="saved" class="saved">✓ 已保存</p>
         <p v-if="error" class="error">{{ error }}</p>
         <button type="submit" class="btn primary">保存设置</button>
@@ -274,11 +278,38 @@ async function save() {
 </template>
 
 <style scoped>
-.settings-form { display: flex; flex-direction: column; gap: 16px; max-width: 560px; }
-.settings-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); }
-.settings-form select.input,
-.settings-form select { width: 100%; }
-.actions { display: flex; align-items: center; gap: 12px; }
+.settings-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+  max-width: none;
+}
+.card--full {
+  grid-column: 1 / -1;
+}
+.settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.settings-form select {
+  width: 100%;
+}
+.field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 4px 0;
+}
 .saved { color: var(--ok); font-size: 14px; }
 .menu-editor { display: flex; flex-direction: column; gap: 8px; }
 .menu-row { display: flex; gap: 8px; align-items: center; }
@@ -287,4 +318,14 @@ async function save() {
 .menu-add { align-self: flex-start; }
 .menu-tip { color: var(--text-muted); font-size: 12px; margin: 0; }
 .sync-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .settings-form {
+    grid-template-columns: 1fr;
+  }
+  .field-pair {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
 </style>
