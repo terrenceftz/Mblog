@@ -884,6 +884,10 @@
   line-height: 1.85;
   color: var(--color-text);
 }
+/* 正文首元素去顶边距：与目录顶对齐，阅读列从同一基线开始 */
+[data-theme='normal'] .article-content > :first-child {
+  margin-top: 0;
+}
 [data-theme='normal'] .article-content a {
   color: var(--color-primary);
 }
@@ -978,12 +982,40 @@
 [data-theme='normal'] .article-layout .site-main {
   display: contents;
 }
-/* 文章头部：有特色图时 Hero 通栏（标题悬浮其上）；无特色图时标题归入正文列，与目录同排 */
+/* 文章头部：有特色图时 Hero 通栏（标题悬浮其上）；无特色图时居中标题 + 渐变光装饰（对齐 eonova 参考） */
 [data-theme='normal'] .article-layout .article-head.has-cover {
   grid-column: 1 / -1;
 }
 [data-theme='normal'] .article-layout .article-head:not(.has-cover) {
-  grid-column: 1;
+  grid-column: 1 / -1;
+  position: relative;
+  text-align: center;
+  padding: 56px 0 8px;
+}
+/* 渐变光装饰：标题上方柔和的琥珀径向光 */
+[data-theme='normal'] .article-layout .article-head:not(.has-cover)::before {
+  content: '';
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(680px, 80%);
+  height: 300px;
+  background: radial-gradient(ellipse at center, rgba(232, 182, 76, 0.16), transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+[data-theme='normal'] .article-layout .article-head:not(.has-cover) .article-header {
+  position: relative;
+  z-index: 1;
+}
+[data-theme='normal'] .article-layout .article-head:not(.has-cover) .article-title {
+  font-size: clamp(32px, 4.5vw, 42px);
+  max-width: 760px;
+  margin: 0 auto 16px;
+}
+[data-theme='normal'] .article-layout .article-head:not(.has-cover) .article-meta {
+  justify-content: center;
 }
 [data-theme='normal'] .article-layout .article-wrapper {
   grid-column: 1;
