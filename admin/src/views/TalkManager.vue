@@ -1,200 +1,168 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { adminGetTalks, adminPatchTalk, adminCreateTalk, type TalkRow } from '../api/admin';
+import { ref, computed, onMounted } from 'vue';
+import { api, type Talk } from '../api/admin';
 import { toast } from '../lib/toast';
 
-const list = ref<TalkRow[]>([]);
-const filter = ref('');
-const error = ref('');
-const page = ref(1);
-const pageSize = 10;
-const total = ref(0);
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)));
+const talks = ref<Talk[]>([]);
+const newTalkContent = ref('');
+const loading = ref(false);
+const maxCharLimit = 500;
 
-// 作者发布说说（免审核直发）
-const compose = ref('');
-const posting = ref(false);
-async function publish() {
-  const content = compose.value.trim();
+const charCount = computed(() => newTalkContent.value.length);
+const isNearLimit = computed(() => charCount.value >= 450 && charCount.value < 500);
+const isOverLimit = computed(() => charCount.value >= 500);
+
+async function loadTalks() {
+  loading.value = true;
+  talks.value = await api.getTalks();
+  loading.value = false;
+}
+
+async function handlePublishTalk() {
+  const content = newTalkContent.value.trim();
   if (!content) {
-    toast('写点什么再发布', 'error');
+    toast.warning('请输入说说内容');
     return;
   }
-  posting.value = true;
-  try {
-    await adminCreateTalk(content);
-    toast('说说已发布', 'success');
-    compose.value = '';
-    page.value = 1;
-    load();
-  } catch (e) {
-    toast(e instanceof Error ? e.message : '发布失败', 'error');
-  } finally {
-    posting.value = false;
+  if (charCount.value > maxCharLimit) {
+    toast.error(`已超过 ${maxCharLimit} 字限制，请删减字数后再试`);
+    return;
+  }
+
+  await api.createTalk(content);
+  toast.success('说说发布成功！');
+  newTalkContent.value = '';
+  loadTalks();
+}
+
+async function handleUpdateStatus(id: number, status: Talk['status']) {
+  await api.updateTalkStatus(id, status);
+  toast.success(status === 'approved' ? '已审核通过' : '已拒绝');
+  loadTalks();
+}
+
+async function handleDelete(id: number) {
+  if (confirm('确定要删除这条说说吗？')) {
+    await api.deleteTalk(id);
+    toast.success('说说已删除');
+    loadTalks();
   }
 }
 
-async function load() {
-  try {
-    const res = await adminGetTalks({ status: filter.value || undefined, page: page.value, pageSize });
-    list.value = res.list;
-    total.value = res.total;
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '加载失败';
-  }
-}
-function changeFilter() {
-  page.value = 1;
-  load();
-}
-const statusText: Record<TalkRow['status'], string> = {
-  pending: '待审核',
-  approved: '已通过',
-  rejected: '已拒绝',
-};
-function statusBadgeClass(s: TalkRow['status']) {
-  return s === 'approved' ? 'bg-success-soft' : s === 'pending' ? 'bg-warning-soft' : 'bg-danger-soft';
-}
-function goPage(p: number) {
-  page.value = p;
-  load();
-}
-async function setStatus(t: TalkRow, status: TalkRow['status']) {
-  await adminPatchTalk(t.id, status);
-  toast(status === 'approved' ? '说说已通过' : '说说已拒绝', 'success');
-  load();
-}
-function fmtDate(ts: number) {
-  const d = new Date(ts);
-  return d.toLocaleString('zh-CN');
-}
-onMounted(load);
+onMounted(() => {
+  loadTalks();
+});
 </script>
 
 <template>
-  <div>
+  <div class="talk-manager-view">
+    <!-- Page Header -->
     <div class="page-header">
-      <div class="page-header-titles">
-        <h1 class="page-title">说说管理</h1>
-      </div>
-      <div class="page-header-actions">
-        <select v-model="filter" class="form-control" @change="changeFilter">
-          <option value="">全部</option>
-          <option value="pending">待审核</option>
-          <option value="approved">已通过</option>
-          <option value="rejected">已拒绝</option>
-        </select>
+      <div>
+        <h2 class="page-title">微语 / 说说管理</h2>
+        <div class="text-muted">随时记录短随笔与生活闪光点，限 500 字</div>
       </div>
     </div>
 
-    <!-- 作者发布说说：免审核直发 -->
-    <div class="card compose-card">
-      <div class="card-title">写说说</div>
-      <textarea
-        v-model="compose"
-        class="input compose-textarea"
-        rows="3"
-        maxlength="500"
-        placeholder="此刻的想法…（发布者为作者，直接发布）"
-      />
-      <div class="compose-foot">
-        <span class="compose-count" :class="{ near: compose.length >= 450, over: compose.length >= 500 }">
-          {{ compose.length }}/500
-        </span>
-        <button class="btn primary compose-btn" :disabled="posting || !compose.trim()" @click="publish">
-          <svg v-if="!posting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
-          {{ posting ? '发布中…' : '发布' }}
-        </button>
+    <!-- Publish Box Card with Character Counter (450/500 threshold) -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h3 class="card-title fw-bold mb-3">发布新说说</h3>
+        <div class="mb-3">
+          <textarea
+            v-model="newTalkContent"
+            class="form-control"
+            rows="4"
+            placeholder="此刻有什么新鲜事或感悟？..."
+            style="resize: vertical;"
+          ></textarea>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between">
+          <!-- Dynamic Character Count Indicator -->
+          <div
+            class="small font-monospace transition-all"
+            :class="{
+              'text-muted': !isNearLimit && !isOverLimit,
+              'text-warning fw-bold': isNearLimit,
+              'text-danger fw-bold fs-3': isOverLimit,
+            }"
+          >
+            字数统计: {{ charCount }} / {{ maxCharLimit }}
+            <span v-if="isNearLimit" class="ms-2 micro-text">(即将达到上限)</span>
+            <span v-if="isOverLimit" class="ms-2 micro-text">(已超出最大限制)</span>
+          </div>
+
+          <button
+            @click="handlePublishTalk"
+            class="btn btn-primary d-flex align-items-center gap-1 shadow-sm"
+            :disabled="isOverLimit || !newTalkContent.trim()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <span>立即发布</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
+    <!-- Talks Timeline / List -->
+    <div class="card">
+      <div class="card-header py-3">
+        <h3 class="card-title fw-bold m-0">说说列表 (共 {{ talks.length }} 条)</h3>
+      </div>
 
-    <div v-if="list.length" class="talk-list">
-      <div v-for="t in list" :key="t.id" class="card talk-row">
-        <div class="talk-main">
-          <p class="talk-content">{{ t.content }}</p>
-          <div class="talk-meta">
-            <span class="talk-time">{{ fmtDate(t.createdAt) }}</span>
-            <span class="talk-ip">{{ t.ip }}</span>
-            <span class="badge" :class="statusBadgeClass(t.status)">{{ statusText[t.status] }}</span>
+      <div class="card-body p-0">
+        <div v-if="talks.length === 0" class="text-center text-muted py-5">
+          暂无说说记录
+        </div>
+
+        <div class="list-group list-group-flush">
+          <div v-for="t in talks" :key="t.id" class="list-group-item p-4">
+            <div class="d-flex align-items-start justify-content-between gap-3">
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span v-if="t.status === 'approved'" class="badge badge-soft-success">已公开</span>
+                  <span v-else-if="t.status === 'pending'" class="badge badge-soft-warning">待审核</span>
+                  <span v-else class="badge badge-soft-danger">已拒绝</span>
+
+                  <span class="text-muted micro-text font-monospace">{{ t.created_at }}</span>
+                  <span class="badge badge-soft-secondary micro-text">❤️ {{ t.likeCount }} 赞</span>
+                </div>
+
+                <div class="fs-4 text-main mb-2" style="white-space: pre-wrap; line-height: 1.6;">
+                  {{ t.content }}
+                </div>
+              </div>
+
+              <div class="btn-list flex-nowrap align-items-start">
+                <button
+                  v-if="t.status !== 'approved'"
+                  @click="handleUpdateStatus(t.id, 'approved')"
+                  class="btn btn-sm btn-outline-success"
+                >
+                  通过
+                </button>
+                <button
+                  v-if="t.status !== 'rejected'"
+                  @click="handleUpdateStatus(t.id, 'rejected')"
+                  class="btn btn-sm btn-outline-warning"
+                >
+                  拒绝
+                </button>
+                <button @click="handleDelete(t.id)" class="btn btn-sm btn-ghost-danger">
+                  删除
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="talk-actions">
-          <button v-if="t.status !== 'approved'" class="btn btn-success btn-sm" @click="setStatus(t, 'approved')">通过</button>
-          <button v-if="t.status !== 'rejected'" class="btn btn-outline-danger btn-sm" @click="setStatus(t, 'rejected')">拒绝</button>
-        </div>
       </div>
     </div>
-    <p v-else class="text-secondary text-center py-4">暂无说说</p>
-
-    <nav v-if="total > pageSize" class="pagination pagination-sm justify-content-end mt-3">
-      <li class="page-item" :class="{ disabled: page <= 1 }">
-        <a class="page-link" href="#" @click.prevent="goPage(page - 1)">上一页</a>
-      </li>
-      <li class="page-item disabled"><span class="page-link">{{ page }} / {{ totalPages }}</span></li>
-      <li class="page-item" :class="{ disabled: page >= totalPages }">
-        <a class="page-link" href="#" @click.prevent="goPage(page + 1)">下一页</a>
-      </li>
-    </nav>
   </div>
 </template>
 
 <style scoped>
-.compose-card { margin-bottom: var(--space-4); border-color: var(--border-strong); }
-.compose-textarea {
-  width: 100%;
-  box-sizing: border-box;
-  resize: vertical;
-  font-family: inherit;
-  min-height: 76px;
-  line-height: 1.7;
+.micro-text {
+  font-size: 0.75rem;
 }
-.compose-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
-}
-.compose-count {
-  font-size: var(--font-xs);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
-  transition: color var(--transition-base);
-}
-.compose-count.near { color: var(--warn); }
-.compose-count.over { color: var(--danger); }
-.compose-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.talk-list { display: flex; flex-direction: column; gap: var(--space-2); }
-.talk-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-3);
-  transition: border-color var(--transition-base);
-}
-.talk-row:hover { border-color: var(--border-strong); }
-.talk-main { min-width: 0; }
-.talk-content {
-  margin: 0 0 6px;
-  font-size: var(--font-base);
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.talk-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--font-xs);
-  color: var(--text-muted);
-}
-.talk-actions { display: flex; gap: var(--space-2); flex-shrink: 0; }
 </style>

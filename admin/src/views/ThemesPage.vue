@@ -1,173 +1,234 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { adminGetSettings, adminPutSettings } from '../api/admin';
+import { ref, onMounted } from 'vue';
+import { api, type ThemeConfig } from '../api/admin';
 import { toast } from '../lib/toast';
 
-type ThemeKey = 'normal' | 'reader';
-interface ThemeForm {
-  bg: string; text: string; muted: string; primary: string; border: string;
-  fontSize: number; homePageSize: number;
-  avatar: string; intro: string;
-}
-// 与 CSS 内置默认一致的初始值（保存时全量写入，所见即所得）
-const DEFAULTS: Record<ThemeKey, ThemeForm> = {
-  normal: { bg: '#09090b', text: '#f4f4f5', muted: '#9d9d95', primary: '#e8b64c', border: '#26262a', fontSize: 16, homePageSize: 10, avatar: '', intro: '一个喜欢折腾代码和生活的博主' },
-  reader: { bg: '#f3f0e9', text: '#3a3837', muted: '#b0aba4', primary: '#8b3525', border: '#e5e1da', fontSize: 17, homePageSize: 10, avatar: '', intro: '一个喜欢折腾代码和生活的博主' },
-};
-
-const activeTab = ref<ThemeKey>('normal');
-const forms = ref<Record<ThemeKey, ThemeForm>>({ normal: { ...DEFAULTS.normal }, reader: { ...DEFAULTS.reader } });
-const saved = ref(false);
-const error = ref('');
-const allSettings = ref<Record<string, string>>({});
-
-function mergeStored(raw: string | undefined, d: ThemeForm): ThemeForm {
-  let parsed: Record<string, unknown> = {};
-  if (raw) {
-    try {
-      const o: unknown = JSON.parse(raw);
-      if (o && typeof o === 'object' && !Array.isArray(o)) parsed = o as Record<string, unknown>;
-    } catch { parsed = {}; }
-  }
-  return {
-    bg: typeof parsed.bg === 'string' && parsed.bg ? parsed.bg : d.bg,
-    text: typeof parsed.text === 'string' && parsed.text ? parsed.text : d.text,
-    muted: typeof parsed.muted === 'string' && parsed.muted ? parsed.muted : d.muted,
-    primary: typeof parsed.primary === 'string' && parsed.primary ? parsed.primary : d.primary,
-    border: typeof parsed.border === 'string' && parsed.border ? parsed.border : d.border,
-    fontSize: Number.isInteger(parsed.fontSize) ? (parsed.fontSize as number) : d.fontSize,
-    homePageSize: Number.isInteger(parsed.homePageSize) ? (parsed.homePageSize as number) : d.homePageSize,
-    avatar: typeof parsed.avatar === 'string' ? (parsed.avatar as string) : d.avatar,
-    intro: typeof parsed.intro === 'string' ? (parsed.intro as string) : d.intro,
-  };
-}
-
-onMounted(async () => {
-  try {
-    allSettings.value = await adminGetSettings();
-    forms.value.normal = mergeStored(allSettings.value.theme_normal, DEFAULTS.normal);
-    forms.value.reader = mergeStored(allSettings.value.theme_reader, DEFAULTS.reader);
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '加载主题设置失败';
-  }
+const themeConfig = ref<ThemeConfig>({
+  layoutMode: 'normal',
+  colorPalette: 'amber',
+  fontSize: 16,
+  postsPerPage: 10,
 });
 
-async function save() {
-  saved.value = false;
-  error.value = '';
+const saving = ref(false);
+
+async function loadConfig() {
+  themeConfig.value = await api.getThemeConfig();
+}
+
+async function handleSaveTheme() {
+  saving.value = true;
   try {
-    const f = forms.value[activeTab.value];
-    f.fontSize = Math.min(24, Math.max(12, Math.round(f.fontSize)));
-    f.homePageSize = Math.min(50, Math.max(1, Math.round(f.homePageSize)));
-    allSettings.value.theme_normal = JSON.stringify(forms.value.normal);
-    allSettings.value.theme_reader = JSON.stringify(forms.value.reader);
-    allSettings.value = await adminPutSettings(allSettings.value);
-    saved.value = true;
-    toast('主题设置已保存', 'success');
-    setTimeout(() => (saved.value = false), 2000);
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '保存失败';
-    toast(error.value, 'error');
+    const updated = await api.updateThemeConfig(themeConfig.value);
+    themeConfig.value = updated;
+    toast.success('前台主题与阅读配置已更新');
+  } catch (err) {
+    toast.error('保存失败');
+  } finally {
+    saving.value = false;
   }
 }
 
-function resetTheme() {
-  forms.value[activeTab.value] = { ...DEFAULTS[activeTab.value] };
-}
+onMounted(() => {
+  loadConfig();
+});
 </script>
 
 <template>
-  <div>
-    <div class="page-header mb-3"><h1 class="page-title">主题管理</h1></div>
-    <div class="tabs">
-      <button type="button" class="btn" :class="{ active: activeTab === 'normal' }" @click="activeTab = 'normal'">正常主题</button>
-      <button type="button" class="btn" :class="{ active: activeTab === 'reader' }" @click="activeTab = 'reader'">极简阅读</button>
+  <div class="themes-page-view">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">前台视觉与阅读模式配置</h2>
+        <div class="text-muted">定制 Astro 前台的排版样式、色板强调色与阅读器沉浸模式</div>
+      </div>
+      <button @click="handleSaveTheme" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm" :disabled="saving">
+        <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
+        <span>应用主题设置</span>
+      </button>
     </div>
 
-    <form class="card theme-form" @submit.prevent="save">
-      <div class="card-title">主题配色</div>
-      <div class="color-grid">
-        <label><span>背景色</span><input type="color" v-model="forms[activeTab].bg" /></label>
-        <label><span>正文色</span><input type="color" v-model="forms[activeTab].text" /></label>
-        <label><span>次要文字色</span><input type="color" v-model="forms[activeTab].muted" /></label>
-        <label><span>主色</span><input type="color" v-model="forms[activeTab].primary" /></label>
-        <label><span>边框色</span><input type="color" v-model="forms[activeTab].border" /></label>
+    <div class="row g-4">
+      <!-- Left Column: Controls -->
+      <div class="col-lg-6">
+        <!-- Layout Mode Card -->
+        <div class="card mb-4">
+          <div class="card-header py-3">
+            <h3 class="card-title fw-bold m-0">布局模式选择 (Normal / Reader)</h3>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-6">
+                <label
+                  class="card p-3 cursor-pointer text-center border-2 transition-all"
+                  :class="themeConfig.layoutMode === 'normal' ? 'border-primary bg-primary-subtle' : 'border-color'"
+                >
+                  <input type="radio" v-model="themeConfig.layoutMode" value="normal" class="d-none" />
+                  <div class="fw-bold fs-3 mb-1 text-main">经典模式</div>
+                  <div class="text-muted micro-text">包含侧边栏、分类导航与完整 Footer</div>
+                </label>
+              </div>
+
+              <div class="col-6">
+                <label
+                  class="card p-3 cursor-pointer text-center border-2 transition-all"
+                  :class="themeConfig.layoutMode === 'reader' ? 'border-primary bg-primary-subtle' : 'border-color'"
+                >
+                  <input type="radio" v-model="themeConfig.layoutMode" value="reader" class="d-none" />
+                  <div class="fw-bold fs-3 mb-1 text-main">极简专注模式</div>
+                  <div class="text-muted micro-text">单栏无干扰排版，提升长文沉浸感</div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Palette Selector Card -->
+        <div class="card mb-4">
+          <div class="card-header py-3">
+            <h3 class="card-title fw-bold m-0">配色方案 (Color Palette)</h3>
+          </div>
+          <div class="card-body">
+            <div class="row g-2">
+              <div class="col-3">
+                <button
+                  type="button"
+                  class="btn w-100 p-2 d-flex flex-column align-items-center gap-1 border-2"
+                  :class="themeConfig.colorPalette === 'amber' ? 'border-warning' : 'border-transparent'"
+                  @click="themeConfig.colorPalette = 'amber'"
+                >
+                  <span class="d-inline-block rounded-circle" style="width: 24px; height: 24px; background-color: #d97706;"></span>
+                  <span class="micro-text fw-medium">琥珀黄</span>
+                </button>
+              </div>
+
+              <div class="col-3">
+                <button
+                  type="button"
+                  class="btn w-100 p-2 d-flex flex-column align-items-center gap-1 border-2"
+                  :class="themeConfig.colorPalette === 'blue' ? 'border-primary' : 'border-transparent'"
+                  @click="themeConfig.colorPalette = 'blue'"
+                >
+                  <span class="d-inline-block rounded-circle" style="width: 24px; height: 24px; background-color: #2563eb;"></span>
+                  <span class="micro-text fw-medium">海洋蓝</span>
+                </button>
+              </div>
+
+              <div class="col-3">
+                <button
+                  type="button"
+                  class="btn w-100 p-2 d-flex flex-column align-items-center gap-1 border-2"
+                  :class="themeConfig.colorPalette === 'emerald' ? 'border-success' : 'border-transparent'"
+                  @click="themeConfig.colorPalette = 'emerald'"
+                >
+                  <span class="d-inline-block rounded-circle" style="width: 24px; height: 24px; background-color: #059669;"></span>
+                  <span class="micro-text fw-medium">翡翠绿</span>
+                </button>
+              </div>
+
+              <div class="col-3">
+                <button
+                  type="button"
+                  class="btn w-100 p-2 d-flex flex-column align-items-center gap-1 border-2"
+                  :class="themeConfig.colorPalette === 'purple' ? 'border-info' : 'border-transparent'"
+                  @click="themeConfig.colorPalette = 'purple'"
+                >
+                  <span class="d-inline-block rounded-circle" style="width: 24px; height: 24px; background-color: #9333ea;"></span>
+                  <span class="micro-text fw-medium">极光紫</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Font Size & Page Count Card -->
+        <div class="card">
+          <div class="card-header py-3">
+            <h3 class="card-title fw-bold m-0">正文字号与分页数</h3>
+          </div>
+          <div class="card-body">
+            <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label small fw-medium m-0">默认正文字号</label>
+                <span class="badge bg-primary font-monospace">{{ themeConfig.fontSize }}px</span>
+              </div>
+              <input type="range" min="14" max="22" v-model.number="themeConfig.fontSize" class="form-range" />
+            </div>
+
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label small fw-medium m-0">首页每页显示文章数量</label>
+                <span class="badge bg-primary font-monospace">{{ themeConfig.postsPerPage }} 篇</span>
+              </div>
+              <input type="range" min="5" max="30" step="5" v-model.number="themeConfig.postsPerPage" class="form-range" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="num-row">
-        <label>正文字号（px）
-          <input class="form-control" type="number" v-model.number="forms[activeTab].fontSize" min="12" max="24" />
-        </label>
-        <label>首页文章数
-          <input class="form-control" type="number" v-model.number="forms[activeTab].homePageSize" min="1" max="50" />
-        </label>
-      </div>
+      <!-- Right Column: Live Reader Preview Card -->
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header py-3">
+            <h3 class="card-title fw-bold m-0">前台排版效果实时预览</h3>
+          </div>
+          <div class="card-body p-4 bg-body-tertiary">
+            <div
+              class="card p-4 mx-auto shadow-sm transition-all"
+              :style="{ maxWidth: themeConfig.layoutMode === 'reader' ? '460px' : '100%' }"
+            >
+              <!-- Palette Highlight Top Border -->
+              <div
+                class="rounded-top position-absolute top-0 start-0 end-0"
+                style="height: 4px;"
+                :style="{
+                  backgroundColor:
+                    themeConfig.colorPalette === 'amber' ? '#d97706' :
+                    themeConfig.colorPalette === 'blue' ? '#2563eb' :
+                    themeConfig.colorPalette === 'emerald' ? '#059669' : '#9333ea'
+                }"
+              ></div>
 
-      <!-- 首屏内容（仅正常主题生效）：头像 + 自我介绍 -->
-      <div v-if="activeTab === 'normal'" class="content-row">
-        <label>首屏头像 URL
-          <input class="form-control" v-model="forms[activeTab].avatar" placeholder="留空使用 /avatar.jpg" />
-        </label>
-        <label>首屏自我介绍（BlurText 逐词模糊揭示）
-          <textarea class="form-control" v-model="forms[activeTab].intro" rows="3" placeholder="一段简短风趣的自我介绍…"></textarea>
-        </label>
-      </div>
+              <div class="mb-2">
+                <span
+                  class="badge px-2 py-1 rounded-pill micro-text fw-medium"
+                  :style="{
+                    backgroundColor:
+                      themeConfig.colorPalette === 'amber' ? 'rgba(217, 119, 6, 0.15)' :
+                      themeConfig.colorPalette === 'blue' ? 'rgba(37, 99, 235, 0.15)' :
+                      themeConfig.colorPalette === 'emerald' ? 'rgba(5, 150, 105, 0.15)' : 'rgba(147, 51, 234, 0.15)',
+                    color:
+                      themeConfig.colorPalette === 'amber' ? '#d97706' :
+                      themeConfig.colorPalette === 'blue' ? '#2563eb' :
+                      themeConfig.colorPalette === 'emerald' ? '#059669' : '#9333ea'
+                  }"
+                >
+                  排版预览
+                </span>
+              </div>
 
-      <div class="actions">
-        <p v-if="saved" class="saved">✓ 已保存</p>
-        <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
-        <button type="button" class="btn" @click="resetTheme">重置当前主题（需保存）</button>
-        <button type="submit" class="btn btn-primary">保存主题设置</button>
+              <h2 class="fw-bold tracking-tight mb-2">Vue 3.5 响应式系统深度解构</h2>
+              <div class="text-muted micro-text mb-3">2026-08-11 · 阅读时间约 5 分钟</div>
+
+              <div
+                class="text-main"
+                :style="{ fontSize: themeConfig.fontSize + 'px', lineHeight: '1.7' }"
+              >
+                Vue 3.5 带来了全新的响应式引擎优化，内存占用大幅降低。克制的设计与清晰的层级是 Web 体验的核心，字号为 {{ themeConfig.fontSize }}px 时具备最佳的可读性。
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </form>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
-.tabs .btn.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--primary-contrast);
-  font-weight: 600;
+.micro-text {
+  font-size: 0.75rem;
 }
-.theme-form { display: flex; flex-direction: column; gap: var(--space-4); max-width: 560px; }
-.color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-3); }
-.color-grid label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-sm);
-  color: var(--text-muted);
-}
-.color-grid input[type='color'] {
-  width: 100%;
-  height: 40px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  padding: 4px;
+.cursor-pointer {
   cursor: pointer;
 }
-.num-row { display: flex; gap: var(--space-4); }
-.num-row label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: var(--font-sm);
-  color: var(--text-muted);
-}
-.num-row .input { width: 140px; }
-.content-row { display: flex; flex-direction: column; gap: var(--space-3); }
-.content-row label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: var(--font-sm);
-  color: var(--text-muted);
-}
-.content-row textarea { resize: vertical; font-family: inherit; }
-.actions { display: flex; align-items: center; gap: var(--space-3); }
-.saved { color: var(--ok); font-size: var(--font-base); }
 </style>

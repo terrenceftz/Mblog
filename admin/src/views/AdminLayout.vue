@@ -1,243 +1,207 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { logout } from '../api/admin';
-import { getThemeChoice, setThemeChoice, type ThemeChoice } from '../lib/theme';
+import { ref, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { getThemeMode, applyTheme, type ThemeMode } from '../lib/theme';
+import { api } from '../api/admin';
 import ToastContainer from '../components/ToastContainer.vue';
 
-const route = useRoute();
 const router = useRouter();
-const menuOpen = ref(false);
+const route = useRoute();
 
-// 主题切换：三态循环 dark → light → auto → dark
-const themeChoice = ref<ThemeChoice>(getThemeChoice());
-const themeLabel = computed(() =>
-  themeChoice.value === 'dark' ? '暗色' : themeChoice.value === 'light' ? '浅色' : '跟随系统'
-);
-const themeIcon = computed(() =>
-  themeChoice.value === 'light'
-    ? 'M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z'
-    : themeChoice.value === 'dark'
-    ? 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'
-    : 'M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'
-);
-function cycleTheme() {
-  const next: ThemeChoice =
-    themeChoice.value === 'dark' ? 'light' : themeChoice.value === 'light' ? 'auto' : 'dark';
-  themeChoice.value = next;
-  setThemeChoice(next);
+const currentTheme = ref<ThemeMode>(getThemeMode());
+const pendingBadges = ref({
+  comments: 0,
+  talks: 0,
+  links: 0,
+});
+
+const navItems = [
+  {
+    name: '仪表盘',
+    path: '/dashboard',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>`,
+  },
+  {
+    name: '文章管理',
+    path: '/posts',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>`,
+  },
+  {
+    name: '分类管理',
+    path: '/categories',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>`,
+  },
+  {
+    name: '标签管理',
+    path: '/tags',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r="1.5"/></svg>`,
+  },
+  {
+    name: '评论管理',
+    path: '/comments',
+    badgeKey: 'comments',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>`,
+  },
+  {
+    name: '说说管理',
+    path: '/talks',
+    badgeKey: 'talks',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  },
+  {
+    name: '友链管理',
+    path: '/friends',
+    badgeKey: 'links',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+  },
+  {
+    name: '站点设置',
+    path: '/settings',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  },
+  {
+    name: '主题配置',
+    path: '/themes',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>`,
+  },
+];
+
+function switchTheme(mode: ThemeMode) {
+  currentTheme.value = mode;
+  applyTheme(mode);
 }
 
-function doLogout() {
-  logout();
+async function loadBadges() {
+  const stats = await api.getDashboardStats();
+  pendingBadges.value.comments = stats.pendingComments;
+  pendingBadges.value.talks = stats.pendingTalks;
+  pendingBadges.value.links = stats.pendingFriendLinks;
+}
+
+async function handleLogout() {
+  await api.logout();
   router.push('/login');
 }
 
-// 精确激活判断：仪表盘(/)仅当恰好在首页时高亮，避免「/」匹配所有路径
-function isActive(to: string): boolean {
-  return to === '/' ? route.path === '/' : route.path.startsWith(to);
-}
-
-const navItems = [
-  { to: '/', label: '仪表盘', icon: 'M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z' },
-  { to: '/posts', label: '文章', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 13h6M9 17h6' },
-  { to: '/categories', label: '分类', icon: 'M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z' },
-  { to: '/tags', label: '标签', icon: 'M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01' },
-  { to: '/comments', label: '评论', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
-  { to: '/talks', label: '说说', icon: 'M12 2a10 10 0 0 0-8.66 15L2 22l5.1-1.34A10 10 0 1 0 12 2z' },
-  { to: '/friends', label: '友链', icon: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' },
-  { to: '/settings', label: '设置', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-3a7.4 7.4 0 0 0-.14-1.4l2-1.56-2-3.46-2.36.95a7.4 7.4 0 0 0-2.42-1.4L14.2 2h-4l-.28 2.13a7.4 7.4 0 0 0-2.42 1.4L5.14 4.58l-2 3.46 2 1.56a7.4 7.4 0 0 0 0 2.8l-2 1.56 2 3.46 2.36-.95a7.4 7.4 0 0 0 2.42 1.4L10.2 22h4l.28-2.13a7.4 7.4 0 0 0 2.42-1.4l2.36.95 2-3.46-2-1.56c.08-.46.14-.93.14-1.4z' },
-  { to: '/themes', label: '主题', icon: 'M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2v-.5a2.5 2.5 0 0 1 4.4-1.5c.4.4 1 .6 1.6.6 1.1 0 2-.9 2-2A10 10 0 0 0 12 2z' },
-];
+onMounted(() => {
+  loadBadges();
+});
 </script>
 
 <template>
-  <div class="layout-fluid">
-    <!-- 移动端顶栏 -->
-    <div class="admin-topbar">
-      <div class="admin-brand-sm">MBLOG</div>
-      <button
-        type="button"
-        class="admin-hamburger"
-        :class="{ open: menuOpen }"
-        :aria-expanded="menuOpen"
-        aria-label="菜单"
-        @click="menuOpen = !menuOpen"
-      >
-        <span class="bar" /><span class="bar" /><span class="bar" />
-      </button>
-    </div>
+  <div class="page">
+    <ToastContainer />
 
-    <!-- 侧栏（Tabler navbar-vertical 结构，移动端为抽屉） -->
-    <aside class="navbar navbar-vertical navbar-expand-lg" :class="{ open: menuOpen }">
-      <div class="container">
-        <div class="admin-brand navbar-brand navbar-brand-autodark">MBLOG 后台</div>
-        <div class="collapse navbar-collapse" :class="{ show: menuOpen }">
-          <ul class="navbar-nav">
-            <li v-for="item in navItems" :key="item.to" class="nav-item">
+    <!-- Sidebar Navbar -->
+    <aside class="navbar navbar-vertical navbar-expand-lg border-end">
+      <div class="container-fluid px-3">
+        <!-- Brand -->
+        <h1 class="navbar-brand navbar-brand-autodark pt-3 pb-3 my-0">
+          <router-link to="/dashboard" class="d-flex align-items-center gap-2 text-decoration-none">
+            <div class="bg-warning text-dark fw-bold rounded-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;">
+              M
+            </div>
+            <span class="fs-3 fw-bold text-reset tracking-tight">MBLOG Admin</span>
+          </router-link>
+        </h1>
+
+        <!-- Quick Post Button -->
+        <div class="my-2 w-100">
+          <router-link to="/posts/new" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2 py-2 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            <span>发布新文章</span>
+          </router-link>
+        </div>
+
+        <!-- Vertical Nav Links (9 items) -->
+        <div class="collapse navbar-collapse show id-navbar-menu mt-2">
+          <ul class="navbar-nav pt-lg-2 w-100">
+            <li v-for="item in navItems" :key="item.path" class="nav-item mb-1">
               <router-link
-                :to="item.to"
-                class="nav-link"
-                :class="{ active: isActive(item.to) }"
-                @click="menuOpen = false"
+                :to="item.path"
+                class="nav-link d-flex align-items-center justify-content-between px-3 py-2 rounded"
+                :class="{ active: route.path.startsWith(item.path) }"
               >
-                <span class="nav-link-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path :d="item.icon" />
-                  </svg>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="nav-link-icon d-inline-flex" v-html="item.icon"></span>
+                  <span class="nav-link-title">{{ item.name }}</span>
+                </div>
+                <!-- Badge if pending -->
+                <span
+                  v-if="item.badgeKey && pendingBadges[item.badgeKey as keyof typeof pendingBadges] > 0"
+                  class="badge bg-warning-subtle text-warning fw-semibold rounded-pill px-2 py-1 small"
+                >
+                  {{ pendingBadges[item.badgeKey as keyof typeof pendingBadges] }}
                 </span>
-                <span class="nav-link-title">{{ item.label }}</span>
               </router-link>
             </li>
           </ul>
+        </div>
 
-          <!-- 侧栏底部操作区 -->
-          <div class="admin-actions">
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm w-100"
-              :title="'主题：' + themeLabel + '（点击切换）'"
-              :aria-label="'切换主题，当前' + themeLabel"
-              @click="cycleTheme"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path :d="themeIcon" />
-              </svg>
-              <span class="ms-2">{{ themeLabel }}</span>
+        <!-- Sidebar Footer Theme Switcher & User -->
+        <div class="mt-auto pt-3 border-top w-100 pb-3">
+          <!-- 3-State Theme Switcher -->
+          <div class="mb-3 px-1">
+            <div class="small text-muted mb-2 font-monospace">界面主题</div>
+            <div class="btn-group w-100 p-1 bg-body-tertiary rounded-3 border" role="group">
+              <button
+                type="button"
+                class="btn btn-sm border-0 rounded-2 d-flex align-items-center justify-content-center py-1"
+                :class="currentTheme === 'light' ? 'btn-primary shadow-xs' : 'btn-ghost-secondary text-muted'"
+                @click="switchTheme('light')"
+                title="浅色模式"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm border-0 rounded-2 d-flex align-items-center justify-content-center py-1"
+                :class="currentTheme === 'dark' ? 'btn-primary shadow-xs' : 'btn-ghost-secondary text-muted'"
+                @click="switchTheme('dark')"
+                title="暗色模式"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm border-0 rounded-2 d-flex align-items-center justify-content-center py-1"
+                :class="currentTheme === 'system' ? 'btn-primary shadow-xs' : 'btn-ghost-secondary text-muted'"
+                @click="switchTheme('system')"
+                title="跟随系统"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- User Card & Logout -->
+          <div class="d-flex align-items-center justify-content-between px-1">
+            <div class="d-flex align-items-center gap-2 min-w-0">
+              <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Terrence" class="avatar avatar-sm rounded-circle" alt="User" />
+              <div class="min-w-0">
+                <div class="fw-semibold text-truncate small">Terrence</div>
+                <div class="text-muted text-truncate micro-text">管理员</div>
+              </div>
+            </div>
+            <button @click="handleLogout" class="btn btn-sm btn-icon btn-ghost-danger rounded-circle" title="退出登录">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
             </button>
-            <a class="btn btn-outline-secondary btn-sm w-100" href="http://localhost:4321/" target="_blank" rel="noopener noreferrer">
-              ← 查看站点
-            </a>
-            <button type="button" class="btn btn-outline-danger btn-sm w-100" @click="doLogout">退出登录</button>
           </div>
         </div>
       </div>
     </aside>
-    <div v-if="menuOpen" class="admin-mask" @click="menuOpen = false" />
 
-    <!-- 主内容区（Tabler page-wrapper） -->
+    <!-- Main Content Wrapper -->
     <div class="page-wrapper">
-      <div class="page-body">
-        <div class="container-xl"><router-view /></div>
+      <div class="container-xl py-4">
+        <router-view />
       </div>
     </div>
-    <ToastContainer />
   </div>
 </template>
 
 <style scoped>
-/* ---------- 布局壳：layout-fluid + page-wrapper（Tabler 类接管主样式） ---------- */
-.layout-fluid {
-  display: flex;
-  min-height: 100vh;
-}
-
-.page-wrapper {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.page-body {
-  flex: 1;
-  padding: var(--space-6) 0;
-}
-.page-body .container-xl {
-  max-width: 1200px;
-}
-
-/* ---------- 侧栏微调（Tabler navbar-vertical 基础上） ---------- */
-.navbar-vertical {
-  flex-shrink: 0;
-}
-.admin-actions {
-  margin-top: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  border-top: 1px solid var(--border);
-  padding-top: var(--space-3);
-}
-.admin-actions .btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-/* ---------- 移动端：顶栏 + 抽屉（保留原逻辑） ---------- */
-.admin-topbar,
-.admin-hamburger,
-.admin-mask {
-  display: none;
-}
-@media (max-width: 768px) {
-  .layout-fluid {
-    flex-direction: column;
-  }
-  .admin-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 52px;
-    padding: 0 var(--space-4);
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 120;
-  }
-  .admin-brand-sm {
-    font-weight: 700;
-    color: var(--text);
-  }
-  .admin-hamburger {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    width: 36px;
-    height: 36px;
-    background: none;
-    border: none;
-    padding: var(--space-2);
-    cursor: pointer;
-  }
-  .admin-hamburger .bar {
-    display: block;
-    height: 2px;
-    width: 100%;
-    border-radius: 2px;
-    background: var(--text);
-    transition: transform 0.25s ease, opacity var(--transition-base);
-  }
-  .admin-hamburger.open .bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-  .admin-hamburger.open .bar:nth-child(2) { opacity: 0; }
-  .admin-hamburger.open .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-
-  .navbar-vertical {
-    position: fixed;
-    left: 0;
-    top: 52px;
-    bottom: 0;
-    height: auto;
-    z-index: 110;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    box-shadow: var(--shadow-lg);
-  }
-  .navbar-vertical.open {
-    transform: translateX(0);
-  }
-  .admin-mask {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 105;
-  }
-  .page-body {
-    padding: var(--space-4);
-  }
+.micro-text {
+  font-size: 0.725rem;
 }
 </style>

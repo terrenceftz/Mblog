@@ -247,7 +247,7 @@ export const api = {
       summary: postData.summary || '',
       cover: postData.cover || '',
       categoryId: postData.categoryId || null,
-      status: (postData.status || 'draft') as 'draft' | 'published',
+      status: (postData.status === 'published' ? 'published' : 'draft') as 'draft' | 'published',
       tagIds
     };
     if (postData.id) {
@@ -331,10 +331,18 @@ export const api = {
     const { list } = await request<Page<CommentRow>>(
       `/admin/comments?page=1&pageSize=100${statusFilter && statusFilter !== 'all' ? `&status=${statusFilter}` : ''}`
     );
+    // 评论 → 文章标题映射
+    let postTitleMap: Record<number, string> = {};
+    try {
+      const posts = await api.getPosts();
+      postTitleMap = Object.fromEntries(posts.map(p => [p.id, p.title]));
+    } catch {
+      postTitleMap = {};
+    }
     return list.map(c => ({
       id: c.id,
       postId: c.postId,
-      postTitle: '',
+      postTitle: postTitleMap[c.postId] ?? '',
       author: c.author,
       email: c.email,
       website: '',

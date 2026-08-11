@@ -9,7 +9,8 @@ export const router = createRouter({
       component: () => import('../views/AdminLayout.vue'),
       meta: { requiresAuth: true },
       children: [
-        { path: '', name: 'dashboard', component: () => import('../views/Dashboard.vue') },
+        { path: '', redirect: '/dashboard' },
+        { path: 'dashboard', name: 'dashboard', component: () => import('../views/Dashboard.vue') },
         { path: 'posts', name: 'admin-posts', component: () => import('../views/PostList.vue') },
         { path: 'posts/new', name: 'admin-post-new', component: () => import('../views/PostEditor.vue') },
         { path: 'posts/:id', name: 'admin-post-edit', component: () => import('../views/PostEditor.vue') },
