@@ -8,6 +8,7 @@ import { commentsAdminRoutes } from './admin/comments';
 import { friendLinksAdminRoutes } from './admin/friendLinks';
 import { uploadAdminRoutes } from './admin/upload';
 import { settingsAdminRoutes } from './admin/settings';
+import { doubanAdminRoutes } from './admin/douban';
 import type { Db } from '../db';
 
 export function adminRoutes(ctx: Db) {
@@ -21,5 +22,6 @@ export function adminRoutes(ctx: Db) {
   app.route('/', friendLinksAdminRoutes(ctx));
   app.route('/', uploadAdminRoutes(ctx));
   app.route('/', settingsAdminRoutes(ctx));
+  app.route('/', doubanAdminRoutes(ctx));
   return app;
 }

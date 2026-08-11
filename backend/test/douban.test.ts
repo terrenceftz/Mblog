@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { makeTestApp, loginAsAdmin, authHeaders } from './helpers';
 import { fetchDoubanMovies } from '../src/routes/public/douban';
+import { syncDoubanMovies } from '../src/routes/public/douban';
 
 const SAMPLE_FEED = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -47,6 +48,7 @@ describe('fetchDoubanMovies', () => {
       expect(movies).toHaveLength(2);
       expect(movies[0]).toEqual({
         title: '辛德勒的名单',
+        altTitle: "Schindler's List",
         url: 'https://movie.douban.com/subject/1295124/',
         cover: 'https://img3.doubanio.com/view/photo/s_ratio_poster/public/p492406163.jpg',
         rating: 5,
@@ -71,17 +73,18 @@ describe('fetchDoubanMovies', () => {
   });
 });
 
-describe('豆瓣接口 /api/douban', () => {
-  async function enableDouban(app: ReturnType<typeof makeTestApp>['app'], uid = '1017197') {
-    const token = await loginAsAdmin(app);
-    const put = await app.request('/api/admin/settings', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json', ...authHeaders(token) },
-      body: JSON.stringify({ douban_enabled: '1', douban_uid: uid }),
-    });
-    expect(put.status).toBe(200);
-  }
+// 开启豆瓣影音：仅设置 douban 字段，不设置 tmdb_api_key（保持旧测试「无 key 不调 TMDB」语义）
+async function enableDouban(app: ReturnType<typeof makeTestApp>['app'], uid = '1017197') {
+  const token = await loginAsAdmin(app);
+  const put = await app.request('/api/admin/settings', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', ...authHeaders(token) },
+    body: JSON.stringify({ douban_enabled: '1', douban_uid: uid }),
+  });
+  expect(put.status).toBe(200);
+}
 
+describe('豆瓣接口 /api/douban', () => {
   it('未开启时返回 enabled:false', async () => {
     const { app } = makeTestApp();
     const res = await app.request('/api/douban');
@@ -119,5 +122,63 @@ describe('豆瓣接口 /api/douban', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe('TMDB 海报', () => {
+  it('有 key 时逐部搜索 TMDB 并替换封面', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, text: async () => SAMPLE_FEED })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [{ poster_path: '/a.jpg' }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [{ poster_path: null }] }) });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const movies = await syncDoubanMovies('1017197', 'testkey');
+      expect(movies).toHaveLength(2);
+      expect(movies[0].cover).toBe('https://image.tmdb.org/t/p/w500/a.jpg');
+      expect(movies[1].cover).toBe(''); // 无 poster_path → 回退原封面（示例 feed 封面为空）
+      expect(fetchMock).toHaveBeenCalledTimes(3); // feed + 2 部电影
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('无 key 时不调用 TMDB，保留原封面', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => SAMPLE_FEED });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const movies = await syncDoubanMovies('1017197', '');
+      expect(movies[0].cover).toContain('doubanio');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('后台同步接口 /api/admin/douban/sync', () => {
+  it('同步成功返回条数并预热缓存', async () => {
+    const { app } = makeTestApp();
+    await enableDouban(app);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, text: async () => SAMPLE_FEED })
+      .mockResolvedValue({ ok: true, json: async () => ({ results: [] }) });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const token = await loginAsAdmin(app);
+      const res = await app.request('/api/admin/douban/sync', { method: 'POST', headers: authHeaders(token) });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { data: { count: number } };
+      expect(body.data.count).toBe(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('未开启时返回 400', async () => {
+    const { app } = makeTestApp();
+    const token = await loginAsAdmin(app);
+    const res = await app.request('/api/admin/douban/sync', { method: 'POST', headers: authHeaders(token) });
+    expect(res.status).toBe(400);
   });
 });

@@ -31,6 +31,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // 豆瓣影音展示
   douban_enabled: '0',
   douban_uid: '',
+  tmdb_api_key: '', // TMDB API Key（豆瓣海报图源）
 };
 
 export function getSetting(ctx: Db, key: string): string {
