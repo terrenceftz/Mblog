@@ -4,7 +4,10 @@ import PostList from '../components/PostList.astro';
 import { getPosts } from '../lib/api';
 
 const q = Astro.url.searchParams.get('q')?.trim() ?? '';
-const results = q ? await getPosts({ q }) : null;
+const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
+const pageSize = 10;
+const results = q ? await getPosts({ q, page, pageSize }) : null;
+const totalPages = results ? Math.max(1, Math.ceil(results.total / pageSize)) : 0;
 ---
 <BaseLayout title={q ? `搜索：${q}` : '搜索'}>
   <form class="search-form" action="/search" method="get">
@@ -15,6 +18,13 @@ const results = q ? await getPosts({ q }) : null;
     <>
       <p class="result-info">共找到 {results.total} 篇相关文章</p>
       <PostList posts={results.list} />
+      {totalPages > 1 && (
+        <nav class="pagination">
+          {page > 1 && <a href={`/search?q=${encodeURIComponent(q)}&page=${page - 1}`}>← 前页</a>}
+          <span class="page-info">{page} / {totalPages}</span>
+          {page < totalPages && <a href={`/search?q=${encodeURIComponent(q)}&page=${page + 1}`}>后页 →</a>}
+        </nav>
+      )}
     </>
   )}
 </BaseLayout>
@@ -32,4 +42,11 @@ const results = q ? await getPosts({ q }) : null;
     border-radius: var(--radius); padding: 8px 16px; cursor: pointer;
   }
   .result-info { color: var(--color-text-muted); font-size: 14px; margin: 0 0 16px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
+  .pagination {
+    display: flex; gap: 16px; align-items: center; justify-content: center;
+    padding: 24px 0; max-width: var(--max-width); margin: 0 auto;
+  }
+  .pagination a { color: var(--color-text); text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 6px 14px; background: var(--color-surface); }
+  .pagination a:hover { color: var(--color-primary); border-color: var(--color-primary); }
+  .page-info { color: var(--color-text-muted); font-size: 14px; }
 </style>
