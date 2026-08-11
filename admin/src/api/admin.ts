@@ -95,6 +95,34 @@ export interface SiteSettings {
   doubanApiKey: string;
   doubanSyncEnabled: boolean;
   lastDoubanSync?: string;
+  /** 站点地址（RSS） */
+  siteUrl: string;
+  /** 默认主题 normal/reader */
+  defaultTheme: string;
+  /** 评论人机验证（Turnstile） */
+  turnstileSiteKey: string;
+  turnstileSecretKey: string;
+  /** 友链申请开关 */
+  friendLinkEnabled: boolean;
+  /** GitHub 项目展示 */
+  githubEnabled: boolean;
+  githubUsername: string;
+  /** 导航菜单 JSON 字符串 */
+  navMenu: string;
+  /** 存储方式 local/cos */
+  storageProvider: string;
+  cosBucket: string;
+  cosRegion: string;
+}
+
+export interface ThemeColors {
+  bg: string;
+  text: string;
+  muted: string;
+  primary: string;
+  border: string;
+  avatar: string;
+  intro: string;
 }
 
 export interface ThemeConfig {
@@ -102,6 +130,8 @@ export interface ThemeConfig {
   colorPalette: 'amber' | 'blue' | 'emerald' | 'purple';
   fontSize: number;
   postsPerPage: number;
+  /** 主题配色细节（normal/reader 各自维护） */
+  colors: Record<'normal' | 'reader', ThemeColors>;
 }
 
 /* =========================================================
@@ -408,8 +438,8 @@ export const api = {
   },
 
   async deleteTalk(id: number): Promise<boolean> {
-    // 后端无 DELETE /talks 接口，删除能力由页面层移除（见 TalkManager 适配）
-    return false;
+    await request<{ ok: true }>(`/admin/talks/${id}`, { method: 'DELETE' });
+    return true;
   },
 
   // ---------- 友链 ----------
@@ -435,19 +465,32 @@ export const api = {
   },
 
   async saveFriendLink(link: Partial<FriendLink>): Promise<FriendLink> {
-    // 后端无 POST /friend-links（友链由前台访客申请），后台仅可审核
-    if (!link.id) throw new ApiError(400, '友链由前台访客申请，后台仅可审核');
-    await request<{ id: number }>(`/admin/friend-links/${link.id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ status: link.status })
+    if (link.id) {
+      await request<{ id: number }>(`/admin/friend-links/${link.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name: link.name, url: link.url, description: link.description, logo: link.logo, status: link.status })
+      });
+      return {
+        id: link.id,
+        name: link.name || '',
+        url: link.url || '',
+        logo: link.logo || '',
+        description: link.description || '',
+        status: link.status || 'pending',
+        created_at: ''
+      };
+    }
+    const row = await request<FriendLinkRow>('/admin/friend-links', {
+      method: 'POST',
+      body: JSON.stringify({ name: link.name, url: link.url, description: link.description, avatar: link.logo, status: 'pending' })
     });
     return {
-      id: link.id,
-      name: link.name || '',
-      url: link.url || '',
-      logo: link.logo || '',
-      description: link.description || '',
-      status: link.status || 'pending',
+      id: row.id,
+      name: row.name,
+      url: row.url,
+      logo: row.avatar,
+      description: row.description,
+      status: row.status as FriendLink['status'],
       created_at: ''
     };
   },
@@ -464,39 +507,63 @@ export const api = {
       title: s.site_name || '',
       subtitle: s.site_description || '',
       description: s.site_description || '',
-      keywords: '',
-      author: '',
-      avatar: '',
-      icp: '',
+      keywords: s.keywords || '',
+      author: s.author || '',
+      avatar: s.avatar || '',
+      icp: s.icp || '',
       apiKey: s.cos_secret_id || '',
       apiSecret: s.cos_secret_key || '',
       doubanUserId: s.douban_uid || '',
       doubanApiKey: s.tmdb_api_key || '',
       doubanSyncEnabled: s.douban_enabled === '1',
-      lastDoubanSync: ''
+      lastDoubanSync: s.douban_last_sync || '',
+      siteUrl: s.site_url || '',
+      defaultTheme: s.default_theme || 'normal',
+      turnstileSiteKey: s.turnstile_site_key || '',
+      turnstileSecretKey: s.turnstile_secret_key || '',
+      friendLinkEnabled: s.friend_link_enabled === '1',
+      githubEnabled: s.github_enabled === '1',
+      githubUsername: s.github_username || '',
+      navMenu: s.nav_menu || '[]',
+      storageProvider: s.storage_provider || 'local',
+      cosBucket: s.cos_bucket || '',
+      cosRegion: s.cos_region || ''
     };
   },
 
   async updateSettings(settings: Partial<SiteSettings>): Promise<SiteSettings> {
     const current = await request<Record<string, string>>('/admin/settings');
+    const boolStr = (v: boolean | undefined, fallback: string) =>
+      v === undefined ? fallback : v ? '1' : '0';
     const payload: Record<string, string> = {
       ...current,
       site_name: settings.title ?? current.site_name,
       site_description: settings.subtitle ?? current.site_description,
+      site_url: settings.siteUrl ?? current.site_url,
+      default_theme: settings.defaultTheme ?? current.default_theme,
+      keywords: settings.keywords ?? current.keywords,
+      author: settings.author ?? current.author,
+      avatar: settings.avatar ?? current.avatar,
+      icp: settings.icp ?? current.icp,
       cos_secret_id: settings.apiKey ?? current.cos_secret_id,
+      cos_bucket: settings.cosBucket ?? current.cos_bucket,
+      cos_region: settings.cosRegion ?? current.cos_region,
+      storage_provider: settings.storageProvider ?? current.storage_provider,
+      turnstile_site_key: settings.turnstileSiteKey ?? current.turnstile_site_key,
+      friend_link_enabled: boolStr(settings.friendLinkEnabled, current.friend_link_enabled),
+      github_enabled: boolStr(settings.githubEnabled, current.github_enabled),
+      github_username: settings.githubUsername ?? current.github_username,
+      nav_menu: settings.navMenu ?? current.nav_menu,
       douban_uid: settings.doubanUserId ?? current.douban_uid,
-      tmdb_api_key: settings.doubanApiKey ?? current.tmdb_api_key,
-      douban_enabled:
-        settings.doubanSyncEnabled === undefined
-          ? current.douban_enabled
-          : settings.doubanSyncEnabled
-            ? '1'
-            : '0'
+      douban_enabled: boolStr(settings.doubanSyncEnabled, current.douban_enabled),
+      douban_last_sync: settings.lastDoubanSync ?? current.douban_last_sync
     };
     // 掩码占位：'********' 或留空 = 保持已存密钥不变
     for (const key of ['cos_secret_key', 'tmdb_api_key', 'turnstile_secret_key'] as const) {
-      const v = payload[key];
+      const v = settings[key === 'cos_secret_key' ? 'apiSecret' : key === 'tmdb_api_key' ? 'doubanApiKey' : 'turnstileSecretKey'];
+      if (v === undefined) continue;
       if (!v || v === '********') delete payload[key];
+      else payload[key] = v;
     }
     await request<Record<string, string>>('/admin/settings', {
       method: 'PUT',
@@ -505,46 +572,89 @@ export const api = {
     return api.getSettings();
   },
 
+  /** 修改密码：旧密码错误时后端返回 401 + INVALID_PASSWORD，不会触发强制登出 */
+  async changePassword(oldPassword: string, newPassword: string): Promise<boolean> {
+    await request<{ message: string }>('/admin/password', {
+      method: 'POST',
+      body: JSON.stringify({ oldPassword, newPassword })
+    });
+    return true;
+  },
+
   async triggerDoubanSync(): Promise<string> {
     const r = await request<{ count: number }>('/admin/douban/sync', { method: 'POST' });
     return `已同步 ${r.count} 部，缓存已预热`;
   },
 
   // ---------- 主题配置 ----------
+  /** 读取主题 JSON（容错） */
   async getThemeConfig(): Promise<ThemeConfig> {
     const s = await request<Record<string, string>>('/admin/settings');
-    let normal: Record<string, unknown> = {};
-    try {
-      normal = JSON.parse(s.theme_normal || '{}');
-    } catch {
-      normal = {};
-    }
+    const parseTheme = (raw: string | undefined): Record<string, unknown> => {
+      try {
+        const o = JSON.parse(raw || '{}');
+        return o && typeof o === 'object' ? o : {};
+      } catch {
+        return {};
+      }
+    };
+    const normal = parseTheme(s.theme_normal);
+    const reader = parseTheme(s.theme_reader);
+    const toColors = (t: Record<string, unknown>, fallback: ThemeColors): ThemeColors => ({
+      bg: typeof t.bg === 'string' && t.bg ? t.bg : fallback.bg,
+      text: typeof t.text === 'string' && t.text ? t.text : fallback.text,
+      muted: typeof t.muted === 'string' && t.muted ? t.muted : fallback.muted,
+      primary: typeof t.primary === 'string' && t.primary ? t.primary : fallback.primary,
+      border: typeof t.border === 'string' && t.border ? t.border : fallback.border,
+      avatar: typeof t.avatar === 'string' ? t.avatar : fallback.avatar,
+      intro: typeof t.intro === 'string' ? t.intro : fallback.intro
+    });
     return {
       layoutMode: (normal.active ?? 'normal') as 'normal' | 'reader',
       colorPalette: 'amber',
       fontSize: typeof normal.fontSize === 'number' ? normal.fontSize : 16,
-      postsPerPage: typeof normal.homePageSize === 'number' ? normal.homePageSize : 10
+      postsPerPage: typeof normal.homePageSize === 'number' ? normal.homePageSize : 10,
+      colors: {
+        normal: toColors(normal, {
+          bg: '#09090b', text: '#f4f4f5', muted: '#9d9d95', primary: '#e8b64c',
+          border: '#26262a', avatar: '', intro: '一个喜欢折腾代码和生活的博主'
+        }),
+        reader: toColors(reader, {
+          bg: '#f3f0e9', text: '#3a3837', muted: '#b0aba4', primary: '#8b3525',
+          border: '#e5e1da', avatar: '', intro: '一个喜欢折腾代码和生活的博主'
+        })
+      }
     };
   },
 
   async updateThemeConfig(config: Partial<ThemeConfig>): Promise<ThemeConfig> {
     const s = await request<Record<string, string>>('/admin/settings');
-    const themeKey = config.layoutMode === 'reader' ? 'theme_reader' : 'theme_normal';
-    let theme: Record<string, unknown> = {};
-    try {
-      theme = JSON.parse(s[themeKey] || '{}');
-    } catch {
-      theme = {};
-    }
-    theme = {
-      ...theme,
-      fontSize: config.fontSize ?? theme.fontSize,
-      homePageSize: config.postsPerPage ?? theme.homePageSize
+    const parseTheme = (raw: string | undefined): Record<string, unknown> => {
+      try {
+        const o = JSON.parse(raw || '{}');
+        return o && typeof o === 'object' ? o : {};
+      } catch {
+        return {};
+      }
     };
+    // 分别更新 normal / reader 两套主题（layoutMode 指定要改哪套）
+    const targetKey = config.layoutMode === 'reader' ? 'theme_reader' : 'theme_normal';
+    const target = parseTheme(s[targetKey]);
+    const merged: Record<string, unknown> = {
+      ...target,
+      active: config.layoutMode ?? target.active ?? 'normal',
+      fontSize: config.fontSize ?? target.fontSize,
+      homePageSize: config.postsPerPage ?? target.homePageSize
+    };
+    const colors = config.colors?.[config.layoutMode === 'reader' ? 'reader' : 'normal'];
+    if (colors) {
+      for (const k of ['bg', 'text', 'muted', 'primary', 'border', 'avatar', 'intro'] as const) {
+        if (colors[k] !== undefined) merged[k] = colors[k];
+      }
+    }
     const payload: Record<string, string> = {
       ...s,
-      theme_normal: JSON.stringify(theme),
-      theme_reader: JSON.stringify(theme)
+      [targetKey]: JSON.stringify(merged)
     };
     await request<Record<string, string>>('/admin/settings', {
       method: 'PUT',

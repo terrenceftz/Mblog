@@ -8,9 +8,39 @@ const themeConfig = ref<ThemeConfig>({
   colorPalette: 'amber',
   fontSize: 16,
   postsPerPage: 10,
+  colors: {
+    normal: {
+      bg: '#09090b', text: '#f4f4f5', muted: '#9d9d95', primary: '#e8b64c',
+      border: '#26262a', avatar: '', intro: '一个喜欢折腾代码和生活的博主'
+    },
+    reader: {
+      bg: '#f3f0e9', text: '#3a3837', muted: '#b0aba4', primary: '#8b3525',
+      border: '#e5e1da', avatar: '', intro: '一个喜欢折腾代码和生活的博主'
+    }
+  }
 });
 
 const saving = ref(false);
+
+/** 当前编辑的主题（随 layoutMode 切换） */
+const currentColors = () =>
+  themeConfig.value.colors[themeConfig.value.layoutMode === 'reader' ? 'reader' : 'normal'];
+
+/** 色板预设：选择时联动写入当前主题的主色 */
+const PALETTES: Record<ThemeConfig['colorPalette'], { primary: string; bg: string }> = {
+  amber: { primary: '#e8b64c', bg: '#09090b' },
+  blue: { primary: '#2563eb', bg: '#0b1220' },
+  emerald: { primary: '#059669', bg: '#081410' },
+  purple: { primary: '#9333ea', bg: '#120b1e' },
+};
+
+function pickPalette(p: ThemeConfig['colorPalette']) {
+  themeConfig.value.colorPalette = p;
+  const preset = PALETTES[p];
+  const colors = currentColors();
+  colors.primary = preset.primary;
+  if (themeConfig.value.layoutMode === 'normal') colors.bg = preset.bg;
+}
 
 async function loadConfig() {
   themeConfig.value = await api.getThemeConfig();
@@ -95,9 +125,9 @@ onMounted(() => {
                   type="button"
                   class="btn w-100 p-2 d-flex flex-column align-items-center gap-1 border-2"
                   :class="themeConfig.colorPalette === 'amber' ? 'border-warning' : 'border-transparent'"
-                  @click="themeConfig.colorPalette = 'amber'"
+                  @click="pickPalette('amber')"
                 >
-                  <span class="d-inline-block rounded-circle" style="width: 24px; height: 24px; background-color: #d97706;"></span>
+                  <span class="d-inline-block rounded-circle" style="width: 24px; height: 24px; background-color: #e8b64c;"></span>
                   <span class="micro-text fw-medium">琥珀黄</span>
                 </button>
               </div>
@@ -107,7 +137,7 @@ onMounted(() => {
                   type="button"
                   class="btn w-100 p-2 d-flex flex-column align-items-center gap-1 border-2"
                   :class="themeConfig.colorPalette === 'blue' ? 'border-primary' : 'border-transparent'"
-                  @click="themeConfig.colorPalette = 'blue'"
+                  @click="pickPalette('blue')"
                 >
                   <span class="d-inline-block rounded-circle" style="width: 24px; height: 24px; background-color: #2563eb;"></span>
                   <span class="micro-text fw-medium">海洋蓝</span>
@@ -119,7 +149,7 @@ onMounted(() => {
                   type="button"
                   class="btn w-100 p-2 d-flex flex-column align-items-center gap-1 border-2"
                   :class="themeConfig.colorPalette === 'emerald' ? 'border-success' : 'border-transparent'"
-                  @click="themeConfig.colorPalette = 'emerald'"
+                  @click="pickPalette('emerald')"
                 >
                   <span class="d-inline-block rounded-circle" style="width: 24px; height: 24px; background-color: #059669;"></span>
                   <span class="micro-text fw-medium">翡翠绿</span>
@@ -131,12 +161,48 @@ onMounted(() => {
                   type="button"
                   class="btn w-100 p-2 d-flex flex-column align-items-center gap-1 border-2"
                   :class="themeConfig.colorPalette === 'purple' ? 'border-info' : 'border-transparent'"
-                  @click="themeConfig.colorPalette = 'purple'"
+                  @click="pickPalette('purple')"
                 >
                   <span class="d-inline-block rounded-circle" style="width: 24px; height: 24px; background-color: #9333ea;"></span>
                   <span class="micro-text fw-medium">极光紫</span>
                 </button>
               </div>
+            </div>
+            <div class="text-muted micro-text mt-2">选择色板会联动写入当前布局模式的主色，仍可在下方配色细节中微调。</div>
+          </div>
+        </div>
+
+        <!-- Color Details Card（配色细节，normal/reader 各自维护） -->
+        <div class="card mb-4">
+          <div class="card-header py-3">
+            <h3 class="card-title fw-bold m-0">配色细节（{{ themeConfig.layoutMode === 'normal' ? '经典模式' : '极简阅读' }}）</h3>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-6" v-for="field in (['bg', 'text', 'muted', 'primary', 'border'] as const)" :key="field">
+                <label class="form-label small fw-medium d-flex justify-content-between">
+                  <span>{{ { bg: '背景色', text: '正文色', muted: '次要文字色', primary: '主色', border: '边框色' }[field] }}</span>
+                  <span class="font-monospace text-muted">{{ currentColors()[field] }}</span>
+                </label>
+                <input type="color" v-model="currentColors()[field]" class="form-control form-control-color w-100" style="height: 38px;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Content Card（仅 normal 主题生效） -->
+        <div class="card mb-4" v-if="themeConfig.layoutMode === 'normal'">
+          <div class="card-header py-3">
+            <h3 class="card-title fw-bold m-0">首屏内容（仅经典模式生效）</h3>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label small fw-medium">首屏头像 URL</label>
+              <input type="text" v-model="currentColors().avatar" class="form-control" placeholder="留空使用 /avatar.jpg" />
+            </div>
+            <div>
+              <label class="form-label small fw-medium">首屏自我介绍（BlurText 逐词模糊揭示）</label>
+              <textarea v-model="currentColors().intro" class="form-control" rows="3" placeholder="一段简短风趣的自我介绍…"></textarea>
             </div>
           </div>
         </div>
@@ -175,44 +241,36 @@ onMounted(() => {
           <div class="card-body p-4 bg-body-tertiary">
             <div
               class="card p-4 mx-auto shadow-sm transition-all"
-              :style="{ maxWidth: themeConfig.layoutMode === 'reader' ? '460px' : '100%' }"
+              :style="{
+                maxWidth: themeConfig.layoutMode === 'reader' ? '460px' : '100%',
+                backgroundColor: currentColors().bg,
+                borderColor: currentColors().border,
+              }"
             >
               <!-- Palette Highlight Top Border -->
               <div
                 class="rounded-top position-absolute top-0 start-0 end-0"
                 style="height: 4px;"
-                :style="{
-                  backgroundColor:
-                    themeConfig.colorPalette === 'amber' ? '#d97706' :
-                    themeConfig.colorPalette === 'blue' ? '#2563eb' :
-                    themeConfig.colorPalette === 'emerald' ? '#059669' : '#9333ea'
-                }"
+                :style="{ backgroundColor: currentColors().primary }"
               ></div>
 
               <div class="mb-2">
                 <span
                   class="badge px-2 py-1 rounded-pill micro-text fw-medium"
                   :style="{
-                    backgroundColor:
-                      themeConfig.colorPalette === 'amber' ? 'rgba(217, 119, 6, 0.15)' :
-                      themeConfig.colorPalette === 'blue' ? 'rgba(37, 99, 235, 0.15)' :
-                      themeConfig.colorPalette === 'emerald' ? 'rgba(5, 150, 105, 0.15)' : 'rgba(147, 51, 234, 0.15)',
-                    color:
-                      themeConfig.colorPalette === 'amber' ? '#d97706' :
-                      themeConfig.colorPalette === 'blue' ? '#2563eb' :
-                      themeConfig.colorPalette === 'emerald' ? '#059669' : '#9333ea'
+                    backgroundColor: currentColors().primary + '26',
+                    color: currentColors().primary,
                   }"
                 >
                   排版预览
                 </span>
               </div>
 
-              <h2 class="fw-bold tracking-tight mb-2">Vue 3.5 响应式系统深度解构</h2>
-              <div class="text-muted micro-text mb-3">2026-08-11 · 阅读时间约 5 分钟</div>
+              <h2 class="fw-bold tracking-tight mb-2" :style="{ color: currentColors().text }">Vue 3.5 响应式系统深度解构</h2>
+              <div class="micro-text mb-3" :style="{ color: currentColors().muted }">2026-08-11 · 阅读时间约 5 分钟</div>
 
               <div
-                class="text-main"
-                :style="{ fontSize: themeConfig.fontSize + 'px', lineHeight: '1.7' }"
+                :style="{ fontSize: themeConfig.fontSize + 'px', lineHeight: '1.7', color: currentColors().text }"
               >
                 Vue 3.5 带来了全新的响应式引擎优化，内存占用大幅降低。克制的设计与清晰的层级是 Web 体验的核心，字号为 {{ themeConfig.fontSize }}px 时具备最佳的可读性。
               </div>

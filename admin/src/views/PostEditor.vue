@@ -46,8 +46,50 @@ const wordCount = computed(() => {
   return postForm.value.content.trim().length;
 });
 
+const DRAFT_KEY = `mblog_admin_draft_${isEditMode.value ? `edit_${postId.value}` : 'new'}`;
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let restoringDraft = true;
+
+function scheduleAutoSave() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(postForm.value));
+    } catch {
+      /* 忽略存储失败 */
+    }
+  }, 3000);
+}
+function clearAutoSave() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* 忽略 */
+  }
+}
+
 async function loadData() {
   categories.value = await api.getCategories();
+
+  // 新建页：恢复本地草稿
+  if (!isEditMode.value) {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && typeof d === 'object' && typeof d.title === 'string') {
+          postForm.value = {
+            ...postForm.value,
+            ...d,
+            tags: Array.isArray(d.tags) ? d.tags : [],
+            status: (d.status === 'published' || d.status === 'draft' || d.status === 'archived') ? d.status : 'published',
+          };
+        }
+      }
+    } catch {
+      /* 忽略 */
+    }
+  }
 
   if (isEditMode.value) {
     loading.value = true;
@@ -91,6 +133,7 @@ async function handleSave(status?: 'published' | 'draft') {
     });
 
     toast.success(status === 'draft' ? '草稿保存成功' : '文章已成功发布！');
+    clearAutoSave();
     if (!isEditMode.value) {
       router.push(`/posts/${saved.id}`);
     }
@@ -103,6 +146,39 @@ async function handleSave(status?: 'published' | 'draft') {
 
 let vditor: Vditor | null = null;
 let vditorReady = false;
+
+// 音频插入（Vditor 工具栏自定义按钮）
+const audioButton = {
+  name: 'insertAudio',
+  icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>',
+  tip: '插入音频',
+  click: () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'audio/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file || !vditor) return;
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${localStorage.getItem('admin_token') ?? ''}` },
+          body: form,
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(body?.error?.message ?? '上传失败');
+        vditor.insertValue(`<audio controls src="${body.data.url}"></audio>
+`, true);
+        markDirty();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : '音频上传失败');
+      }
+    };
+    input.click();
+  },
+};
 
 // 封面上传
 const coverUploading = ref(false);
@@ -162,7 +238,7 @@ function initVditor() {
       'headings', 'bold', 'italic', 'strike', '|',
       'list', 'ordered-list', 'check', 'quote', '|',
       'code', 'inline-code', 'table', '|',
-      'link', 'upload', '|', 'undo', 'redo', '|', 'fullscreen',
+      'link', 'upload', audioButton, '|', 'undo', 'redo', '|', 'fullscreen',
     ],
     cache: { enable: false },
     upload: {
@@ -202,10 +278,22 @@ watch(
   () => vditor?.setTheme(vditorTheme())
 );
 
+// 自动保存：表单变化后 3s 写入 localStorage（恢复期与编辑态加载期不触发）
+watch(
+  postForm,
+  () => {
+    if (!restoringDraft && vditorReady) scheduleAutoSave();
+  },
+  { deep: true }
+);
+
 onMounted(async () => {
   await loadData();
   // 等 DOM 渲染完成再初始化 Vditor
-  setTimeout(initVditor, 50);
+  setTimeout(() => {
+    restoringDraft = false;
+    initVditor();
+  }, 50);
 });
 </script>
 

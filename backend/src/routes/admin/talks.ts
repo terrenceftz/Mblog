@@ -34,6 +34,12 @@ export function talksAdminRoutes(ctx: Db) {
     return c.json({ data: { list: rows, total } });
   });
 
+  app.delete('/talks/:id', (c) => {
+    const id = Number(c.req.param('id'));
+    ctx.db.delete(talks).where(eq(talks.id, id)).run();
+    return c.json({ data: { ok: true } });
+  });
+
   app.patch('/talks/:id', async (c) => {
     const id = Number(c.req.param('id'));
     const body = await c.req.json().catch(() => null);
