@@ -5,3 +5,4 @@ uploads/
 .astro/
 *.log
 .env
+.superpowers/
