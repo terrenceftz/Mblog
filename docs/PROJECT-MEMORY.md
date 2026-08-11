@@ -248,6 +248,23 @@ npm test   # 83/83 通过
 
 **注意**：Login.vue 是 GLM 的全自定义设计（无 Tabler 类），保持不动。
 
+### 2026-08-11 20:30 —— Gemini UI 接入完成（mblog-ui 仓库）
+
+用户让 Gemini（基于 prompts/admin-ui-gemini.md 提示词）生成了完整后台 UI，仓库 https://github.com/terrenceftz/mblog-ui，已全量接入 admin/。提交：`e4f55b8`（基础+适配层）→ `400334c`（全量接入）。
+
+**接入方式（关键）**：
+1. **Gemini 提供视觉**：views/*（12 个）+ components/* + styles/admin.css（--mb-* 设计体系 + @import tabler）+ lib/toast.ts（toast.success() 风格）+ App.vue（onMounted initTheme）
+2. **我们提供数据**：`src/api/admin.ts` = **API 适配层**——保留 Gemini 的 `api.xxx()` 方法签名与类型（页面模板依赖），实现全部调用真实后端（fetch 封装 client.ts），并做字段映射：postCount←postTotal、views←viewCount、created_at←fmtTime(createdAt)、status（archived→draft、spam→rejected）、postTitle 拉文章标题映射
+3. **真实类型**在 `src/api/posts.ts`（CategoryRow/TagRow/CommentRow/FriendLinkRow/AdminPostRow/AdminPostDetail/PostPayload/TalkRow）
+4. **路由/链接适配**：router 用我们的（history 模式 + admin_token 守卫）；dashboard 路由从 path:'' 改为 path:'dashboard' + 根路径 redirect（Gemini 导航全是 /dashboard）；链接 /posts/edit/* → /posts/*；/friend-links → /friends
+5. **PostEditor**：Gemini 布局 + **真实 Vditor**（mock textarea 替换；上传 /api/admin/upload + Bearer、input→postForm.content、data-bs-theme 联动 vditor.setTheme、window.confirm 离开确认、封面上传按钮）
+6. **主题**：theme.ts 用 mblog_theme key（兼容 admin_theme 一次性迁移）+ data-theme/data-bs-theme 双属性；index.html 防闪白脚本同逻辑
+
+**注意**：
+- Login.vue 是 Gemini 的 blob 玻璃拟态设计，补了用户名输入框（后端要 username+password）
+- admin.css 是 Gemini 的 --mb-* 体系（与我们旧 --bg/--surface token 不同），**自定义新样式时用 Gemini 的变量**（--mb-primary 等，看 admin.css 定义）
+- 编辑器 vditor 依赖保留在 package.json（vditor ^3.10.9）
+
 ## 9. 参考
 
 - 灵感/借鉴：https://eonova.me 源码 https://github.com/eonova/eonova.me
