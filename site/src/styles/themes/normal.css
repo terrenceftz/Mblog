@@ -547,39 +547,21 @@
   margin: 0 auto;
   padding: 32px 20px 64px;
 }
-/* 特色图作氛围背景：图片溶入背景（soft-light 叠色 + 上下渐隐到背景色） */
+/* 有封面：封面作低高度圆形小图，居中置于标题上方 */
 [data-theme='normal'] .article-head.has-cover .article-hero {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 360px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
   overflow: hidden;
-  z-index: 0;
+  margin: 0 auto 28px;
+  border: 3px solid rgba(232, 182, 76, 0.35);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 [data-theme='normal'] .article-head.has-cover .article-hero img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  /* 溶图：图片色调与暗背景柔光混合，没有生硬的图面感 */
-  mix-blend-mode: soft-light;
-  opacity: 0.95;
-}
-/* 上下渐隐到背景色：图片只在标题区透出微弱色调 */
-[data-theme='normal'] .article-head.has-cover .article-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, var(--color-bg) 0%, rgba(9, 9, 11, 0.25) 28%, rgba(9, 9, 11, 0.5) 68%, var(--color-bg) 100%);
-  pointer-events: none;
-}
-[data-theme='normal'] .article-head.has-cover .article-title {
-  color: #fff;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
-}
-[data-theme='normal'] .article-head.has-cover .article-meta {
-  color: #e4e4e7;
 }
 [data-theme='normal'] .article-title {
   font-family: var(--font-display);
