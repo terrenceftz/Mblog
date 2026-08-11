@@ -241,12 +241,13 @@
   50% { transform: translateY(-7px); }
 }
 
-/* 区块 */
+/* 区块（标题与内容整体居中对齐） */
 [data-theme='normal'] .nh-section {
-  margin-top: 56px;
+  margin-top: 88px;
 }
 [data-theme='normal'] .nh-section-head {
-  margin-bottom: 20px;
+  margin-bottom: 28px;
+  text-align: center;
 }
 [data-theme='normal'] .nh-section-head h2 {
   font-size: 24px;
@@ -341,6 +342,7 @@
 [data-theme='normal'] .nh-cats {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
 }
 [data-theme='normal'] .nh-cat {
@@ -367,6 +369,7 @@
 [data-theme='normal'] .nh-tags {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
   margin-top: 16px;
 }
@@ -386,13 +389,14 @@
 
 /* 影音与项目 */
 [data-theme='normal'] .nh-sub {
-  margin-top: 40px;
+  margin-top: 72px;
 }
 [data-theme='normal'] .nh-sub-head {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
 }
 [data-theme='normal'] .nh-more {
   color: var(--color-text-muted);
@@ -878,4 +882,175 @@
   [data-theme='normal'] .article-layout .article-toc {
     display: none;
   }
+}
+
+/* ---------- Border Glow 卡片辉光（reactbits 移植，仅首页卡片） ----------
+   结构：.border-glow-card > .edge-light + .border-glow-inner
+   鼠标移动由 BorderGlow.vue 更新 --cursor-angle / --edge-proximity 两个变量驱动 */
+[data-theme='normal'] .border-glow-card {
+  --edge-proximity: 0;
+  --cursor-angle: 45deg;
+  --edge-sensitivity: 30;
+  --color-sensitivity: calc(var(--edge-sensitivity) + 20);
+  --border-radius: var(--radius);
+  --glow-padding: 18px;
+  --cone-spread: 25;
+  --fill-opacity: 0.45;
+  /* 琥珀色辉光（与主题 --color-primary 一致） */
+  --glow-color: hsl(43deg 80% 60% / 100%);
+  --glow-color-60: hsl(43deg 80% 60% / 60%);
+  --glow-color-50: hsl(43deg 80% 60% / 50%);
+  --glow-color-40: hsl(43deg 80% 60% / 40%);
+  --glow-color-30: hsl(43deg 80% 60% / 30%);
+  --glow-color-20: hsl(43deg 80% 60% / 20%);
+  --glow-color-10: hsl(43deg 80% 60% / 10%);
+  /* 暖色网状渐变（琥珀/橙/玫红） */
+  --gradient-one: radial-gradient(at 80% 55%, #e8b64c 0px, transparent 50%);
+  --gradient-two: radial-gradient(at 69% 34%, #fb923c 0px, transparent 50%);
+  --gradient-three: radial-gradient(at 8% 6%, #f43f5e 0px, transparent 50%);
+  --gradient-four: radial-gradient(at 41% 38%, #e8b64c 0px, transparent 50%);
+  --gradient-five: radial-gradient(at 86% 85%, #f43f5e 0px, transparent 50%);
+  --gradient-six: radial-gradient(at 82% 18%, #fb923c 0px, transparent 50%);
+  --gradient-seven: radial-gradient(at 51% 4%, #fbbf24 0px, transparent 50%);
+  --gradient-base: linear-gradient(#e8b64c 0 100%);
+
+  position: relative;
+  border-radius: var(--border-radius);
+  isolation: isolate;
+  transform: translate3d(0, 0, 0.01px);
+  overflow: visible;
+}
+
+[data-theme='normal'] .border-glow-card::before,
+[data-theme='normal'] .border-glow-card::after,
+[data-theme='normal'] .border-glow-card > .edge-light {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transition: opacity 0.25s ease-out;
+  z-index: -1;
+}
+/* 未悬停时隐藏辉光 */
+[data-theme='normal'] .border-glow-card:not(:hover):not(.sweep-active)::before,
+[data-theme='normal'] .border-glow-card:not(:hover):not(.sweep-active)::after,
+[data-theme='normal'] .border-glow-card:not(:hover):not(.sweep-active) > .edge-light {
+  opacity: 0;
+  transition: opacity 0.75s ease-in-out;
+}
+
+/* 跟随光标的网状渐变边框 */
+[data-theme='normal'] .border-glow-card::before {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--color-surface) 0 100%) padding-box,
+    linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box,
+    var(--gradient-one, radial-gradient(at 80% 55%, hsla(268, 100%, 76%, 1) 0px, transparent 50%)) border-box,
+    var(--gradient-two, radial-gradient(at 69% 34%, hsla(349, 100%, 74%, 1) 0px, transparent 50%)) border-box,
+    var(--gradient-three, radial-gradient(at 8% 6%, hsla(136, 100%, 78%, 1) 0px, transparent 50%)) border-box,
+    var(--gradient-four, radial-gradient(at 41% 38%, hsla(192, 100%, 64%, 1) 0px, transparent 50%)) border-box,
+    var(--gradient-five, radial-gradient(at 86% 85%, hsla(186, 100%, 74%, 1) 0px, transparent 50%)) border-box,
+    var(--gradient-six, radial-gradient(at 82% 18%, hsla(52, 100%, 65%, 1) 0px, transparent 50%)) border-box,
+    var(--gradient-seven, radial-gradient(at 51% 4%, hsla(12, 100%, 72%, 1) 0px, transparent 50%)) border-box,
+    var(--gradient-base, linear-gradient(#e8b64c 0 100%)) border-box;
+
+  opacity: calc((var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+
+  mask-image:
+    conic-gradient(
+      from var(--cursor-angle) at center,
+      black calc(var(--cone-spread) * 1%),
+      transparent calc((var(--cone-spread) + 15) * 1%),
+      transparent calc((100 - var(--cone-spread) - 15) * 1%),
+      black calc((100 - var(--cone-spread)) * 1%)
+    );
+}
+
+/* 靠近边缘时的网状渐变底色填充 */
+[data-theme='normal'] .border-glow-card::after {
+  border: 1px solid transparent;
+  background:
+    var(--gradient-one, radial-gradient(at 80% 55%, hsla(268, 100%, 76%, 1) 0px, transparent 50%)) padding-box,
+    var(--gradient-two, radial-gradient(at 69% 34%, hsla(349, 100%, 74%, 1) 0px, transparent 50%)) padding-box,
+    var(--gradient-three, radial-gradient(at 8% 6%, hsla(136, 100%, 78%, 1) 0px, transparent 50%)) padding-box,
+    var(--gradient-four, radial-gradient(at 41% 38%, hsla(192, 100%, 64%, 1) 0px, transparent 50%)) padding-box,
+    var(--gradient-five, radial-gradient(at 86% 85%, hsla(186, 100%, 74%, 1) 0px, transparent 50%)) padding-box,
+    var(--gradient-six, radial-gradient(at 82% 18%, hsla(52, 100%, 65%, 1) 0px, transparent 50%)) padding-box,
+    var(--gradient-seven, radial-gradient(at 51% 4%, hsla(12, 100%, 72%, 1) 0px, transparent 50%)) padding-box,
+    var(--gradient-base, linear-gradient(#e8b64c 0 100%)) padding-box;
+
+  mask-image:
+    linear-gradient(to bottom, black, black),
+    radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%),
+    radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%),
+    conic-gradient(from var(--cursor-angle) at center, transparent 5%, black 15%, black 85%, transparent 95%);
+
+  mask-composite: subtract, add, add, add, add, add;
+  opacity: calc(var(--fill-opacity, 0.5) * (var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+  mix-blend-mode: soft-light;
+}
+
+/* 外层辉光（溢出卡片边缘的圆锥光） */
+[data-theme='normal'] .border-glow-card > .edge-light {
+  inset: calc(var(--glow-padding) * -1);
+  pointer-events: none;
+  z-index: 1;
+
+  mask-image:
+    conic-gradient(
+      from var(--cursor-angle) at center, black 2.5%, transparent 10%, transparent 90%, black 97.5%
+    );
+
+  opacity: calc((var(--edge-proximity) - var(--edge-sensitivity)) / (100 - var(--edge-sensitivity)));
+  mix-blend-mode: plus-lighter;
+}
+[data-theme='normal'] .border-glow-card > .edge-light::before {
+  content: '';
+  position: absolute;
+  inset: var(--glow-padding);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px var(--glow-color, hsl(40deg 80% 80% / 100%)),
+    inset 0 0 1px 0 var(--glow-color-60, hsl(40deg 80% 80% / 60%)),
+    inset 0 0 3px 0 var(--glow-color-50, hsl(40deg 80% 80% / 50%)),
+    inset 0 0 6px 0 var(--glow-color-40, hsl(40deg 80% 80% / 40%)),
+    inset 0 0 15px 0 var(--glow-color-30, hsl(40deg 80% 80% / 30%)),
+    inset 0 0 25px 2px var(--glow-color-20, hsl(40deg 80% 80% / 20%)),
+    inset 0 0 50px 2px var(--glow-color-10, hsl(40deg 80% 80% / 10%)),
+    0 0 1px 0 var(--glow-color-60, hsl(40deg 80% 80% / 60%)),
+    0 0 3px 0 var(--glow-color-50, hsl(40deg 80% 80% / 50%)),
+    0 0 6px 0 var(--glow-color-40, hsl(40deg 80% 80% / 40%)),
+    0 0 15px 0 var(--glow-color-30, hsl(40deg 80% 80% / 30%)),
+    0 0 25px 2px var(--glow-color-20, hsl(40deg 80% 80% / 20%)),
+    0 0 50px 2px var(--glow-color-10, hsl(40deg 80% 80% / 10%));
+}
+
+/* 内容包裹层：文章卡片需要裁剪圆角封面，项目卡片直接透传布局 */
+[data-theme='normal'] .nh-post-card.border-glow-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  overflow: visible;
+}
+[data-theme='normal'] .nh-post-card.border-glow-card > .border-glow-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+[data-theme='normal'] .nh-project.border-glow-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+[data-theme='normal'] .nh-project.border-glow-card > .border-glow-inner {
+  display: contents;
 }
