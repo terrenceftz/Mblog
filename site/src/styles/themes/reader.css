@@ -222,6 +222,7 @@
 [data-theme='reader'] .site-footer {
   border-top: none;
   text-align: center;
+  justify-content: center;
   padding: 96px 16px 32px;
   max-width: 1200px;
   font-family: var(--font-ui);
@@ -943,3 +944,4 @@
 [data-theme='reader'] .tech-loop {
   display: none;
 }
+

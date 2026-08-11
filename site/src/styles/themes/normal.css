@@ -674,35 +674,42 @@
   color: var(--color-text-muted);
 }
 
-/* ---------- 页脚：技术栈 logo 滚动（reactbits logo-loop 风格） ---------- */
+/* ---------- 页脚：两端文字 + 中间技术栈 logo 图标滚动（紧凑） ---------- */
 [data-theme='normal'] .site-footer {
   border-top: 1px solid var(--color-border);
   color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 20px;
+}
+[data-theme='normal'] .site-footer .site-footer-text,
+[data-theme='normal'] .site-footer .footer-right {
+  white-space: nowrap;
+  font-size: 13px;
 }
 [data-theme='normal'] .tech-loop {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
-  padding: 16px 0 20px;
-  margin-bottom: 16px;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
 }
 [data-theme='normal'] .tech-loop__track {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 30px;
   width: max-content;
-  animation: techScroll 28s linear infinite;
+  animation: techScroll 30s linear infinite;
 }
 [data-theme='normal'] .tech-loop:hover .tech-loop__track {
   animation-play-state: paused;
 }
 [data-theme='normal'] .tech-loop__item {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  font-family: var(--font-ui);
-  opacity: 0.7;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.55;
   transition: opacity 0.2s ease;
 }
 [data-theme='normal'] .tech-loop__item:hover {
