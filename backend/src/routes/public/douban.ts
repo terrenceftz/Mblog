@@ -1,6 +1,5 @@
 import { request as httpsRequest } from 'node:https';
 import { Hono } from 'hono';
-import { XMLParser } from 'fast-xml-parser';
 import { getSetting } from '../../lib/settings';
 import type { Db } from '../../db';
 
@@ -15,8 +14,7 @@ export interface DoubanMovie {
   date: string; // YYYY-MM-DD，空=未知
 }
 
-const TTL = 30 * 60 * 1000; // 豆瓣无官方 API，订阅源拉取 + 30 分钟缓存
-const RATING_MAP: Record<string, number> = { 力荐: 5, 推荐: 4, 还行: 3, 较差: 2, 很差: 1 };
+const TTL = 30 * 60 * 1000; // 豆瓣无官方 API，收藏页分页抓取 + 30 分钟缓存
 // 共享缓存：公开接口与后台同步共用；测试通过 resetDoubanCache 隔离
 const cache = new Map<string, { time: number; data: DoubanMovie[] }>();
 
@@ -24,41 +22,54 @@ export function resetDoubanCache(): void {
   cache.clear();
 }
 
-// 拉取并解析豆瓣订阅源：仅保留「看过」的电影
-export async function fetchDoubanMovies(uid: string): Promise<DoubanMovie[]> {
-  const res = await fetch(`https://www.douban.com/feed/people/${encodeURIComponent(uid)}/interests`, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MBLOG/1.0',
-      Accept: 'application/rss+xml',
+const COLLECT_PAGE_SIZE = 15;
+const MAX_ITEMS = 300; // 上限：最新 300 条（按时间倒序）
+
+async function fetchCollectPage(uid: string, start: number): Promise<string> {
+  const res = await fetch(
+    `https://movie.douban.com/people/${encodeURIComponent(uid)}/collect?sort=time&start=${start}`,
+    {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      signal: AbortSignal.timeout(15000),
     },
-  });
-  if (!res.ok) throw new Error(`Douban feed ${res.status}`);
-  const xml = await res.text();
-  const doc = new XMLParser({ ignoreAttributes: false }).parse(xml) as {
-    rss?: { channel?: { item?: unknown } };
-  };
-  const items = doc?.rss?.channel?.item;
-  const list = Array.isArray(items) ? items : items ? [items] : [];
+  );
+  if (!res.ok) throw new Error(`Douban collect ${res.status}`);
+  return res.text();
+}
+
+// 抓取「看过」收藏页（分页）：包含全部电影与电视剧记录（movie.douban.com 不含读书/音乐）
+export async function fetchDoubanMovies(uid: string): Promise<DoubanMovie[]> {
   const movies: DoubanMovie[] = [];
-  for (const raw of list) {
-    const it = raw as { title?: string; link?: string; description?: string; pubDate?: string };
-    const title = String(it.title ?? '');
-    const link = String(it.link ?? '');
-    if (!link.includes('movie.douban.com')) continue; // 仅电影
-    if (!title.startsWith('看过')) continue; // 仅「看过」
-    const desc = String(it.description ?? '');
-    const cover = /src="([^"]+)"/.exec(desc)?.[1] ?? '';
-    const altTitle = (/title="([^"]+)"/.exec(desc)?.[1] ?? '')
-      .replace(/&#39;/g, "'")
-      .replace(/&amp;/g, '&')
-      .trim();
-    const ratingMatch = /推荐:\s*([^<\s]+)/.exec(desc);
-    const ratingText = ratingMatch?.[1] ?? '';
-    const rating = RATING_MAP[ratingText] ?? 0;
-    const pub = it.pubDate ? new Date(String(it.pubDate)) : null;
-    const date = pub && !Number.isNaN(pub.getTime()) ? pub.toISOString().slice(0, 10) : '';
-    const cleanTitle = title.replace(/^看过/, '').trim();
-    if (cleanTitle) movies.push({ title: cleanTitle, altTitle, url: link, cover, rating, ratingText, date });
+  for (let start = 0; start < MAX_ITEMS; start += COLLECT_PAGE_SIZE) {
+    const html = await fetchCollectPage(uid, start);
+    const chunks = html.split('<div class="item comment-item"').slice(1);
+    if (chunks.length === 0) break;
+    for (const chunk of chunks) {
+      const title = /<em>(.*?)<\/em>/.exec(chunk)?.[1]?.trim() ?? '';
+      const url = /<a href="(https:\/\/movie\.douban\.com\/subject\/\d+\/)"/.exec(chunk)?.[1] ?? '';
+      // 英文/别名：em 之后最后一个 " / Xxx" 片段（如 "难哄(剧版) / The First Frost" → The First Frost）
+      const afterEm = (chunk.match(/<\/em>([\s\S]*?)<\/a>/) ?? [])[1] ?? '';
+      const segs = afterEm
+        .split('/')
+        .map((s) => s.replace(/<[^>]+>/g, '').trim())
+        .filter(Boolean);
+      const altTitle = segs[segs.length - 1] ?? '';
+      const cover = /<img[^>]+src="([^"]+)"/.exec(chunk)?.[1] ?? '';
+      const ratingClass = /class="rating(\d)-t"/.exec(chunk)?.[1];
+      const rating = ratingClass ? Number(ratingClass) : 0;
+      const ratingText = ['', '很差', '较差', '还行', '推荐', '力荐'][rating] ?? '';
+      const date = /<span class="date">([^<]+)<\/span>/.exec(chunk)?.[1]?.trim() ?? '';
+      if (title && url) {
+        movies.push({ title, altTitle, url, cover, rating, ratingText, date });
+        if (movies.length >= MAX_ITEMS) return movies;
+      }
+    }
+    // 页间小延迟，避免豆瓣限流
+    if (chunks.length >= COLLECT_PAGE_SIZE) await new Promise((r) => setTimeout(r, 300));
   }
   return movies;
 }
