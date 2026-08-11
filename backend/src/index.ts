@@ -1,9 +1,14 @@
+import 'dotenv/config';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { serve } from '@hono/node-server';
 import { createApp } from './app';
 import { createDb } from './db';
 import { ensureMigrated } from './db/migrate';
+import { getSecret } from './lib/jwt';
+
+// 启动即校验 JWT 密钥，配置缺失时 fail-fast 拒绝启动
+getSecret();
 
 const dbPath = process.env.DB_PATH ?? 'data/mblog.db';
 // better-sqlite3 不会自动创建父目录
