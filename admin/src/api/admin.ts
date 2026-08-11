@@ -19,6 +19,16 @@ export interface AdminPostDetail extends Omit<PostDetail, 'tags'> {
   tags: { id: number; name: string; slug: string }[];
 }
 
+// 仅在有查询参数时才追加 ?…，避免生成 /admin/posts? 之类的空查询串
+function buildQuery(params: Record<string, string | number | undefined>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== '') sp.set(k, String(v));
+  }
+  const s = sp.toString();
+  return s ? `?${s}` : '';
+}
+
 export function login(username: string, password: string) {
   return request<{ token: string }>('/admin/login', {
     method: 'POST',
@@ -29,16 +39,19 @@ export function logout() {
   localStorage.removeItem('admin_token');
 }
 
+export function adminChangePassword(oldPassword: string, newPassword: string) {
+  return request<{ message: string }>('/admin/password', {
+    method: 'POST',
+    body: JSON.stringify({ oldPassword, newPassword }),
+  });
+}
+
 export function getStats() {
   return request<{ postTotal: number; published: number; commentTotal: number; pendingComments: number; totalViews: number }>('/admin/stats');
 }
 
-export function adminGetPosts(params: { page?: number; status?: string; categoryId?: number } = {}) {
-  const qs = new URLSearchParams();
-  if (params.page) qs.set('page', String(params.page));
-  if (params.status) qs.set('status', params.status);
-  if (params.categoryId) qs.set('categoryId', String(params.categoryId));
-  return request<Page<AdminPostRow>>(`/admin/posts?${qs.toString()}`);
+export function adminGetPosts(params: { page?: number; pageSize?: number; status?: string; categoryId?: number } = {}) {
+  return request<Page<AdminPostRow>>(`/admin/posts${buildQuery(params)}`);
 }
 export function adminGetPost(id: number) {
   return request<AdminPostDetail>(`/admin/posts/${id}`);
@@ -58,9 +71,7 @@ export function adminDeletePost(id: number) {
 }
 
 export function adminGetComments(params: { status?: string } = {}) {
-  const qs = new URLSearchParams();
-  if (params.status) qs.set('status', params.status);
-  return request<CommentRow[]>(`/admin/comments?${qs.toString()}`);
+  return request<CommentRow[]>(`/admin/comments${buildQuery(params)}`);
 }
 export function adminPatchComment(id: number, status: CommentRow['status']) {
   return request<{ id: number; status: string }>(`/admin/comments/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
@@ -76,9 +87,7 @@ export function adminBatchComments(ids: number[], action: 'approve' | 'reject' |
 }
 
 export function adminGetFriendLinks(params: { status?: string } = {}) {
-  const qs = new URLSearchParams();
-  if (params.status) qs.set('status', params.status);
-  return request<FriendLinkRow[]>(`/admin/friend-links?${qs.toString()}`);
+  return request<FriendLinkRow[]>(`/admin/friend-links${buildQuery(params)}`);
 }
 export function adminPutFriendLink(id: number, payload: Partial<FriendLinkRow>) {
   return request<{ id: number }>(`/admin/friend-links/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
@@ -113,8 +122,8 @@ export function adminGetSettings(): Promise<Record<string, string>> { return req
 export function adminPutSettings(payload: Record<string, string>) {
   return request<Record<string, string>>('/admin/settings', { method: 'PUT', body: JSON.stringify(payload) });
 }
-export function adminSyncDouban(): Promise<{ count: number }> {
-  return request('/admin/douban/sync', { method: 'POST' });
+export function adminSyncDouban(signal?: AbortSignal): Promise<{ count: number }> {
+  return request('/admin/douban/sync', { method: 'POST', signal });
 }
 
 export function uploadFile(file: File): Promise<{ url: string; key: string }> {
