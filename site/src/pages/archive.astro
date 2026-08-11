@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import GradualBlur from '../components/GradualBlur.vue';
 import { getArchive } from '../lib/api';
 
 const groups = await getArchive();
@@ -34,6 +33,4 @@ function fmtDate(ts: number): string {
       </section>
     ))}
   </div>
-  {/* 滚动渐进模糊：固定视口底部 */}
-  <GradualBlur client:load position="bottom" target="page" height="9rem" strength={3} div-count={7} curve="ease-out" z-index={40} />
 </BaseLayout>

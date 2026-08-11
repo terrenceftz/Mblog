@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostLoadMore from '../components/PostLoadMore.vue';
-import GradualBlur from '../components/GradualBlur.vue';
 import { getPosts, getCategories, type PostListItem, type Category } from '../lib/api';
 
 // 分段加载：每段 8 篇，首段 SSR 渲染，后续由 PostLoadMore 客户端追加
@@ -57,6 +56,4 @@ function fmtDate(ts: number): string {
       />
     )}
   </div>
-  {/* 滚动渐进模糊：固定视口底部，滚动时内容从清晰→渐进模糊 */}
-  <GradualBlur client:load position="bottom" target="page" height="9rem" strength={3} div-count={7} curve="ease-out" z-index={40} />
 </BaseLayout>
