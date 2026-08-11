@@ -7,6 +7,7 @@ import {
   adminGetPost, adminCreatePost, adminUpdatePost,
   adminGetCategories, adminGetTags, uploadFile,
 } from '../api/admin';
+import TagPicker from '../components/TagPicker.vue';
 import { toast } from '../lib/toast';
 
 const route = useRoute();
@@ -276,12 +277,7 @@ async function save(status: 'draft' | 'published', navigate: boolean) {
         </div>
         <div class="card">
           <div class="card-title">标签</div>
-          <div class="tag-check">
-            <label v-for="t in tags" :key="t.id" class="tag-item">
-              <input v-model="form.tagIds" type="checkbox" :value="t.id" @change="markDirty" /> {{ t.name }}
-            </label>
-            <p v-if="!tags.length" class="empty">暂无标签</p>
-          </div>
+          <TagPicker v-model="form.tagIds" :tags="tags" @update:model-value="markDirty" />
         </div>
         <div class="card">
           <div class="card-title">封面图</div>
@@ -317,16 +313,6 @@ async function save(status: 'draft' | 'published', navigate: boolean) {
 .form-side { display: flex; flex-direction: column; gap: 14px; }
 .form-side select,
 .form-side .input { width: 100%; box-sizing: border-box; }
-.tag-check { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
-.tag-item {
-  font-size: 14px;
-  color: #d4d4d8;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-.tag-item input { accent-color: #e8b64c; }
 .cover-preview {
   display: block;
   margin-top: 10px;
