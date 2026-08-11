@@ -6,6 +6,7 @@ import { friendLinksRoutes } from './public/friendLinks';
 import { miscRoutes } from './public/misc';
 import { githubRoutes } from './public/github';
 import { doubanRoutes } from './public/douban';
+import { coverRoutes } from './public/cover';
 import type { Db } from '../db';
 
 export function publicRoutes(ctx: Db) {
@@ -17,5 +18,6 @@ export function publicRoutes(ctx: Db) {
   app.route('/', miscRoutes(ctx));
   app.route('/', githubRoutes(ctx));
   app.route('/', doubanRoutes(ctx));
+  app.route('/', coverRoutes());
   return app;
 }

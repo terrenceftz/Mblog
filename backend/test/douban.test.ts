@@ -182,3 +182,44 @@ describe('后台同步接口 /api/admin/douban/sync', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('封面代理 /api/cover', () => {
+  it('非法地址返回 400', async () => {
+    const { app } = makeTestApp();
+    const res = await app.request('/api/cover?url=https://evil.com/x.jpg');
+    expect(res.status).toBe(400);
+  });
+
+  it('合法豆瓣地址带 Referer 拉取并返回图片', async () => {
+    const { app } = makeTestApp();
+    const imgBytes = new Uint8Array([137, 80, 78, 71]);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => imgBytes,
+      headers: { get: () => 'image/jpeg' },
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const res = await app.request('/api/cover?url=' + encodeURIComponent('https://img2.doubanio.com/view/photo/s_ratio_poster/public/p1.jpg'));
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toBe('image/jpeg');
+      const fetchArgs = fetchMock.mock.calls[0];
+      expect(fetchArgs[1].headers.Referer).toBe('https://movie.douban.com/');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('syncDoubanMovies 将豆瓣封面重写为代理地址', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => SAMPLE_FEED });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const movies = await syncDoubanMovies('1017197', '');
+      // SAMPLE_FEED 第一条封面为 doubanio → 代理；第二条无封面保持空
+      expect(movies[0].cover).toContain('/api/cover?url=');
+      expect(movies[0].cover).toContain(encodeURIComponent('https://img3.doubanio.com'));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

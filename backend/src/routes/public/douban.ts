@@ -142,9 +142,17 @@ export async function enrichWithTmdb(movies: DoubanMovie[], apiKey: string): Pro
   return out;
 }
 
+// 豆瓣封面经代理输出（绕过防盗链）；TMDB 海报直连
+function proxyCover(url: string): string {
+  return /^https:\/\/img\d*\.doubanio\.com\//.test(url) ? `/api/cover?url=${encodeURIComponent(url)}` : url;
+}
+
 // 全量拉取（豆瓣 + TMDB 海报）并写入共享缓存
 export async function syncDoubanMovies(uid: string, tmdbKey: string): Promise<DoubanMovie[]> {
-  const movies = await enrichWithTmdb(await fetchDoubanMovies(uid), tmdbKey);
+  const movies = (await enrichWithTmdb(await fetchDoubanMovies(uid), tmdbKey)).map((m) => ({
+    ...m,
+    cover: proxyCover(m.cover),
+  }));
   cache.set(uid, { time: Date.now(), data: movies });
   return movies;
 }
