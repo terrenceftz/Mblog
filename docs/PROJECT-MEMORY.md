@@ -185,15 +185,18 @@ AdminLayout（暗色侧栏 + icons + 移动抽屉 + `isActive()` 精确导航判
 
 **现象**：后台 dev server 无故崩溃，报 EPERM（`.vite/deps_temp → .vite/deps` rename 失败）；`git status` 出现大量 `M`/`D`，`package.json` 变成 vue-pure-admin-thin 的（element-plus/pinia，dev 脚本是 pnpm 风格 `NODE_OPTIONS=… vite`，Windows cmd 下跑不起来）。
 
-**根因**：admin 目录被外部操作整体覆盖为 pure-admin-thin 模板（发生在 vite.config.ts 变化触发的重启时刻）。非本会话操作，疑似其他窗口误解压。
+**根因**：admin 目录被外部操作整体覆盖为 pure-admin-thin 模板（发生在 vite.config.ts 变化触发的重启时刻）。非本会话操作，疑似其他窗口误解压。覆盖期间 node_modules 被 pnpm 重装成 pure-admin 依赖集（vite 7 + `.pnpm` 结构）。
 
 **恢复命令（已验证）**：
 ```bash
 git checkout -- admin/   # 恢复所有 M/D 文件（我们的代码全部在 HEAD 里）
 git clean -fd admin/     # 删除 pure-admin 的 untracked 残留（layout/store/views/login 等）
-rm -rf admin/.vite       # 清掉损坏的 vite 缓存
-cd admin && npm run dev  # 重启（脚本是纯 vite，无 NODE_OPTIONS）
+rm -rf admin/node_modules admin/.vite   # 清掉 pnpm 依赖集 + 损坏缓存
+cd admin && npm install   # 按恢复后的 package.json 重装（vite 6）
+npm run dev               # 重启（脚本是纯 vite，无 NODE_OPTIONS）
 ```
+
+**额外注意**：覆盖期间可能有并行会话提交（如 2c871fb "后台 UI 精修 + 浅色双主题"），checkout 恢复到含该提交的 HEAD，工作区最终与 HEAD 一致，未丢失任何代码。
 
 **防御**：若再出现 dev server EPERM 崩溃 + package.json 异常，先 `git status` 检查 admin 是否被覆盖；`.zcode/`（仓库根）是 ZCode 工具目录，**永远不要删**。
 
