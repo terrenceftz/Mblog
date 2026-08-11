@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import {
@@ -10,7 +10,15 @@ import {
 
 const route = useRoute();
 const router = useRouter();
-const editId = Number(route.params.id ?? 0);
+
+// 校验路由 :id：非正整数（如 /posts/abc 或 /posts/0）视为非法，跳回文章列表，
+// 避免 Number() 得到 NaN 后静默当成「新建文章」处理。
+const rawId = route.params.id;
+const isEditRoute = rawId !== undefined;
+const editId = Number(rawId ?? 0);
+if (isEditRoute && (!Number.isInteger(editId) || editId <= 0)) {
+  router.replace('/posts');
+}
 
 const form = ref({
   title: '',
@@ -26,6 +34,22 @@ const categories = ref<Awaited<ReturnType<typeof adminGetCategories>>>([]);
 const tags = ref<Awaited<ReturnType<typeof adminGetTags>>>([]);
 const saving = ref(false);
 const error = ref('');
+
+// 未保存修改保护：任何表单输入都会置脏，离开路由前弹窗确认。
+const dirty = ref(false);
+// Vditor 初始化时 setValue 可能触发 input 回调，短暂忽略以免误报「有未保存修改」。
+let ignoreDirtyUntil = 0;
+function markDirty() {
+  if (Date.now() < ignoreDirtyUntil) return;
+  dirty.value = true;
+}
+
+onBeforeRouteLeave(() => {
+  if (dirty.value) {
+    return window.confirm('有未保存的修改，确定要离开吗？');
+  }
+  return true;
+});
 
 let vditor: Vditor | null = null;
 
@@ -56,58 +80,65 @@ function buildToolbar() {
 }
 
 onMounted(async () => {
-  categories.value = await adminGetCategories();
-  tags.value = await adminGetTags();
+  try {
+    categories.value = await adminGetCategories();
+    tags.value = await adminGetTags();
 
-  if (editId) {
-    const post = await adminGetPost(editId);
-    form.value = {
-      title: post.title,
-      slug: post.slug,
-      summary: post.summary,
-      cover: post.cover,
-      categoryId: post.categoryId ?? 0,
-      status: post.status,
-      contentMd: post.contentMd,
-      tagIds: post.tags.map((t) => t.id),
-    };
-  }
+    if (isEditRoute) {
+      const post = await adminGetPost(editId);
+      form.value = {
+        title: post.title,
+        slug: post.slug,
+        summary: post.summary,
+        cover: post.cover,
+        categoryId: post.categoryId ?? 0,
+        status: post.status,
+        contentMd: post.contentMd,
+        tagIds: post.tags.map((t) => t.id),
+      };
+    }
 
-  vditor = new Vditor('vditor', {
-    height: 480,
-    mode: 'wysiwyg',
-    toolbar: buildToolbar(),
-    cache: { enable: false },
-    upload: {
-      url: '/api/admin/upload',
-      fieldName: 'file',
-      headers: { Authorization: `Bearer ${localStorage.getItem('admin_token') ?? ''}` },
-      filename: () => 'file',
-      accept: 'image/*',
-      // 后端返回 { data: { url, key } }；转换为 Vditor 内置契约 { code, msg, data: { errFiles, succMap } }，
-      // 否则 Vditor 默认回调读不到 succMap 会抛错，导致上传后图片不插入编辑器
-      format: (files, responseText) => {
-        let url = '';
-        try {
-          url = (JSON.parse(responseText) as { data?: { url?: string } })?.data?.url ?? '';
-        } catch {
-          url = '';
-        }
-        const name = files[0]?.name ?? 'image';
-        return JSON.stringify({
-          code: 0,
-          msg: '',
-          data: { errFiles: [], succMap: url ? { [name]: url } : {} },
-        });
+    vditor = new Vditor('vditor', {
+      height: 480,
+      mode: 'wysiwyg',
+      toolbar: buildToolbar(),
+      cache: { enable: false },
+      upload: {
+        url: '/api/admin/upload',
+        fieldName: 'file',
+        headers: { Authorization: `Bearer ${localStorage.getItem('admin_token') ?? ''}` },
+        filename: () => 'file',
+        accept: 'image/*',
+        // 后端返回 { data: { url, key } }；转换为 Vditor 内置契约 { code, msg, data: { errFiles, succMap } }，
+        // 否则 Vditor 默认回调读不到 succMap 会抛错，导致上传后图片不插入编辑器
+        format: (files, responseText) => {
+          let url = '';
+          try {
+            url = (JSON.parse(responseText) as { data?: { url?: string } })?.data?.url ?? '';
+          } catch {
+            url = '';
+          }
+          const name = files[0]?.name ?? 'image';
+          return JSON.stringify({
+            code: 0,
+            msg: '',
+            data: { errFiles: [], succMap: url ? { [name]: url } : {} },
+          });
+        },
       },
-    },
-    input: (value: string) => {
-      form.value.contentMd = value;
-    },
-    after: () => {
-      if (vditor) vditor.setValue(form.value.contentMd);
-    },
-  });
+      input: (value: string) => {
+        form.value.contentMd = value;
+        markDirty();
+      },
+      after: () => {
+        if (vditor) vditor.setValue(form.value.contentMd);
+        ignoreDirtyUntil = Date.now() + 200;
+        dirty.value = false;
+      },
+    });
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '加载失败';
+  }
 });
 
 async function save(status: 'draft' | 'published') {
@@ -127,6 +158,7 @@ async function save(status: 'draft' | 'published') {
   try {
     if (editId) await adminUpdatePost(editId, payload);
     else await adminCreatePost(payload);
+    dirty.value = false;
     router.push('/posts');
   } catch (e) {
     error.value = e instanceof Error ? e.message : '保存失败';
@@ -149,14 +181,14 @@ async function save(status: 'draft' | 'published') {
 
     <div class="form-grid">
       <div class="form-main">
-        <input v-model="form.title" class="title-input" placeholder="文章标题 *" />
-        <input v-model="form.slug" class="slug-input" placeholder="slug（留空自动生成）" />
-        <textarea v-model="form.summary" class="summary-input" placeholder="摘要（留空自动截取正文）" rows="2" />
+        <input v-model="form.title" class="title-input" placeholder="文章标题 *" @input="markDirty" />
+        <input v-model="form.slug" class="slug-input" placeholder="slug（留空自动生成）" @input="markDirty" />
+        <textarea v-model="form.summary" class="summary-input" placeholder="摘要（留空自动截取正文）" rows="2" @input="markDirty" />
         <div id="vditor" />
       </div>
       <aside class="form-side">
         <label>分类
-          <select v-model.number="form.categoryId">
+          <select v-model.number="form.categoryId" @change="markDirty">
             <option :value="0">无</option>
             <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
@@ -164,12 +196,12 @@ async function save(status: 'draft' | 'published') {
         <label>标签
           <div class="tag-check">
             <label v-for="t in tags" :key="t.id" class="tag-item">
-              <input v-model="form.tagIds" type="checkbox" :value="t.id" /> {{ t.name }}
+              <input v-model="form.tagIds" type="checkbox" :value="t.id" @change="markDirty" /> {{ t.name }}
             </label>
           </div>
         </label>
         <label>封面图 URL
-          <input v-model="form.cover" placeholder="https://…" />
+          <input v-model="form.cover" placeholder="https://…" @input="markDirty" />
         </label>
       </aside>
     </div>
