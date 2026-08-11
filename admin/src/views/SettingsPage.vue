@@ -188,6 +188,8 @@ legend { font-weight: 600; font-size: 14px; padding: 0 6px; }
 label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #6b7280; }
 input, select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; }
 .actions { display: flex; align-items: center; gap: 12px; }
+.btn { border: 1px solid #d1d5db; background: #f3f4f6; border-radius: 8px; color: #374151; padding: 8px 16px; cursor: pointer; font-size: 14px; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn.primary { background: #3b82f6; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; cursor: pointer; }
 .saved { color: #059669; font-size: 14px; }
 .error { color: #dc2626; font-size: 14px; }
