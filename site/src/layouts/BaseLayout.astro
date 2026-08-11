@@ -21,6 +21,19 @@ const defaultTheme = settings.theme || 'normal';
 const year = new Date().getFullYear();
 // 后台自定义导航菜单（label + url；http 开头外链新窗口打开）
 const navItems = (settings.navMenu ?? []).filter((i) => i.label && i.url);
+// 技术栈品牌色文字 logo（页脚滚动展示）
+const TECH_STACK = [
+  { name: 'Node.js', color: '#339933' },
+  { name: 'TypeScript', color: '#3178C6' },
+  { name: 'Hono', color: '#E36002' },
+  { name: 'Drizzle ORM', color: '#C5F74F' },
+  { name: 'better-sqlite3', color: '#5FA8D3' },
+  { name: 'Vue 3', color: '#42B883' },
+  { name: 'Astro', color: '#FF5D01' },
+  { name: 'Vite', color: '#646CFF' },
+  { name: 'Three.js', color: '#ffffff' },
+  { name: 'Docker', color: '#2496ED' },
+];
 // 当前路径（用于导航高亮）
 const path = Astro.url.pathname;
 const isActive = (url: string) =>
@@ -139,6 +152,13 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
     )}
 
     <footer class="site-footer">
+      <div class="tech-loop" aria-hidden="true">
+        <div class="tech-loop__track">
+          {[...TECH_STACK, ...TECH_STACK].map((t) => (
+            <span class="tech-loop__item" style={`color:${t.color}`}>{t.name}</span>
+          ))}
+        </div>
+      </div>
       <span class="site-footer-text">© {year} {siteName}</span>
       <span class="footer-right">Powered by MBLOG</span>
     </footer>

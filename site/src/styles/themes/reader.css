@@ -938,3 +938,8 @@
 [data-theme='reader'] .normal-home {
   display: none;
 }
+
+/* 技术栈滚动在极简模式隐藏 */
+[data-theme='reader'] .tech-loop {
+  display: none;
+}

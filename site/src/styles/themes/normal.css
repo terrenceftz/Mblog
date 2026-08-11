@@ -674,10 +674,43 @@
   color: var(--color-text-muted);
 }
 
-/* 页脚 */
+/* ---------- 页脚：技术栈 logo 滚动（reactbits logo-loop 风格） ---------- */
 [data-theme='normal'] .site-footer {
   border-top: 1px solid var(--color-border);
   color: var(--color-text-muted);
+}
+[data-theme='normal'] .tech-loop {
+  overflow: hidden;
+  padding: 28px 0 32px;
+  margin-bottom: 20px;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+[data-theme='normal'] .tech-loop__track {
+  display: flex;
+  align-items: center;
+  gap: 56px;
+  width: max-content;
+  animation: techScroll 28s linear infinite;
+}
+[data-theme='normal'] .tech-loop:hover .tech-loop__track {
+  animation-play-state: paused;
+}
+[data-theme='normal'] .tech-loop__item {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+[data-theme='normal'] .tech-loop__item:hover {
+  opacity: 1;
+}
+@keyframes techScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 /* 文章 markdown 暗色微调 */
