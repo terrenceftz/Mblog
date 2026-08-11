@@ -547,21 +547,51 @@
   margin: 0 auto;
   padding: 32px 20px 64px;
 }
-/* 有封面：封面作低高度圆形小图，居中置于标题上方 */
+/* 有封面：banner 通栏（与下方正文+目录整体列宽对齐），标题压图居中 */
 [data-theme='normal'] .article-head.has-cover .article-hero {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
+  width: 100%;
+  height: 240px;
+  border-radius: 16px;
   overflow: hidden;
-  margin: 0 auto 28px;
-  border: 3px solid rgba(232, 182, 76, 0.35);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 [data-theme='normal'] .article-head.has-cover .article-hero img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+/* 标题区可读性暗化 */
+[data-theme='normal'] .article-head.has-cover .article-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(9, 9, 11, 0.15) 0%, rgba(9, 9, 11, 0.6) 100%);
+  pointer-events: none;
+}
+[data-theme='normal'] .article-head.has-cover .article-header {
+  position: relative;
+  z-index: 1;
+  padding: 0 32px;
+  margin: 0;
+}
+[data-theme='normal'] .article-head.has-cover .article-title {
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+  max-width: 560px;
+  margin: 0 0 10px;
+}
+[data-theme='normal'] .article-head.has-cover .article-meta {
+  color: #e4e4e7;
+  margin: 0;
 }
 [data-theme='normal'] .article-title {
   font-family: var(--font-display);

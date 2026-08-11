@@ -15,21 +15,30 @@ try {
 const { html: contentHtml, toc } = withTocIds(post.contentHtml);
 ---
 <BaseLayout title={post.title} description={post.summary} layout="article">
-  {/* 文章头部：特色图（若有）作为 Hero 压底，标题/meta 悬浮其上（方向 A · 图上压题） */}
+  {/* 文章头部：有封面时标题压在 banner 图内居中；无封面时居中标题 + 渐变光装饰 */}
   <div class={`article-head ${post.cover ? 'has-cover' : ''}`}>
-    {post.cover && (
+    {post.cover ? (
       <div class="article-hero">
         <img src={post.cover} alt={post.title} />
+        <header class="article-header">
+          <h1 class="article-title">{post.title}</h1>
+          <div class="article-meta">
+            {post.category && <a href={`/category/${post.category.slug}`}>{post.category.name}</a>}
+            <time datetime={new Date(post.createdAt).toISOString()}>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</time>
+            <span>{post.viewCount} 次阅读</span>
+          </div>
+        </header>
       </div>
+    ) : (
+      <header class="article-header">
+        <h1 class="article-title">{post.title}</h1>
+        <div class="article-meta">
+          {post.category && <a href={`/category/${post.category.slug}`}>{post.category.name}</a>}
+          <time datetime={new Date(post.createdAt).toISOString()}>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</time>
+          <span>{post.viewCount} 次阅读</span>
+        </div>
+      </header>
     )}
-    <header class="article-header">
-      <h1 class="article-title">{post.title}</h1>
-      <div class="article-meta">
-        {post.category && <a href={`/category/${post.category.slug}`}>{post.category.name}</a>}
-        <time datetime={new Date(post.createdAt).toISOString()}>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</time>
-        <span>{post.viewCount} 次阅读</span>
-      </div>
-    </header>
   </div>
   <article class="article-wrapper">
     {/* 后端已渲染并防 XSS 的 HTML（前端注入标题锚点 id） */}
