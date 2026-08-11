@@ -19,6 +19,25 @@ export function ensureMigrated(ctx: Db): void {
     ctx.sqlite.exec(`ALTER TABLE comments ADD COLUMN website text NOT NULL DEFAULT ''`);
   }
 
+  // 增量列迁移：点赞数
+  const hasLike = (ctx.sqlite.prepare('PRAGMA table_info(posts)').all() as { name: string }[]).some(
+    (c) => c.name === 'like_count',
+  );
+  if (!hasLike) {
+    ctx.sqlite.exec(`ALTER TABLE posts ADD COLUMN like_count integer NOT NULL DEFAULT 0`);
+  }
+
+  // 说说表（访客留言/短动态）
+  ctx.sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS talks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content TEXT NOT NULL,
+      ip TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+      created_at INTEGER NOT NULL
+    );
+  `);
+
   const existing = ctx.db.select({ id: users.id }).from(users).limit(1).get();
   if (existing) return;
 

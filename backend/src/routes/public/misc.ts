@@ -75,14 +75,14 @@ ${items}
 
   app.get('/settings/public', (c) => {
     const {
-      site_name: siteName, site_description: siteDesc, default_theme: theme,
+      site_name: siteName, site_description: siteDesc, site_url: siteUrl, default_theme: theme,
       friend_link_enabled: friendLinkEnabled, nav_menu: navMenuRaw,
       theme_normal: themeNormalRaw, theme_reader: themeReaderRaw,
       github_enabled: githubEnabled, github_username: githubUsername,
       douban_enabled: doubanEnabled, douban_uid: doubanUid,
       turnstile_site_key: turnstileSiteKey,
     } = getSettings(ctx, [
-      'site_name', 'site_description', 'default_theme', 'friend_link_enabled', 'nav_menu',
+      'site_name', 'site_description', 'site_url', 'default_theme', 'friend_link_enabled', 'nav_menu',
       'theme_normal', 'theme_reader', 'github_enabled', 'github_username',
       'douban_enabled', 'douban_uid', 'turnstile_site_key',
     ]);
@@ -102,7 +102,7 @@ ${items}
 
     return c.json({
       data: {
-        siteName, siteDesc, theme, friendLinkEnabled: friendLinkEnabled === '1', navMenu,
+        siteName, siteDesc, siteUrl, theme, friendLinkEnabled: friendLinkEnabled === '1', navMenu,
         themeNormal: parseThemeConfig(themeNormalRaw),
         themeReader: parseThemeConfig(themeReaderRaw),
         githubEnabled: githubEnabled === '1',

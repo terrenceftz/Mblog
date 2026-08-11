@@ -140,4 +140,17 @@ describe('public posts', () => {
     expect(last.data.next).toBeNull();
   });
 
+
+  it('点赞原子自增并返回最新计数', async () => {
+    const iso = makeTestApp();
+    iso.ctx.db.insert(posts).values({ title: 'like-me', slug: 'like-me', status: 'published', contentMd: '', contentHtml: '' }).run();
+    const r1 = await (await iso.app.request('/api/posts/like-me/like', { method: 'POST' })).json();
+    expect(r1.data.likeCount).toBe(1);
+    const r2 = await (await iso.app.request('/api/posts/like-me/like', { method: 'POST' })).json();
+    expect(r2.data.likeCount).toBe(2);
+    const detail = await (await iso.app.request('/api/posts/like-me')).json();
+    expect(detail.data.likeCount).toBe(2);
+    const missing = await iso.app.request('/api/posts/nope/like', { method: 'POST' });
+    expect(missing.status).toBe(404);
+  });
 });

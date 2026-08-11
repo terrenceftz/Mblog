@@ -31,6 +31,7 @@ export const posts = sqliteTable('posts', {
   categoryId: integer('category_id').references(() => categories.id, { onDelete: 'set null' }),
   status: text('status', { enum: ['draft', 'published'] }).notNull().default('draft'),
   viewCount: integer('view_count').notNull().default(0),
+  likeCount: integer('like_count').notNull().default(0),
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
   updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now()),
 });
@@ -54,6 +55,14 @@ export const comments = sqliteTable('comments', {
   ip: text('ip').notNull().default(''),
   status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
   parentId: integer('parent_id'),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+});
+
+export const talks = sqliteTable('talks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  content: text('content').notNull(),
+  ip: text('ip').notNull().default(''),
+  status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
 });
 

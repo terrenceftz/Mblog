@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { eq, and, asc, desc, count, gt, inArray, lt, or } from 'drizzle-orm';
 import { posts, postTags, tags, categories } from '../../db/schema';
 import { toSearchText } from '../../services/posts';
+import { rateLimit } from '../../middleware/rateLimit';
 import type { Db } from '../../db';
 
 export function postsRoutes(ctx: Db) {
@@ -104,7 +105,7 @@ export function postsRoutes(ctx: Db) {
       .select({
         id: posts.id, title: posts.title, slug: posts.slug, summary: posts.summary,
         cover: posts.cover, categoryId: posts.categoryId, status: posts.status,
-        viewCount: posts.viewCount, contentHtml: posts.contentHtml,
+        viewCount: posts.viewCount, likeCount: posts.likeCount, contentHtml: posts.contentHtml,
         createdAt: posts.createdAt, updatedAt: posts.updatedAt,
       })
       .from(posts)
@@ -156,6 +157,16 @@ export function postsRoutes(ctx: Db) {
       .get() ?? null;
 
     return c.json({ data: { ...post, viewCount, tags: postTagList, category, prev, next } });
+  });
+
+  // 点赞：原子自增并返回最新计数
+  app.post('/posts/:slug/like', rateLimit(20, 60_000), (c) => {
+    const slug = c.req.param('slug');
+    const row = ctx.sqlite
+      .prepare('UPDATE posts SET like_count = like_count + 1 WHERE slug = ? AND status = ? RETURNING like_count')
+      .get(slug, 'published') as { like_count: number } | undefined;
+    if (!row) return c.json({ error: { code: 'NOT_FOUND', message: '文章不存在' } }, 404);
+    return c.json({ data: { likeCount: row.like_count } });
   });
 
   return app;

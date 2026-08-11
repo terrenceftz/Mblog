@@ -8,6 +8,7 @@ import { miscRoutes } from './public/misc';
 import { githubRoutes } from './public/github';
 import { doubanRoutes } from './public/douban';
 import { coverRoutes } from './public/cover';
+import { talksRoutes } from './public/talks';
 import type { Db } from '../db';
 
 export function publicRoutes(ctx: Db) {
@@ -21,5 +22,6 @@ export function publicRoutes(ctx: Db) {
   app.route('/', githubRoutes(ctx));
   app.route('/', doubanRoutes(ctx));
   app.route('/', coverRoutes());
+  app.route('/', talksRoutes(ctx));
   return app;
 }
