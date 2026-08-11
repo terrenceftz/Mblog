@@ -261,6 +261,14 @@
   margin: 4px 0 0;
 }
 
+/* 最新文章区块头：标题 + 查看全部入口居中 */
+[data-theme='normal'] .nh-section-head.nh-latest-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
 /* 最新文章卡片 */
 [data-theme='normal'] .nh-post-grid {
   display: grid;

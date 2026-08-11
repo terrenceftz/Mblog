@@ -113,7 +113,11 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
     <BorderGlow client:load />
     <!-- 最新文章（首屏底部露出，引导下滑） -->
     <section class="nh-section">
-      <div class="nh-section-head"><p class="nh-eyebrow">LATEST POSTS</p><h2>最新文章</h2></div>
+      <div class="nh-section-head nh-latest-head">
+        <p class="nh-eyebrow">LATEST POSTS</p>
+        <h2>最新文章</h2>
+        <a class="nh-more" href="/archive">查看全部文章 →</a>
+      </div>
       <div class="nh-post-grid">
         {data.list.map((p) => (
           <a class="nh-post-card border-glow-card" href={`/post/${p.slug}`}>
