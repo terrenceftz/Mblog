@@ -130,7 +130,7 @@ onMounted(load);
 .toolbar { justify-content: space-between; }
 .toolbar .page-title { margin: 0; }
 .compose-card { margin-bottom: 16px; border-color: var(--border-strong); }
-.compose-textarea { resize: vertical; font-family: inherit; min-height: 76px; line-height: 1.7; }
+.compose-textarea { width: 100%; box-sizing: border-box; resize: vertical; font-family: inherit; min-height: 76px; line-height: 1.7; }
 .compose-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
 .compose-count {
   font-size: 12px;
