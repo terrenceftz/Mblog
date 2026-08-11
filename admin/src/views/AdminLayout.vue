@@ -1,15 +1,21 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { logout } from '../api/admin';
 import ToastContainer from '../components/ToastContainer.vue';
 
+const route = useRoute();
 const router = useRouter();
 const menuOpen = ref(false);
 
 function doLogout() {
   logout();
   router.push('/login');
+}
+
+// 精确激活判断：仪表盘(/)仅当恰好在首页时高亮，避免「/」匹配所有路径
+function isActive(to: string): boolean {
+  return to === '/' ? route.path === '/' : route.path.startsWith(to);
 }
 
 const navItems = [
@@ -50,6 +56,7 @@ const navItems = [
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
+          :class="{ active: isActive(item.to) }"
           @click="menuOpen = false"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -117,7 +124,7 @@ const navItems = [
   border-left: 2px solid transparent;
   transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
-.admin-side nav a.router-link-active,
+.admin-side nav a.active,
 .admin-side nav a:hover {
   color: #e8b64c;
   background: rgba(232, 182, 76, 0.08);
