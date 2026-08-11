@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import GradientBlob from '../components/GradientBlob.vue';
-import TalkForm from '../components/TalkForm.vue';
 import { getTalks, type Talk } from '../lib/api';
 
 const talks: Talk[] = await getTalks().catch(() => []);
@@ -19,8 +18,6 @@ function fmtDate(ts: number): string {
       <p class="posts-count">共 {talks.length} 条</p>
     </header>
 
-    <TalkForm client:load />
-
     {talks.length > 0 ? (
       <ul class="posts-list talk-list">
         {talks.map((t) => (
@@ -33,7 +30,7 @@ function fmtDate(ts: number): string {
         ))}
       </ul>
     ) : (
-      <p class="posts-more-done" style="text-align:center">还没有说说，来写第一条~</p>
+      <p class="posts-more-done" style="text-align:center">还没有说说~</p>
     )}
   </div>
 </BaseLayout>

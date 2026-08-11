@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { adminGetTalks, adminPatchTalk, type TalkRow } from '../api/admin';
+import { adminGetTalks, adminPatchTalk, adminCreateTalk, type TalkRow } from '../api/admin';
 import { toast } from '../lib/toast';
 
 const list = ref<TalkRow[]>([]);
@@ -10,6 +10,29 @@ const page = ref(1);
 const pageSize = 10;
 const total = ref(0);
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)));
+
+// 作者发布说说（免审核直发）
+const compose = ref('');
+const posting = ref(false);
+async function publish() {
+  const content = compose.value.trim();
+  if (!content) {
+    toast('写点什么再发布', 'error');
+    return;
+  }
+  posting.value = true;
+  try {
+    await adminCreateTalk(content);
+    toast('说说已发布', 'success');
+    compose.value = '';
+    page.value = 1;
+    load();
+  } catch (e) {
+    toast(e instanceof Error ? e.message : '发布失败', 'error');
+  } finally {
+    posting.value = false;
+  }
+}
 
 async function load() {
   try {
@@ -51,6 +74,19 @@ onMounted(load);
         <option value="rejected">已拒绝</option>
       </select>
     </div>
+
+    <!-- 作者发布说说：免审核直发 -->
+    <div class="card compose-card">
+      <div class="card-title">写说说</div>
+      <textarea v-model="compose" class="input compose-textarea" rows="3" maxlength="500" placeholder="写点什么…（发布者为作者，直接发布）" />
+      <div class="compose-foot">
+        <span class="compose-count">{{ compose.length }}/500</span>
+        <button class="btn primary" :disabled="posting || !compose.trim()" @click="publish">
+          {{ posting ? '发布中…' : '发布说说' }}
+        </button>
+      </div>
+    </div>
+
     <p v-if="error" class="error">{{ error }}</p>
 
     <div v-if="list.length" class="talk-list">
@@ -82,6 +118,10 @@ onMounted(load);
 <style scoped>
 .toolbar { justify-content: space-between; }
 .toolbar .page-title { margin: 0; }
+.compose-card { margin-bottom: 16px; }
+.compose-textarea { resize: vertical; font-family: inherit; }
+.compose-foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+.compose-count { font-size: 12px; color: var(--text-muted); }
 .talk-list { display: flex; flex-direction: column; gap: 10px; }
 .talk-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .talk-main { min-width: 0; }

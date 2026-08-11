@@ -6,6 +6,15 @@ import type { Db } from '../../db';
 export function talksAdminRoutes(ctx: Db) {
   const app = new Hono();
 
+  // 作者发布说说：免审核，直接 approved（发布者为作者）
+  app.post('/talks', async (c) => {
+    const body = await c.req.json().catch(() => null);
+    const content = typeof body?.content === 'string' ? body.content.trim().slice(0, 500) : '';
+    if (!content) return c.json({ error: { code: 'INVALID', message: '内容不能为空' } }, 400);
+    ctx.db.insert(talks).values({ content, ip: 'admin', status: 'approved' }).run();
+    return c.json({ data: { message: '已发布' } }, 201);
+  });
+
   app.get('/talks', (c) => {
     const status = c.req.query('status');
     const where = status === 'pending' || status === 'approved' || status === 'rejected' ? eq(talks.status, status) : undefined;

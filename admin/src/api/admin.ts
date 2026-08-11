@@ -90,6 +90,9 @@ export interface TalkRow { id: number; content: string; ip: string; status: 'pen
 export function adminGetTalks(params: { status?: string; page?: number; pageSize?: number } = {}) {
   return request<Page<TalkRow>>(`/admin/talks${buildQuery(params)}`);
 }
+export function adminCreateTalk(content: string) {
+  return request<{ message: string }>('/admin/talks', { method: 'POST', body: JSON.stringify({ content }) });
+}
 export function adminPatchTalk(id: number, status: TalkRow['status']) {
   return request<{ id: number; status: string }>(`/admin/talks/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
 }
