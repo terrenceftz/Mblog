@@ -945,3 +945,16 @@
   display: none;
 }
 
+
+/* ---------- 特色图（极简模式最小适配：朴素圆角图，不做压题） ---------- */
+[data-theme='reader'] .article-head.has-cover .article-hero {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+[data-theme='reader'] .article-head.has-cover .article-hero img {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  display: block;
+}

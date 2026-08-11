@@ -547,6 +547,42 @@
   margin: 0 auto;
   padding: 32px 20px 64px;
 }
+/* 特色图 Hero（方向 A · 图上压题）：封面作大图，标题/meta 悬浮其上 */
+[data-theme='normal'] .article-head.has-cover .article-hero {
+  position: relative;
+  height: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+[data-theme='normal'] .article-head.has-cover .article-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+[data-theme='normal'] .article-head.has-cover .article-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(9, 9, 11, 0.9) 0%, rgba(9, 9, 11, 0.4) 45%, rgba(9, 9, 11, 0.1) 78%);
+  pointer-events: none;
+}
+[data-theme='normal'] .article-head.has-cover .article-header {
+  position: relative;
+  z-index: 2;
+  margin-top: -150px;
+  padding: 0 44px;
+}
+[data-theme='normal'] .article-head.has-cover .article-title {
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+  font-size: 38px;
+}
+[data-theme='normal'] .article-head.has-cover .article-meta {
+  color: #e4e4e7;
+  margin-bottom: 26px;
+}
 [data-theme='normal'] .article-title {
   font-family: var(--font-display);
   font-size: 32px;
@@ -842,30 +878,108 @@
   to { transform: translateX(-50%); }
 }
 
-/* 文章 markdown 暗色微调 */
-[data-theme='normal'] .markdown-body a {
+/* 文章 markdown 暗色微调（正文排版：衬线标题 + 等宽代码 + 精致引用/表格） */
+[data-theme='normal'] .article-content {
+  font-size: 17px;
+  line-height: 1.85;
+  color: var(--color-text);
+}
+[data-theme='normal'] .article-content a {
   color: var(--color-primary);
 }
-[data-theme='normal'] .markdown-body blockquote {
-  border-left-color: var(--color-primary);
-}
-[data-theme='normal'] .markdown-body h1,
-[data-theme='normal'] .markdown-body h2,
-[data-theme='normal'] .markdown-body h3 {
+[data-theme='normal'] .article-content h1,
+[data-theme='normal'] .article-content h2,
+[data-theme='normal'] .article-content h3,
+[data-theme='normal'] .article-content h4 {
   font-family: var(--font-display);
   font-weight: 700;
+  color: var(--color-text-heading);
+}
+[data-theme='normal'] .article-content h2 {
+  font-size: 26px;
+  margin: 2em 0 0.8em;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+  letter-spacing: -0.01em;
+}
+[data-theme='normal'] .article-content h3 {
+  font-size: 20px;
+  margin: 1.7em 0 0.65em;
+}
+[data-theme='normal'] .article-content h4 {
+  font-size: 17px;
+  margin: 1.5em 0 0.6em;
+}
+[data-theme='normal'] .article-content blockquote {
+  margin: 1.6em 0;
+  padding: 14px 20px;
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-accent-subtle);
+  border-radius: 0 10px 10px 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+[data-theme='normal'] .article-content p code,
+[data-theme='normal'] .article-content li code {
+  background: #1e1e24;
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: var(--color-primary);
+  font-size: 0.9em;
+}
+[data-theme='normal'] .article-content pre {
+  background: #18181b;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  line-height: 1.75;
+  font-size: 13.5px;
+}
+[data-theme='normal'] .article-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+[data-theme='normal'] .article-content table {
+  font-size: 14.5px;
+}
+[data-theme='normal'] .article-content th {
+  background: #1a1a1f;
+  text-align: left;
+  font-weight: 600;
+}
+[data-theme='normal'] .article-content th,
+[data-theme='normal'] .article-content td {
+  padding: 10px 14px;
+}
+[data-theme='normal'] .article-content img {
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+[data-theme='normal'] .article-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 2em 0;
 }
 
 /* ---------- 文章页目录（正常主题，eonova 风格右侧栏） ---------- */
 [data-theme='normal'] .page-layout.article-layout {
   display: grid;
-  grid-template-columns: minmax(0, 780px) 208px;
+  grid-template-columns: minmax(0, 720px) 208px;
   gap: 40px;
   justify-content: center;
   max-width: 1160px;
   margin: 0 auto;
   padding: 32px 20px 64px;
   align-items: start;
+}
+/* site-main 穿透：让文章头部（特色图 Hero）与正文分别作为网格项排布 */
+[data-theme='normal'] .article-layout .site-main {
+  display: contents;
+}
+/* 文章头部（特色图 + 标题）通栏 */
+[data-theme='normal'] .article-layout .article-head {
+  grid-column: 1 / -1;
 }
 [data-theme='normal'] .article-layout .article-wrapper {
   grid-column: 1;

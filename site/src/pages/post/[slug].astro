@@ -15,7 +15,13 @@ try {
 const { html: contentHtml, toc } = withTocIds(post.contentHtml);
 ---
 <BaseLayout title={post.title} description={post.summary} layout="article">
-  <article class="article-wrapper">
+  {/* 文章头部：特色图（若有）作为 Hero 压底，标题/meta 悬浮其上（方向 A · 图上压题） */}
+  <div class={`article-head ${post.cover ? 'has-cover' : ''}`}>
+    {post.cover && (
+      <div class="article-hero">
+        <img src={post.cover} alt={post.title} />
+      </div>
+    )}
     <header class="article-header">
       <h1 class="article-title">{post.title}</h1>
       <div class="article-meta">
@@ -24,6 +30,8 @@ const { html: contentHtml, toc } = withTocIds(post.contentHtml);
         <span>{post.viewCount} 次阅读</span>
       </div>
     </header>
+  </div>
+  <article class="article-wrapper">
     {/* 后端已渲染并防 XSS 的 HTML（前端注入标题锚点 id） */}
     <div class="article-content markdown-body" set:html={contentHtml} />
     {post.tags.length > 0 && (
