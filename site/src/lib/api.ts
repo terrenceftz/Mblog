@@ -32,10 +32,6 @@ export interface PublicSettings {
 export interface Category { id: number; name: string; slug: string; postCount: number }
 export interface Tag { id: number; name: string; slug: string; postCount: number }
 export interface ArchiveGroup { month: string; items: { createdAt: number; title: string; slug: string }[] }
-export interface CommentItem {
-  id: number; postId: number; author: string; email: string; content: string;
-  status: string; parentId: number | null; createdAt: number;
-}
 export interface FriendLink { id: number; name: string; url: string; description: string; avatar: string }
 export interface Project {
   name: string; description: string; url: string;
@@ -81,7 +77,6 @@ export const getPost = (slug: string) => get<PostDetail>(`/posts/${slug}`);
 export const getCategories = () => get<Category[]>('/categories');
 export const getTags = () => get<Tag[]>('/tags');
 export const getArchive = () => get<ArchiveGroup[]>('/archive');
-export const getApprovedComments = (postId: number) => get<CommentItem[]>(`/comments?post_id=${postId}`);
 export const getFriendLinks = () => get<FriendLink[]>('/friend-links');
 export const getProjects = () => get<ProjectsData>('/projects');
 export interface DoubanMovie {
