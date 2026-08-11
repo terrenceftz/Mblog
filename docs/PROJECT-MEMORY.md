@@ -198,6 +198,21 @@ npm run dev               # 重启（脚本是纯 vite，无 NODE_OPTIONS）
 
 **额外注意**：覆盖期间可能有并行会话提交（如 2c871fb "后台 UI 精修 + 浅色双主题"），checkout 恢复到含该提交的 HEAD，工作区最终与 HEAD 一致，未丢失任何代码。
 
+### 2026-08-11 18:33 —— Node v20→v24 迁移，better-sqlite3 ABI 崩溃
+
+**现象**：后端 dev server 重启时 `better-sqlite3` 报 `NODE_MODULE_VERSION 115 / requires 137`（ERR_DLOPEN_FAILED），三端全挂（site 的 SSR 请求后端超时达 170s）。
+
+**根因**：系统 Node 从 v20.16.0 切换为 v24.19.0（`C:\Program Files\nodejs` 被升级），原生模块 ABI 不匹配；同时并行会话将 better-sqlite3 升级到 **v13.0.3**（v13 移除了 prebuild-install，强制 node-gyp 源码编译，而本机**没有 VS 编译工具链**，编译必失败）。
+
+**修复（已验证）**：降级到有 Node 24 prebuilt 的 v12 系列，prebuild-install 自动下载二进制，无需编译：
+```bash
+cd backend && npm install better-sqlite3@^12.11.1
+npm test   # 83/83 通过
+```
+**教训**：本机（HUAWEI 机器）无 VS Build Tools + 有 Python 3.12——任何需要 node-gyp 编译的原生依赖升级都会失败；优先选有 prebuilt 的版本（better-sqlite3 用 v12.x 不要用 v13.x，sharp 无碍）。
+
+**环境变更记录**：Node 版本现在是 v24.19.0（v20 时代的旧二进制都会失效，装原生依赖后务必 `npm test` / 手动 require 验证）。
+
 **防御**：若再出现 dev server EPERM 崩溃 + package.json 异常，先 `git status` 检查 admin 是否被覆盖；`.zcode/`（仓库根）是 ZCode 工具目录，**永远不要删**。
 
 ## 9. 参考
