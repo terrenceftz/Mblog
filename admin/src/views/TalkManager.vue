@@ -1,18 +1,32 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { adminGetTalks, adminPatchTalk, type TalkRow } from '../api/admin';
 import { toast } from '../lib/toast';
 
 const list = ref<TalkRow[]>([]);
 const filter = ref('');
 const error = ref('');
+const page = ref(1);
+const pageSize = 10;
+const total = ref(0);
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)));
 
 async function load() {
   try {
-    list.value = await adminGetTalks({ status: filter.value || undefined });
+    const res = await adminGetTalks({ status: filter.value || undefined, page: page.value, pageSize });
+    list.value = res.list;
+    total.value = res.total;
   } catch (e) {
     error.value = e instanceof Error ? e.message : '加载失败';
   }
+}
+function changeFilter() {
+  page.value = 1;
+  load();
+}
+function goPage(p: number) {
+  page.value = p;
+  load();
 }
 async function setStatus(t: TalkRow, status: TalkRow['status']) {
   await adminPatchTalk(t.id, status);
@@ -30,7 +44,7 @@ onMounted(load);
   <div>
     <div class="toolbar">
       <h1 class="page-title">说说管理</h1>
-      <select v-model="filter" class="input" @change="load">
+      <select v-model="filter" class="input" @change="changeFilter">
         <option value="">全部</option>
         <option value="pending">待审核</option>
         <option value="approved">已通过</option>
@@ -56,6 +70,12 @@ onMounted(load);
       </div>
     </div>
     <p v-else class="empty">暂无说说</p>
+
+    <nav v-if="total > pageSize" class="pagination">
+      <button :disabled="page <= 1" @click="goPage(page - 1)">上一页</button>
+      <span class="page-info">{{ page }} / {{ totalPages }}</span>
+      <button :disabled="page >= totalPages" @click="goPage(page + 1)">下一页</button>
+    </nav>
   </div>
 </template>
 

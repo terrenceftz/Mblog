@@ -15,10 +15,16 @@ const selected = ref<number[]>([]);
 const replyingId = ref<number | null>(null);
 const replyContent = ref('');
 const error = ref('');
+const page = ref(1);
+const pageSize = 10;
+const total = ref(0);
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)));
 
 async function load() {
   try {
-    list.value = await adminGetComments({ status: filter.value || undefined });
+    const res = await adminGetComments({ status: filter.value || undefined, page: page.value, pageSize });
+    list.value = res.list;
+    total.value = res.total;
     // 过滤掉已被删除/移出列表的选中项
     const ids = new Set(list.value.map((c) => c.id));
     selected.value = selected.value.filter((id) => ids.has(id));
@@ -27,8 +33,13 @@ async function load() {
   }
 }
 function changeFilter() {
+  page.value = 1;
   load();
   router.replace({ query: filter.value ? { status: filter.value } : {} });
+}
+function goPage(p: number) {
+  page.value = p;
+  load();
 }
 async function setStatus(c: CommentRow, status: CommentRow['status']) {
   await adminPatchComment(c.id, status);
@@ -135,6 +146,12 @@ onMounted(load);
       </table>
     </div>
     <p v-if="!list.length" class="empty">暂无评论</p>
+
+    <nav v-if="total > pageSize" class="pagination">
+      <button :disabled="page <= 1" @click="goPage(page - 1)">上一页</button>
+      <span class="page-info">{{ page }} / {{ totalPages }}</span>
+      <button :disabled="page >= totalPages" @click="goPage(page + 1)">下一页</button>
+    </nav>
   </div>
 </template>
 

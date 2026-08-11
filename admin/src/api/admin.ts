@@ -70,8 +70,8 @@ export function adminDeletePost(id: number) {
   return request<{ ok: true }>(`/admin/posts/${id}`, { method: 'DELETE' });
 }
 
-export function adminGetComments(params: { status?: string } = {}) {
-  return request<CommentRow[]>(`/admin/comments${buildQuery(params)}`);
+export function adminGetComments(params: { status?: string; page?: number; pageSize?: number } = {}) {
+  return request<Page<CommentRow>>(`/admin/comments${buildQuery(params)}`);
 }
 export function adminPatchComment(id: number, status: CommentRow['status']) {
   return request<{ id: number; status: string }>(`/admin/comments/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
@@ -87,8 +87,8 @@ export function adminBatchComments(ids: number[], action: 'approve' | 'reject' |
 }
 
 export interface TalkRow { id: number; content: string; ip: string; status: 'pending' | 'approved' | 'rejected'; createdAt: number }
-export function adminGetTalks(params: { status?: string } = {}) {
-  return request<TalkRow[]>(`/admin/talks${buildQuery(params)}`);
+export function adminGetTalks(params: { status?: string; page?: number; pageSize?: number } = {}) {
+  return request<Page<TalkRow>>(`/admin/talks${buildQuery(params)}`);
 }
 export function adminPatchTalk(id: number, status: TalkRow['status']) {
   return request<{ id: number; status: string }>(`/admin/talks/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });

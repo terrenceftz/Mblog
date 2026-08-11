@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
@@ -7,12 +7,12 @@ import {
   adminGetPost, adminCreatePost, adminUpdatePost,
   adminGetCategories, adminGetTags, uploadFile,
 } from '../api/admin';
+import { toast } from '../lib/toast';
 
 const route = useRoute();
 const router = useRouter();
 
-// 校验路由 :id：非正整数（如 /posts/abc 或 /posts/0）视为非法，跳回文章列表，
-// 避免 Number() 得到 NaN 后静默当成「新建文章」处理。
+// 校验路由 :id：非正整数（如 /posts/abc 或 /posts/0）视为非法，跳回文章列表
 const rawId = route.params.id;
 const isEditRoute = rawId !== undefined;
 const editId = Number(rawId ?? 0);
@@ -35,15 +35,13 @@ const tags = ref<Awaited<ReturnType<typeof adminGetTags>>>([]);
 const saving = ref(false);
 const error = ref('');
 
-// 未保存修改保护：任何表单输入都会置脏，离开路由前弹窗确认。
+// 未保存修改保护
 const dirty = ref(false);
-// Vditor 初始化时 setValue 可能触发 input 回调，短暂忽略以免误报「有未保存修改」。
 let ignoreDirtyUntil = 0;
 function markDirty() {
   if (Date.now() < ignoreDirtyUntil) return;
   dirty.value = true;
 }
-
 onBeforeRouteLeave(() => {
   if (dirty.value) {
     return window.confirm('有未保存的修改，确定要离开吗？');
@@ -53,6 +51,7 @@ onBeforeRouteLeave(() => {
 
 let vditor: Vditor | null = null;
 
+// ---------- 工具栏：常用分组 + 音频插入 ----------
 function buildToolbar() {
   const audioButton = {
     name: 'insertAudio',
@@ -65,24 +64,94 @@ function buildToolbar() {
       input.onchange = async () => {
         const file = input.files?.[0];
         if (!file || !vditor) return;
-        const { url } = await uploadFile(file);
-        vditor.insertValue(`<audio controls src="${url}"></audio>\n`, true);
+        try {
+          const { url } = await uploadFile(file);
+          vditor.insertValue(`<audio controls src="${url}"></audio>\n`, true);
+        } catch {
+          toast('音频上传失败', 'error');
+        }
       };
       input.click();
     },
   };
   return [
-    'headings', 'bold', 'italic', 'strike', 'link', '|',
-    'list', 'ordered-list', 'check', 'outdent', 'indent', '|',
-    'quote', 'line', 'code', 'inline-code', 'table', '|',
-    'upload', audioButton, '|', 'undo', 'redo', '|', 'fullscreen',
+    'headings', 'bold', 'italic', 'strike', '|',
+    'list', 'ordered-list', 'check', 'quote', '|',
+    'code', 'inline-code', 'table', '|',
+    'link', 'upload', audioButton, '|',
+    'undo', 'redo', '|', 'fullscreen',
   ];
+}
+
+// ---------- 封面上传 ----------
+const coverUploading = ref(false);
+async function uploadCover() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    coverUploading.value = true;
+    try {
+      const { url } = await uploadFile(file);
+      form.value.cover = url;
+      markDirty();
+    } catch {
+      toast('封面上传失败', 'error');
+    } finally {
+      coverUploading.value = false;
+    }
+  };
+  input.click();
+}
+
+// ---------- 自动保存（localStorage 草稿） ----------
+const DRAFT_KEY = `mblog_admin_draft_${isEditRoute ? `edit_${editId}` : 'new'}`;
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let restoring = true;
+function scheduleAutoSave() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(form.value));
+    } catch {
+      /* 忽略存储失败 */
+    }
+  }, 3000);
+}
+watch(form, () => {
+  if (!restoring) scheduleAutoSave();
+}, { deep: true });
+function clearAutoSave() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* 忽略 */
+  }
 }
 
 onMounted(async () => {
   try {
     categories.value = await adminGetCategories();
     tags.value = await adminGetTags();
+
+    // 恢复本地草稿（编辑页优先服务端数据）
+    let draftRestored = false;
+    if (!isEditRoute) {
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (d && typeof d === 'object' && typeof d.title === 'string') {
+            form.value = { ...form.value, ...d, tagIds: Array.isArray(d.tagIds) ? d.tagIds : [] };
+            draftRestored = true;
+          }
+        }
+      } catch {
+        /* 忽略 */
+      }
+    }
 
     if (isEditRoute) {
       const post = await adminGetPost(editId);
@@ -99,8 +168,9 @@ onMounted(async () => {
     }
 
     vditor = new Vditor('vditor', {
-      height: 480,
+      height: 520,
       mode: 'wysiwyg',
+      theme: 'dark',
       toolbar: buildToolbar(),
       cache: { enable: false },
       upload: {
@@ -109,8 +179,6 @@ onMounted(async () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('admin_token') ?? ''}` },
         filename: () => 'file',
         accept: 'image/*',
-        // 后端返回 { data: { url, key } }；转换为 Vditor 内置契约 { code, msg, data: { errFiles, succMap } }，
-        // 否则 Vditor 默认回调读不到 succMap 会抛错，导致上传后图片不插入编辑器
         format: (files, responseText) => {
           let url = '';
           try {
@@ -132,16 +200,18 @@ onMounted(async () => {
       },
       after: () => {
         if (vditor) vditor.setValue(form.value.contentMd);
-        ignoreDirtyUntil = Date.now() + 200;
-        dirty.value = false;
+        ignoreDirtyUntil = Date.now() + 300;
+        dirty.value = draftRestored || isEditRoute ? dirty.value : false;
+        restoring = false;
       },
     });
   } catch (e) {
     error.value = e instanceof Error ? e.message : '加载失败';
+    restoring = false;
   }
 });
 
-async function save(status: 'draft' | 'published') {
+async function save(status: 'draft' | 'published', navigate: boolean) {
   saving.value = true;
   error.value = '';
   const contentMd = vditor ? vditor.getValue() : form.value.contentMd;
@@ -159,9 +229,12 @@ async function save(status: 'draft' | 'published') {
     if (editId) await adminUpdatePost(editId, payload);
     else await adminCreatePost(payload);
     dirty.value = false;
-    router.push('/posts');
+    clearAutoSave();
+    toast(status === 'published' ? '文章已发布' : '草稿已保存', 'success');
+    if (navigate) router.push('/posts');
   } catch (e) {
     error.value = e instanceof Error ? e.message : '保存失败';
+    toast('保存失败', 'error');
   } finally {
     saving.value = false;
   }
@@ -173,57 +246,105 @@ async function save(status: 'draft' | 'published') {
     <div class="editor-head">
       <h1 class="page-title">{{ editId ? '编辑文章' : '新建文章' }}</h1>
       <div class="actions">
-        <button class="btn" @click="save('draft')">存草稿</button>
-        <button class="btn primary" :disabled="saving" @click="save('published')">{{ saving ? '保存中…' : '发布' }}</button>
+        <button class="btn" :disabled="saving" @click="save('draft', false)">存草稿</button>
+        <button v-if="editId" class="btn" :disabled="saving" @click="save('published', false)">保存</button>
+        <button class="btn primary" :disabled="saving" @click="save('published', true)">{{ saving ? '保存中…' : '发布' }}</button>
       </div>
     </div>
     <p v-if="error" class="error">{{ error }}</p>
 
     <div class="form-grid">
       <div class="form-main">
-        <input v-model="form.title" class="title-input" placeholder="文章标题 *" @input="markDirty" />
-        <input v-model="form.slug" class="slug-input" placeholder="slug（留空自动生成）" @input="markDirty" />
-        <textarea v-model="form.summary" class="summary-input" placeholder="摘要（留空自动截取正文）" rows="2" @input="markDirty" />
+        <div class="field">
+          <input v-model="form.title" class="title-input input" placeholder="文章标题 *" maxlength="100" @input="markDirty" />
+          <span class="char-count">{{ form.title.length }}/100</span>
+        </div>
+        <input v-model="form.slug" class="input" placeholder="slug（留空自动生成）" @input="markDirty" />
+        <div class="field">
+          <textarea v-model="form.summary" class="summary-input input" placeholder="摘要（留空自动截取正文）" rows="2" maxlength="300" @input="markDirty" />
+          <span class="char-count">{{ form.summary.length }}/300</span>
+        </div>
         <div id="vditor" />
       </div>
       <aside class="form-side">
-        <label>分类
-          <select v-model.number="form.categoryId" @change="markDirty">
+        <div class="card">
+          <div class="card-title">分类</div>
+          <select v-model.number="form.categoryId" class="input" @change="markDirty">
             <option :value="0">无</option>
             <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
-        </label>
-        <label>标签
+        </div>
+        <div class="card">
+          <div class="card-title">标签</div>
           <div class="tag-check">
             <label v-for="t in tags" :key="t.id" class="tag-item">
               <input v-model="form.tagIds" type="checkbox" :value="t.id" @change="markDirty" /> {{ t.name }}
             </label>
+            <p v-if="!tags.length" class="empty">暂无标签</p>
           </div>
-        </label>
-        <label>封面图 URL
-          <input v-model="form.cover" placeholder="https://…" @input="markDirty" />
-        </label>
+        </div>
+        <div class="card">
+          <div class="card-title">封面图</div>
+          <input v-model="form.cover" class="input" placeholder="https://… 或点击上传" @input="markDirty" />
+          <button type="button" class="btn sm" style="margin-top: 8px" :disabled="coverUploading" @click="uploadCover">
+            {{ coverUploading ? '上传中…' : '上传封面' }}
+          </button>
+          <img v-if="form.cover" :src="form.cover" alt="封面预览" class="cover-preview" />
+        </div>
       </aside>
     </div>
   </div>
 </template>
 
 <style scoped>
-.editor-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.editor-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .page-title { font-size: 22px; margin: 0; }
-.actions { display: flex; gap: 10px; }
-.btn { border: 1px solid #e5e7eb; background: #fff; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
-.btn.primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
-.btn:disabled { opacity: 0.6; }
-.error { color: #dc2626; }
-.form-grid { display: grid; grid-template-columns: 1fr 260px; gap: 20px; align-items: start; }
-.form-main { display: flex; flex-direction: column; gap: 10px; }
-.title-input { font-size: 20px; font-weight: 600; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; }
-.slug-input, .summary-input, .form-side input, .form-side select {
-  padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; width: 100%; box-sizing: border-box;
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.error { color: #f87171; margin: 0 0 12px; }
+.form-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: start; }
+.form-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.field { position: relative; }
+.field .input { width: 100%; box-sizing: border-box; }
+.title-input { font-size: 20px; font-weight: 600; }
+.char-count {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  font-size: 11px;
+  color: #5c5c66;
+  pointer-events: none;
 }
-.form-side { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-.form-side label { font-size: 13px; color: #6b7280; display: flex; flex-direction: column; gap: 6px; }
-.tag-check { display: flex; flex-direction: column; gap: 6px; }
-.tag-item { font-size: 14px; color: #1f2937; flex-direction: row; align-items: center; }
+.form-side { display: flex; flex-direction: column; gap: 14px; }
+.form-side select,
+.form-side .input { width: 100%; box-sizing: border-box; }
+.tag-check { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+.tag-item {
+  font-size: 14px;
+  color: #d4d4d8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.tag-item input { accent-color: #e8b64c; }
+.cover-preview {
+  display: block;
+  margin-top: 10px;
+  max-width: 100%;
+  max-height: 140px;
+  border-radius: 8px;
+  border: 1px solid #26262a;
+  object-fit: cover;
+}
+/* Vditor 编辑器暗色微调（工具栏分组间距） */
+:deep(.vditor) { border-color: #26262a; border-radius: 10px; }
+:deep(.vditor-toolbar) { background: #101014; border-bottom-color: #26262a; }
+:deep(.vditor-toolbar__item) { color: #9d9d95; }
+:deep(.vditor-toolbar__item:hover), :deep(.vditor-toolbar__item--current) { color: #e8b64c; background: rgba(232,182,76,.1); }
+:deep(.vditor-toolbar__divider) { background: #26262a; }
+:deep(.vditor-reset) { background: #131316; color: #d4d4d8; }
+
+@media (max-width: 900px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
 </style>

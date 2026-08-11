@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, count } from 'drizzle-orm';
 import { talks } from '../../db/schema';
 import type { Db } from '../../db';
 
@@ -8,14 +8,21 @@ export function talksAdminRoutes(ctx: Db) {
 
   app.get('/talks', (c) => {
     const status = c.req.query('status');
+    const where = status === 'pending' || status === 'approved' || status === 'rejected' ? eq(talks.status, status) : undefined;
+    const total = ctx.db.select({ n: count() }).from(talks).where(where).get()?.n ?? 0;
+    const rawPage = Number(c.req.query('page') ?? 1);
+    const page = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+    const rawSize = Number(c.req.query('pageSize') ?? 20);
+    const pageSize = Number.isInteger(rawSize) && rawSize >= 1 ? Math.min(100, rawSize) : 20;
     const rows = ctx.db
       .select()
       .from(talks)
-      .where(status === 'pending' || status === 'approved' || status === 'rejected' ? eq(talks.status, status) : undefined)
+      .where(where)
       .orderBy(desc(talks.createdAt))
-      .limit(200)
+      .limit(pageSize)
+      .offset((page - 1) * pageSize)
       .all();
-    return c.json({ data: rows });
+    return c.json({ data: { list: rows, total } });
   });
 
   app.patch('/talks/:id', async (c) => {

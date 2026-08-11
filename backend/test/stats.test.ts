@@ -35,7 +35,7 @@ describe('公共统计接口 /api/stats', () => {
     // 审批：评论 PATCH /api/admin/comments/:id，友链 PUT /api/admin/friend-links/:id
     const approveComments = async () => {
       const list = (await (await app.request('/api/admin/comments', { headers: authHeaders(token) })).json()) as { data: { id: number }[] };
-      for (const c of list.data) {
+      for (const c of list.data.list) {
         const res = await app.request(`/api/admin/comments/${c.id}`, {
           method: 'PATCH',
           headers: { 'content-type': 'application/json', ...authHeaders(token) },

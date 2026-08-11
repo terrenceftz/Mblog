@@ -301,7 +301,7 @@ describe('admin comments', () => {
     expect(approve.status).toBe(200);
     const list = await app.request('/api/admin/comments?status=approved', { headers });
     const listBody = await list.json();
-    expect(listBody.data.length).toBeGreaterThanOrEqual(1);
+    expect(listBody.data.list.length).toBeGreaterThanOrEqual(1);
 
     // 管理员回复（直接 approved）
     const reply = await app.request('/api/admin/comments/1/reply', {
@@ -358,7 +358,7 @@ describe('admin comments', () => {
     // 按状态过滤列表能查到
     const list = await app.request('/api/admin/comments?status=rejected', { headers });
     const listBody = await list.json();
-    expect(listBody.data.some((c: { id: number }) => c.id === id)).toBe(true);
+    expect(listBody.data.list.some((c: { id: number }) => c.id === id)).toBe(true);
   });
 });
 
