@@ -1,10 +1,26 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { adminGetSettings, adminPutSettings } from '../api/admin';
+import { adminGetSettings, adminPutSettings, adminSyncDouban } from '../api/admin';
 
 const form = ref<Record<string, string>>({});
 const saved = ref(false);
 const error = ref('');
+const syncing = ref(false);
+const syncMsg = ref('');
+const syncError = ref('');
+async function syncDouban() {
+  syncing.value = true;
+  syncMsg.value = '';
+  syncError.value = '';
+  try {
+    const r = await adminSyncDouban();
+    syncMsg.value = `已同步 ${r.count} 部，缓存已预热`;
+  } catch (e) {
+    syncError.value = e instanceof Error ? e.message : '同步失败';
+  } finally {
+    syncing.value = false;
+  }
+}
 // 导航菜单编辑：独立数组，保存时序列化为 JSON 写入 form.nav_menu
 const menuItems = ref<{ label: string; url: string }[]>([]);
 
@@ -142,7 +158,17 @@ async function save() {
         <label>豆瓣用户 ID
           <input v-model="form.douban_uid" placeholder="douban 主页 /people/ 后的数字" />
         </label>
-        <p class="menu-tip">前台 /douban 页面将展示该用户「看过」的电影（封面/评分/日期）。需在导航菜单中添加「影音」链接。</p>
+        <label>TMDB API Key（海报图源）
+          <input v-model="form.tmdb_api_key" placeholder="themoviedb.org 申请的 key" />
+        </label>
+        <div class="sync-row">
+          <button type="button" class="btn" :disabled="syncing" @click="syncDouban">
+            {{ syncing ? '同步中…' : '立即同步豆瓣数据' }}
+          </button>
+          <span v-if="syncMsg" class="saved">{{ syncMsg }}</span>
+          <span v-if="syncError" class="error">{{ syncError }}</span>
+        </div>
+        <p class="menu-tip">同步会拉取「看过」的电影与 TMDB 海报并预热缓存，避免前台首次访问卡顿。</p>
       </fieldset>
 
       <div class="actions">
@@ -173,4 +199,5 @@ input, select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px
 .menu-add { align-self: flex-start; background: #f3f4f6; border: 1px dashed #d1d5db; border-radius: 8px; color: #374151; cursor: pointer; padding: 6px 14px; }
 .menu-add:hover { border-color: #3b82f6; color: #3b82f6; }
 .menu-tip { color: #9ca3af; font-size: 12px; margin: 0; }
+.sync-row { display: flex; align-items: center; gap: 12px; }
 </style>

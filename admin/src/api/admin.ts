@@ -113,6 +113,9 @@ export function adminGetSettings(): Promise<Record<string, string>> { return req
 export function adminPutSettings(payload: Record<string, string>) {
   return request<Record<string, string>>('/admin/settings', { method: 'PUT', body: JSON.stringify(payload) });
 }
+export function adminSyncDouban(): Promise<{ count: number }> {
+  return request('/admin/douban/sync', { method: 'POST' });
+}
 
 export function uploadFile(file: File): Promise<{ url: string; key: string }> {
   const form = new FormData();
