@@ -268,6 +268,12 @@
   align-items: center;
   gap: 12px;
 }
+[data-theme='normal'] .nh-latest-head .nh-eyebrow {
+  margin-bottom: 0;
+}
+[data-theme='normal'] .nh-latest-head h2 {
+  margin-top: 0;
+}
 
 /* 最新文章卡片 */
 [data-theme='normal'] .nh-post-grid {
