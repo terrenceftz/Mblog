@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { adminGetSettings, adminPutSettings } from '../api/admin';
+import { toast } from '../lib/toast';
 
 type ThemeKey = 'normal' | 'reader';
 interface ThemeForm {
@@ -62,9 +63,11 @@ async function save() {
     allSettings.value.theme_reader = JSON.stringify(forms.value.reader);
     allSettings.value = await adminPutSettings(allSettings.value);
     saved.value = true;
+    toast('主题设置已保存', 'success');
     setTimeout(() => (saved.value = false), 2000);
   } catch (e) {
     error.value = e instanceof Error ? e.message : '保存失败';
+    toast(error.value, 'error');
   }
 }
 
@@ -77,11 +80,12 @@ function resetTheme() {
   <div>
     <h1 class="page-title">主题管理</h1>
     <div class="tabs">
-      <button type="button" :class="{ active: activeTab === 'normal' }" @click="activeTab = 'normal'">正常主题</button>
-      <button type="button" :class="{ active: activeTab === 'reader' }" @click="activeTab = 'reader'">极简阅读</button>
+      <button type="button" class="btn" :class="{ active: activeTab === 'normal' }" @click="activeTab = 'normal'">正常主题</button>
+      <button type="button" class="btn" :class="{ active: activeTab === 'reader' }" @click="activeTab = 'reader'">极简阅读</button>
     </div>
 
-    <form class="theme-form" @submit.prevent="save">
+    <form class="card theme-form" @submit.prevent="save">
+      <div class="card-title">主题配色</div>
       <div class="color-grid">
         <label><span>背景色</span><input type="color" v-model="forms[activeTab].bg" /></label>
         <label><span>正文色</span><input type="color" v-model="forms[activeTab].text" /></label>
@@ -92,20 +96,20 @@ function resetTheme() {
 
       <div class="num-row">
         <label>正文字号（px）
-          <input type="number" v-model.number="forms[activeTab].fontSize" min="12" max="24" />
+          <input class="input" type="number" v-model.number="forms[activeTab].fontSize" min="12" max="24" />
         </label>
         <label>首页文章数
-          <input type="number" v-model.number="forms[activeTab].homePageSize" min="1" max="50" />
+          <input class="input" type="number" v-model.number="forms[activeTab].homePageSize" min="1" max="50" />
         </label>
       </div>
 
       <!-- 首屏内容（仅正常主题生效）：头像 + 自我介绍 -->
       <div v-if="activeTab === 'normal'" class="content-row">
         <label>首屏头像 URL
-          <input v-model="forms[activeTab].avatar" placeholder="留空使用 /avatar.jpg" />
+          <input class="input" v-model="forms[activeTab].avatar" placeholder="留空使用 /avatar.jpg" />
         </label>
         <label>首屏自我介绍（BlurText 逐词模糊揭示）
-          <textarea v-model="forms[activeTab].intro" rows="3" placeholder="一段简短风趣的自我介绍…"></textarea>
+          <textarea class="input" v-model="forms[activeTab].intro" rows="3" placeholder="一段简短风趣的自我介绍…"></textarea>
         </label>
       </div>
 
@@ -120,31 +124,18 @@ function resetTheme() {
 </template>
 
 <style scoped>
-.page-title { font-size: 22px; margin-bottom: 20px; }
 .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.tabs button {
-  padding: 8px 18px; border: 1px solid #e5e7eb; background: #fff; border-radius: 8px;
-  cursor: pointer; font-size: 14px; color: #374151;
-}
-.tabs button.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
-.theme-form { display: flex; flex-direction: column; gap: 16px; max-width: 560px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; }
+.tabs .btn.active { background: var(--primary); border-color: var(--primary); color: var(--primary-contrast); font-weight: 600; }
+.theme-form { display: flex; flex-direction: column; gap: 16px; max-width: 560px; }
 .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
-.color-grid label { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; color: #6b7280; }
-.color-grid input[type='color'] { width: 100%; height: 40px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 4px; cursor: pointer; }
+.color-grid label { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+.color-grid input[type='color'] { width: 100%; height: 40px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 4px; cursor: pointer; }
 .num-row { display: flex; gap: 16px; }
-.num-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #6b7280; }
-.num-row input { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; width: 140px; }
+.num-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); }
+.num-row .input { width: 140px; }
 .content-row { display: flex; flex-direction: column; gap: 12px; }
-.content-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #6b7280; }
-.content-row input,
-.content-row textarea {
-  padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px;
-  font-size: 14px; font-family: inherit; width: 100%; box-sizing: border-box;
-}
-.content-row textarea { resize: vertical; }
+.content-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); }
+.content-row textarea { resize: vertical; font-family: inherit; }
 .actions { display: flex; align-items: center; gap: 12px; }
-.btn { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; color: #374151; cursor: pointer; padding: 8px 16px; }
-.btn.primary { background: #3b82f6; color: #fff; border: none; padding: 10px 20px; }
-.saved { color: #059669; font-size: 14px; }
-.error { color: #dc2626; font-size: 14px; }
+.saved { color: var(--ok); font-size: 14px; }
 </style>

@@ -19,23 +19,29 @@ onMounted(async () => {
     <h1 class="page-title">仪表盘</h1>
     <p v-if="error" class="error">{{ error }}</p>
     <div v-else-if="stats" class="stat-grid">
-      <div class="stat-card"><div class="num">{{ stats.postTotal }}</div><div class="label">文章总数</div></div>
-      <div class="stat-card"><div class="num">{{ stats.published }}</div><div class="label">已发布</div></div>
-      <div class="stat-card"><div class="num">{{ stats.commentTotal }}</div><div class="label">评论总数</div></div>
-      <div class="stat-card warn"><div class="num">{{ stats.pendingComments }}</div><div class="label">待审核评论</div></div>
-      <div class="stat-card"><div class="num">{{ stats.totalViews }}</div><div class="label">总阅读量</div></div>
+      <div class="card stat-card"><div class="num">{{ stats.postTotal }}</div><div class="label">文章总数</div></div>
+      <div class="card stat-card"><div class="num">{{ stats.published }}</div><div class="label">已发布</div></div>
+      <div class="card stat-card"><div class="num">{{ stats.commentTotal }}</div><div class="label">评论总数</div></div>
+      <router-link to="/comments?status=pending" class="card stat-card warn clickable">
+        <div class="num">{{ stats.pendingComments }}</div><div class="label">待审核评论</div>
+      </router-link>
+      <div class="card stat-card"><div class="num">{{ stats.totalViews }}</div><div class="label">总阅读量</div></div>
     </div>
     <p v-else class="loading">加载中…</p>
   </div>
 </template>
 
 <style scoped>
-.page-title { font-size: 22px; margin-bottom: 20px; }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
-.stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; text-align: center; }
+.stat-card { text-align: center; }
 .stat-card .num { font-size: 28px; font-weight: 700; }
-.stat-card.warn .num { color: #d97706; }
-.stat-card .label { color: #6b7280; font-size: 13px; margin-top: 4px; }
-.loading { color: #6b7280; }
-.error { color: #dc2626; font-size: 14px; }
+.stat-card.warn .num { color: var(--primary); }
+.stat-card .label { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+.stat-card.clickable {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.stat-card.clickable:hover { border-color: var(--primary); transform: translateY(-1px); }
 </style>
