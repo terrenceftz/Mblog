@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 
-const props = defineProps<{ postId: number }>();
+const props = defineProps<{
+  postId: number;
+  /** Cloudflare Turnstile Site Key；为空时回落数学验证码 */
+  turnstileSiteKey?: string;
+}>();
 
 interface CommentItem {
   id: number;
@@ -22,6 +26,17 @@ const message = ref('');
 const loaded = ref(false);
 const replyTo = ref<{ id: number; author: string } | null>(null);
 const replyContent = ref('');
+// 蜜罐：真人不填，机器人自动填充 → 后端拒绝
+const hp = ref('');
+// 数学验证码（Turnstile 未配置时使用）
+const captcha = ref<{ id: string; question: string } | null>(null);
+const captchaAnswer = ref('');
+// Turnstile 状态
+const turnstileEl = ref<HTMLElement | null>(null);
+const turnstileToken = ref('');
+const turnstileWidgetId = ref('');
+const turnstileReady = ref(false);
+const useTurnstile = computed(() => !!props.turnstileSiteKey);
 
 // 评论者头像色板（按名字取色，保持稳定）
 const AVATAR_COLORS = ['#e8b64c', '#7c9cf5', '#f472b6', '#34d399', '#a78bfa', '#fbbf24', '#f87171', '#22d3ee'];
@@ -54,6 +69,87 @@ async function load() {
   }
 }
 
+// ---------- 人机验证：Turnstile 或数学验证码 ----------
+function loadTurnstileScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (window.turnstile) return resolve(true);
+    const s = document.createElement('script');
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    s.async = true;
+    s.onload = () => resolve(!!window.turnstile);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
+
+async function initTurnstile() {
+  if (!useTurnstile.value) return;
+  const ok = await loadTurnstileScript();
+  if (!ok) return;
+  // 脚本加载后 render 可用（等一个宏任务）
+  await new Promise((r) => setTimeout(r, 50));
+  const el = turnstileEl.value;
+  if (!el || !window.turnstile?.render) return;
+  turnstileWidgetId.value = window.turnstile.render(el, {
+    sitekey: props.turnstileSiteKey!,
+    callback: (token: string) => {
+      turnstileToken.value = token;
+    },
+    'expired-callback': () => {
+      turnstileToken.value = '';
+    },
+  });
+  turnstileReady.value = true;
+}
+
+function resetTurnstile() {
+  if (turnstileWidgetId.value && window.turnstile?.reset) {
+    window.turnstile.reset(turnstileWidgetId.value);
+  }
+  turnstileToken.value = '';
+}
+
+async function fetchMathCaptcha() {
+  try {
+    const res = await fetch('/api/comments/captcha');
+    if (!res.ok) return;
+    const body = await res.json();
+    captcha.value = body.data ?? null;
+    captchaAnswer.value = '';
+  } catch {
+    captcha.value = null;
+  }
+}
+
+function initCaptcha() {
+  if (useTurnstile.value) {
+    initTurnstile();
+  } else {
+    fetchMathCaptcha();
+  }
+}
+
+function captchaPayload() {
+  if (useTurnstile.value) {
+    return { cfTurnstileToken: turnstileToken.value };
+  }
+  return { captchaId: captcha.value?.id, captchaAnswer: captchaAnswer.value };
+}
+
+function validateCaptcha(): string | null {
+  if (useTurnstile.value) {
+    if (!turnstileToken.value) return '请先完成人机验证';
+    return null;
+  }
+  if (!captchaAnswer.value.trim()) return '请填写验证码答案';
+  return null;
+}
+
+function refreshCaptchaAfterSubmit() {
+  if (useTurnstile.value) resetTurnstile();
+  else fetchMathCaptcha();
+}
+
 function validateWebsite(): string | null {
   const w = website.value.trim();
   if (!w) return '';
@@ -71,22 +167,32 @@ async function submit() {
     message.value = websiteErr;
     return;
   }
+  const captchaErr = validateCaptcha();
+  if (captchaErr) {
+    message.value = captchaErr;
+    return;
+  }
   submitting.value = true;
   try {
     const res = await fetch('/api/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ postId: props.postId, author: author.value, email: email.value, website: website.value, content: content.value }),
+      body: JSON.stringify({
+        postId: props.postId, author: author.value, email: email.value, website: website.value,
+        content: content.value, _hp: hp.value, ...captchaPayload(),
+      }),
     });
     const body = await res.json();
     if (!res.ok) {
       message.value = body?.error?.message ?? '提交失败';
+      if (body?.error?.code === 'CAPTCHA_FAILED') refreshCaptchaAfterSubmit();
     } else {
       message.value = '评论已提交，等待审核';
       author.value = '';
       email.value = '';
       website.value = '';
       content.value = '';
+      refreshCaptchaAfterSubmit();
     }
   } finally {
     submitting.value = false;
@@ -98,25 +204,39 @@ async function submitReply(parentId: number) {
     message.value = '回复内容不能为空';
     return;
   }
+  const captchaErr = validateCaptcha();
+  if (captchaErr) {
+    message.value = captchaErr;
+    return;
+  }
   submitting.value = true;
   try {
     const res = await fetch('/api/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ postId: props.postId, author: author.value || '访客', email: email.value, website: website.value, content: replyContent.value, parentId }),
+      body: JSON.stringify({
+        postId: props.postId, author: author.value || '访客', email: email.value, website: website.value,
+        content: replyContent.value, parentId, _hp: hp.value, ...captchaPayload(),
+      }),
     });
     const body = await res.json();
     message.value = res.ok ? '回复已提交，等待审核' : (body?.error?.message ?? '提交失败');
     if (res.ok) {
       replyTo.value = null;
       replyContent.value = '';
+      refreshCaptchaAfterSubmit();
+    } else if (body?.error?.code === 'CAPTCHA_FAILED') {
+      refreshCaptchaAfterSubmit();
     }
   } finally {
     submitting.value = false;
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  load();
+  initCaptcha();
+});
 </script>
 
 <template>
@@ -180,9 +300,20 @@ onMounted(load);
         <input v-model="website" type="url" placeholder="个人网站（选填）" maxlength="200" />
       </div>
       <textarea v-model="content" placeholder="说点什么… *" maxlength="2000" rows="4" />
-      <div class="row end">
-        <p v-if="message" class="comment-message">{{ message }}</p>
-        <button type="submit" :disabled="submitting">{{ submitting ? '提交中…' : '发表评论' }}</button>
+      <!-- 蜜罐：对用户隐藏，机器人自动填充 -->
+      <input v-model="hp" class="hp-field" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <div class="row captcha-row">
+        <!-- Turnstile 云验证 -->
+        <div v-if="useTurnstile" ref="turnstileEl" class="turnstile-wrap" />
+        <!-- 数学验证码回落 -->
+        <template v-else-if="captcha">
+          <span class="captcha-question mono">{{ captcha.question }}</span>
+          <input v-model="captchaAnswer" class="captcha-answer" placeholder="答案" maxlength="5" inputmode="numeric" />
+        </template>
+        <div class="row end" style="flex: 1">
+          <p v-if="message" class="comment-message">{{ message }}</p>
+          <button type="submit" :disabled="submitting">{{ submitting ? '提交中…' : '发表评论' }}</button>
+        </div>
       </div>
     </form>
   </section>
@@ -229,4 +360,9 @@ onMounted(load);
 .comment-form input:focus, .comment-form textarea:focus { outline: none; border-color: var(--color-primary); }
 .comment-form button:disabled { opacity: 0.6; cursor: not-allowed; }
 .comment-message { color: var(--color-text-muted); font-size: 13px; }
+.hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.captcha-row { align-items: center; flex-wrap: wrap; }
+.turnstile-wrap { display: flex; }
+.captcha-question { font-size: 14px; color: var(--color-text-secondary); }
+.captcha-answer { flex: 0 0 88px !important; font-family: var(--font-mono); }
 </style>

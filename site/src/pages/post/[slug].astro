@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import CommentSection from '../../components/CommentSection.vue';
-import { getPost, type PostDetail } from '../../lib/api';
+import { getPost, getPublicSettings, type PostDetail } from '../../lib/api';
 import { withTocIds } from '../../lib/toc';
 
 const { slug } = Astro.params;
@@ -13,6 +13,8 @@ try {
 }
 // 提取 h2/h3 生成目录锚点；返回带 id 的正文 HTML 与目录项
 const { html: contentHtml, toc } = withTocIds(post.contentHtml);
+// 评论云验证（Turnstile）site key：中间件已共享设置，未命中时兜底直取
+const settings = Astro.locals.settings ?? (await getPublicSettings());
 ---
 <BaseLayout title={post.title} description={post.summary} layout="article">
   {/* 文章头部：有封面时标题压在 banner 图内居中；无封面时居中标题 + 渐变光装饰 */}
@@ -73,7 +75,7 @@ const { html: contentHtml, toc } = withTocIds(post.contentHtml);
         )}
       </nav>
     )}
-    <CommentSection client:load postId={post.id} />
+    <CommentSection client:load postId={post.id} turnstileSiteKey={settings.turnstileSiteKey ?? ''} />
   </article>
   {toc.length > 0 && (
     <Fragment slot="toc">

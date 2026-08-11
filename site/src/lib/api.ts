@@ -30,6 +30,7 @@ export interface PublicSettings {
   githubUsername: string;
   doubanEnabled: boolean;
   doubanUid: string;
+  turnstileSiteKey: string;
 }
 export interface Category { id: number; name: string; slug: string; postCount: number }
 export interface Tag { id: number; name: string; slug: string; postCount: number }
@@ -54,7 +55,7 @@ export function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
     siteName: '我的博客', siteDesc: '', theme: 'normal', friendLinkEnabled: true,
     themeNormal: {}, themeReader: {}, githubEnabled: false, githubUsername: '',
-    doubanEnabled: false, doubanUid: '',
+    doubanEnabled: false, doubanUid: '', turnstileSiteKey: '',
     navMenu: [
       { label: '首页', url: '/' },
       { label: '归档', url: '/archive' },

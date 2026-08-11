@@ -99,7 +99,7 @@ async function save() {
     );
     // 掩码占位符 '********' 或留空 = 保持已存密钥不变（后端同样按此约定保留原值），
     // 因此保存时不把占位符/空值写回，避免覆盖真实密钥。
-    for (const key of ['cos_secret_key', 'tmdb_api_key'] as const) {
+    for (const key of ['cos_secret_key', 'tmdb_api_key', 'turnstile_secret_key'] as const) {
       const v = payload[key];
       if (!v || v === '********') delete payload[key];
     }
@@ -147,6 +147,17 @@ async function save() {
             <option value="0">关闭</option>
           </select>
         </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>评论人机验证（Cloudflare Turnstile）</legend>
+        <label>Site Key
+          <input v-model="form.turnstile_site_key" placeholder="在 Cloudflare → Turnstile 创建站点后获取" />
+        </label>
+        <label>Secret Key
+          <input v-model="form.turnstile_secret_key" type="password" placeholder="留空或 **** 表示保持不变" />
+        </label>
+        <p class="menu-tip">配齐两项后，评论将使用 Turnstile 云验证（访客大多无感）；留空则自动回落数学验证码。</p>
       </fieldset>
 
       <fieldset>
