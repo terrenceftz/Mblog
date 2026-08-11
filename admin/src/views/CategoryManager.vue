@@ -43,29 +43,29 @@ onMounted(load);
 
 <template>
   <div>
-    <h1 class="page-title">分类管理</h1>
+    <div class="page-header mb-3"><h1 class="page-title">分类管理</h1></div>
     <div class="add-row">
-      <input v-model="name" class="input" placeholder="新分类名称" @keyup.enter="add" />
-      <button class="btn primary" @click="add">添加</button>
+      <input v-model="name" class="form-control" placeholder="新分类名称" @keyup.enter="add" />
+      <button class="btn btn-primary" @click="add">添加</button>
     </div>
-    <p v-if="error" class="error">{{ error }}</p>
-    <div class="table-wrap">
-      <table class="table">
+    <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
+    <div class="table-responsive">
+      <table class="table table-vcenter">
         <thead><tr><th>名称</th><th>slug</th><th>文章数</th><th>操作</th></tr></thead>
         <tbody>
           <tr v-for="c in list" :key="c.id">
             <td>
               <template v-if="editing?.id === c.id">
-                <input v-model="editing.name" class="input" @keyup.enter="update" />
+                <input v-model="editing.name" class="form-control" @keyup.enter="update" />
               </template>
               <template v-else>{{ c.name }}</template>
             </td>
             <td>{{ c.slug }}</td>
             <td><span class="badge">{{ c.postCount }}</span></td>
             <td class="op-cell">
-              <button class="btn sm" @click="editing = { ...c }">编辑</button>
-              <button v-if="editing?.id === c.id" class="btn sm ok" @click="update">保存</button>
-              <button class="btn sm bad" @click="remove(c.id)">删除</button>
+              <button class="btn btn-outline-secondary btn-sm" @click="editing = { ...c }">编辑</button>
+              <button v-if="editing?.id === c.id" class="btn btn-success btn-sm" @click="update">保存</button>
+              <button class="btn btn-outline-danger btn-sm" @click="remove(c.id)">删除</button>
             </td>
           </tr>
         </tbody>

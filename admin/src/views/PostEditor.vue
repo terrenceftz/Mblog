@@ -251,10 +251,10 @@ async function save(status: 'draft' | 'published', navigate: boolean) {
       <div class="actions">
         <button class="btn" :disabled="saving" @click="save('draft', false)">存草稿</button>
         <button v-if="editId" class="btn" :disabled="saving" @click="save('published', false)">保存</button>
-        <button class="btn primary" :disabled="saving" @click="save('published', true)">{{ saving ? '保存中…' : '发布' }}</button>
+        <button class="btn btn-primary" :disabled="saving" @click="save('published', true)">{{ saving ? '保存中…' : '发布' }}</button>
       </div>
     </div>
-    <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
 
     <div class="form-grid">
       <div class="form-main">
@@ -262,7 +262,7 @@ async function save(status: 'draft' | 'published', navigate: boolean) {
           <input v-model="form.title" class="title-input input" placeholder="文章标题 *" maxlength="100" @input="markDirty" />
           <span class="char-count">{{ form.title.length }}/100</span>
         </div>
-        <input v-model="form.slug" class="input" placeholder="slug（留空自动生成）" @input="markDirty" />
+        <input v-model="form.slug" class="form-control" placeholder="slug（留空自动生成）" @input="markDirty" />
         <div class="field">
           <textarea v-model="form.summary" class="summary-input input" placeholder="摘要（留空自动截取正文）" rows="2" maxlength="300" @input="markDirty" />
           <span class="char-count">{{ form.summary.length }}/300</span>
@@ -271,24 +271,30 @@ async function save(status: 'draft' | 'published', navigate: boolean) {
       </div>
       <aside class="form-side">
         <div class="card">
-          <div class="card-title">分类</div>
-          <select v-model.number="form.categoryId" class="input" @change="markDirty">
+        <div class="card-body">
+          <div class="card-header">分类</div>
+          <select v-model.number="form.categoryId" class="form-control" @change="markDirty">
             <option :value="0">无</option>
             <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
-        </div>
+        
+        </div></div>
         <div class="card">
-          <div class="card-title">标签</div>
+        <div class="card-body">
+          <div class="card-header">标签</div>
           <TagPicker v-model="form.tagIds" :tags="tags" @update:model-value="markDirty" />
-        </div>
+        
+        </div></div>
         <div class="card">
-          <div class="card-title">封面图</div>
-          <input v-model="form.cover" class="input" placeholder="https://… 或点击上传" @input="markDirty" />
-          <button type="button" class="btn sm" style="margin-top: 8px" :disabled="coverUploading" @click="uploadCover">
+        <div class="card-body">
+          <div class="card-header">封面图</div>
+          <input v-model="form.cover" class="form-control" placeholder="https://… 或点击上传" @input="markDirty" />
+          <button type="button" class="btn btn-outline-secondary btn-sm" style="margin-top: 8px" :disabled="coverUploading" @click="uploadCover">
             {{ coverUploading ? '上传中…' : '上传封面' }}
           </button>
           <img v-if="form.cover" :src="form.cover" alt="封面预览" class="cover-preview" />
-        </div>
+        
+        </div></div>
       </aside>
     </div>
   </div>

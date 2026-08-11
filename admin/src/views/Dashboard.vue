@@ -32,54 +32,69 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h1 class="page-title">仪表盘</h1>
-    <p v-if="error" class="error">{{ error }}</p>
+    <div class="page-header mb-3">
+      <h1 class="page-title">仪表盘</h1>
+    </div>
+    <div v-if="error" class="alert alert-danger py-2" role="alert">{{ error }}</div>
 
-    <!-- 统计卡片 -->
+    <!-- 统计卡片（Tabler .card 结构） -->
     <div v-if="stats" class="stat-grid stagger">
       <div v-for="card in statCards" :key="card.key" class="card stat-card">
-        <div class="stat-icon" :style="{ color: card.color, background: card.color + '1a' }">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path :d="card.icon" />
-          </svg>
-        </div>
-        <div class="stat-body">
-          <div class="num">{{ (stats as Record<string, number>)[card.key] }}</div>
-          <div class="label">{{ card.label }}</div>
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="stat-icon" :style="{ color: card.color, background: card.color + '1a' }">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path :d="card.icon" />
+            </svg>
+          </div>
+          <div class="stat-body">
+            <div class="num">{{ (stats as Record<string, number>)[card.key] }}</div>
+            <div class="label">{{ card.label }}</div>
+          </div>
         </div>
       </div>
       <!-- 待审核评论：可点击跳转 -->
-      <router-link v-if="stats.pendingComments > 0" to="/comments?status=pending" class="card stat-card stat-warn">
-        <div class="stat-icon stat-icon-warn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          </svg>
-        </div>
-        <div class="stat-body">
-          <div class="num warn-num">{{ stats.pendingComments }}</div>
-          <div class="label">待审核评论</div>
+      <router-link
+        v-if="stats.pendingComments > 0"
+        to="/comments?status=pending"
+        class="card stat-card stat-warn text-decoration-none"
+      >
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="stat-icon stat-icon-warn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            </svg>
+          </div>
+          <div class="stat-body">
+            <div class="num warn-num">{{ stats.pendingComments }}</div>
+            <div class="label">待审核评论</div>
+          </div>
         </div>
       </router-link>
     </div>
-    <p v-else-if="!error" class="loading">加载中…</p>
+    <div v-else-if="!error" class="stat-grid">
+      <div v-for="i in 4" :key="i" class="card"><div class="card-body placeholder-glow"><span class="placeholder col-8"></span></div></div>
+    </div>
 
     <!-- 快捷操作 -->
-    <div class="quick-section">
-      <h2 class="quick-title">快捷操作</h2>
-      <div class="quick-grid stagger">
-        <button
-          v-for="action in quickActions"
-          :key="action.label"
-          class="card quick-card"
-          @click="router.push(action.to)"
-        >
+    <h2 class="quick-title">快捷操作</h2>
+    <div class="quick-grid stagger">
+      <div
+        v-for="action in quickActions"
+        :key="action.label"
+        class="card quick-card"
+        role="button"
+        tabindex="0"
+        @click="router.push(action.to)"
+        @keyup.enter="router.push(action.to)"
+      >
+        <div class="card-body d-flex flex-column align-items-center gap-2">
           <div class="quick-icon" :style="{ color: action.color, background: action.color + '1a' }">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path :d="action.icon" />
             </svg>
           </div>
           <span>{{ action.label }}</span>
-        </button>
+        </div>
       </div>
     </div>
   </div>
@@ -89,29 +104,22 @@ onMounted(async () => {
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--space-3);
-  margin-bottom: var(--space-7);
+  gap: 12px;
+  margin-bottom: 24px;
 }
 .stat-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-5) var(--space-4);
-  transition: border-color var(--transition-base), transform var(--transition-fast),
-    box-shadow var(--transition-base);
+  cursor: default;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
 }
 .stat-warn {
-  display: flex;
-  text-decoration: none;
+  border-color: var(--bs-warning-border-subtle);
   color: inherit;
-  border-color: rgba(251, 191, 36, 0.4);
 }
 .stat-warn:hover {
-  border-color: var(--warn);
+  border-color: var(--bs-warning);
 }
 .stat-icon {
   flex-shrink: 0;
@@ -120,57 +128,47 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
 }
 .stat-icon-warn {
-  color: var(--warn);
+  color: var(--bs-warning);
   background: rgba(251, 191, 36, 0.12);
 }
-.stat-body { min-width: 0; }
-.stat-card .num {
+.stat-body {
+  min-width: 0;
+}
+.num {
   font-size: 26px;
   font-weight: 700;
-  color: var(--text);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
-.warn-num { color: var(--warn); }
-.stat-card .label {
-  color: var(--text-muted);
-  font-size: var(--font-xs);
+.warn-num {
+  color: var(--bs-warning);
+}
+.label {
+  color: var(--bs-secondary-color);
+  font-size: 12px;
   margin-top: 2px;
 }
 
 .quick-title {
-  font-size: var(--font-md);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text);
-  margin: 0 0 var(--space-3);
+  margin: 0 0 12px;
 }
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: var(--space-3);
+  gap: 12px;
 }
 .quick-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-5) var(--space-3);
-  text-align: center;
-  border: 1px solid var(--border);
   cursor: pointer;
-  font: inherit;
-  color: var(--text-muted);
-  transition: border-color var(--transition-base), transform var(--transition-fast),
-    color var(--transition-base), box-shadow var(--transition-base);
+  text-align: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .quick-card:hover {
-  border-color: var(--primary);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-  color: var(--text);
 }
 .quick-icon {
   width: 44px;
@@ -178,9 +176,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
 }
 .quick-card span {
-  font-size: var(--font-sm);
+  font-size: 13px;
+  color: var(--bs-secondary-color);
 }
 </style>

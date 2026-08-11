@@ -20,6 +20,15 @@ const pageSize = 10;
 const total = ref(0);
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)));
 
+const statusText: Record<CommentRow['status'], string> = {
+  pending: '待审核',
+  approved: '已通过',
+  rejected: '已拒绝',
+};
+function statusBadgeClass(s: CommentRow['status']) {
+  return s === 'approved' ? 'bg-success-soft' : s === 'pending' ? 'bg-warning-soft' : 'bg-danger-soft';
+}
+
 async function load() {
   try {
     const res = await adminGetComments({ status: filter.value || undefined, page: page.value, pageSize });
@@ -97,7 +106,7 @@ onMounted(load);
         <h1 class="page-title">评论管理</h1>
       </div>
       <div class="page-header-actions">
-        <select v-model="filter" class="input" @change="changeFilter">
+        <select v-model="filter" class="form-control" @change="changeFilter">
           <option value="">全部</option>
           <option value="pending">待审核</option>
           <option value="approved">已通过</option>
@@ -114,9 +123,9 @@ onMounted(load);
       <button class="btn bad" :disabled="!selected.length" @click="batch('delete')">删除</button>
       <span v-if="selected.length" class="batch-info">已选 {{ selected.length }} 项</span>
     </div>
-    <p v-if="error" class="error">{{ error }}</p>
-    <div class="table-wrap">
-      <table class="table">
+    <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
+    <div class="table-responsive">
+      <table class="table table-vcenter">
         <thead>
           <tr>
             <th class="checkbox-cell"><input type="checkbox" :checked="allSelected" @change="toggleAll" /></th>
@@ -128,33 +137,37 @@ onMounted(load);
             <td class="checkbox-cell"><input type="checkbox" :checked="selected.includes(c.id)" @change="toggleSelect(c.id)" /></td>
             <td class="content-cell">{{ c.content }}</td>
             <td>{{ c.author }}</td>
-            <td><span class="badge" :class="c.status">{{ { pending: '待审核', approved: '已通过', rejected: '已拒绝' }[c.status] }}</span></td>
+            <td><span class="badge" :class="statusBadgeClass(c.status)">{{ statusText[c.status] }}</span></td>
             <td>{{ new Date(c.createdAt).toLocaleString('zh-CN') }}</td>
             <td>
               <div v-if="replyingId === c.id" class="reply-box">
-                <textarea v-model="replyContent" class="input reply-textarea" rows="3" placeholder="输入回复内容..."></textarea>
+                <textarea v-model="replyContent" class="form-control reply-textarea" rows="3" placeholder="输入回复内容..."></textarea>
                 <div class="reply-actions">
-                  <button class="btn sm" :disabled="!replyContent.trim()" @click="submitReply(c)">提交</button>
+                  <button class="btn btn-outline-secondary btn-sm" :disabled="!replyContent.trim()" @click="submitReply(c)">提交</button>
                   <button class="link-btn" @click="cancelReply">取消</button>
                 </div>
               </div>
               <div v-else class="op-cell">
-                <button v-if="c.status !== 'approved'" class="btn sm ok" @click="setStatus(c, 'approved')">通过</button>
-                <button v-if="c.status !== 'rejected'" class="btn sm bad" @click="setStatus(c, 'rejected')">拒绝</button>
-                <button class="btn sm" @click="startReply(c)">回复</button>
-                <button class="btn sm bad" @click="remove(c.id)">删除</button>
+                <button v-if="c.status !== 'approved'" class="btn btn-success btn-sm" @click="setStatus(c, 'approved')">通过</button>
+                <button v-if="c.status !== 'rejected'" class="btn btn-outline-danger btn-sm" @click="setStatus(c, 'rejected')">拒绝</button>
+                <button class="btn btn-outline-secondary btn-sm" @click="startReply(c)">回复</button>
+                <button class="btn btn-outline-danger btn-sm" @click="remove(c.id)">删除</button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p v-if="!list.length" class="empty">暂无评论</p>
+    <p v-if="!list.length" class="text-secondary text-center py-4">暂无评论</p>
 
-    <nav v-if="total > pageSize" class="pagination">
-      <button :disabled="page <= 1" @click="goPage(page - 1)">上一页</button>
-      <span class="page-info">{{ page }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages" @click="goPage(page + 1)">下一页</button>
+    <nav v-if="total > pageSize" class="pagination pagination-sm justify-content-end mt-3">
+      <li class="page-item" :class="{ disabled: page <= 1 }">
+        <a class="page-link" href="#" @click.prevent="goPage(page - 1)">上一页</a>
+      </li>
+      <li class="page-item disabled"><span class="page-link">{{ page }} / {{ totalPages }}</span></li>
+      <li class="page-item" :class="{ disabled: page >= totalPages }">
+        <a class="page-link" href="#" @click.prevent="goPage(page + 1)">下一页</a>
+      </li>
     </nav>
   </div>
 </template>

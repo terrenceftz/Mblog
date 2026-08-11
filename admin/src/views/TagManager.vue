@@ -41,24 +41,24 @@ onMounted(load);
 
 <template>
   <div>
-    <h1 class="page-title">标签管理</h1>
+    <div class="page-header mb-3"><h1 class="page-title">标签管理</h1></div>
     <div class="add-row">
-      <input v-model="name" class="input" placeholder="新标签名称" @keyup.enter="add" />
-      <button class="btn primary" @click="add">添加</button>
+      <input v-model="name" class="form-control" placeholder="新标签名称" @keyup.enter="add" />
+      <button class="btn btn-primary" @click="add">添加</button>
     </div>
-    <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
     <div class="tag-list">
       <div v-for="t in list" :key="t.id" class="card tag-chip">
         <template v-if="editing?.id === t.id">
           <input v-model="editing.name" class="input tag-edit" @keyup.enter="update" />
-          <button class="btn sm ok" @click="update">存</button>
+          <button class="btn btn-success btn-sm" @click="update">存</button>
         </template>
         <template v-else>
           <span>#{{ t.name }}</span>
           <span class="badge">{{ t.postCount }}</span>
-          <button class="btn sm" @click="editing = { ...t }">编辑</button>
+          <button class="btn btn-outline-secondary btn-sm" @click="editing = { ...t }">编辑</button>
         </template>
-        <button class="btn sm bad" @click="remove(t.id)">删除</button>
+        <button class="btn btn-outline-danger btn-sm" @click="remove(t.id)">删除</button>
       </div>
     </div>
   </div>

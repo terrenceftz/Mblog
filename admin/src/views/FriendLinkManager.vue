@@ -9,6 +9,14 @@ const list = ref<FriendLinkRow[]>([]);
 const filter = ref('');
 const error = ref('');
 
+const statusText: Record<FriendLinkRow['status'], string> = {
+  pending: '待审核',
+  approved: '已通过',
+  rejected: '已拒绝',
+};
+function statusBadgeClass(s: FriendLinkRow['status']) {
+  return s === 'approved' ? 'bg-success-soft' : s === 'pending' ? 'bg-warning-soft' : 'bg-danger-soft';
+}
 async function load() {
   try {
     list.value = await adminGetFriendLinks({ status: filter.value || undefined });
@@ -37,7 +45,7 @@ onMounted(load);
         <h1 class="page-title">友链管理</h1>
       </div>
       <div class="page-header-actions">
-        <select v-model="filter" class="input" @change="load">
+        <select v-model="filter" class="form-control" @change="load">
           <option value="">全部</option>
           <option value="pending">待审核</option>
           <option value="approved">已通过</option>
@@ -45,26 +53,26 @@ onMounted(load);
         </select>
       </div>
     </div>
-    <p v-if="error" class="error">{{ error }}</p>
-    <div class="table-wrap">
-      <table class="table">
+    <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
+    <div class="table-responsive">
+      <table class="table table-vcenter">
         <thead><tr><th>站名</th><th>网址</th><th>简介</th><th>状态</th><th>操作</th></tr></thead>
         <tbody>
           <tr v-for="l in list" :key="l.id">
             <td>{{ l.name }}</td>
             <td><a :href="l.url" target="_blank" rel="noopener" class="url">{{ l.url }}</a></td>
             <td class="desc-cell">{{ l.description }}</td>
-            <td><span class="badge" :class="l.status">{{ { pending: '待审核', approved: '已通过', rejected: '已拒绝' }[l.status] }}</span></td>
+            <td><span class="badge" :class="statusBadgeClass(l.status)">{{ statusText[l.status] }}</span></td>
             <td class="op-cell">
-              <button v-if="l.status !== 'approved'" class="btn sm ok" @click="setStatus(l, 'approved')">通过</button>
-              <button v-if="l.status !== 'rejected'" class="btn sm bad" @click="setStatus(l, 'rejected')">拒绝</button>
-              <button class="btn sm bad" @click="remove(l.id)">删除</button>
+              <button v-if="l.status !== 'approved'" class="btn btn-success btn-sm" @click="setStatus(l, 'approved')">通过</button>
+              <button v-if="l.status !== 'rejected'" class="btn btn-outline-danger btn-sm" @click="setStatus(l, 'rejected')">拒绝</button>
+              <button class="btn btn-outline-danger btn-sm" @click="remove(l.id)">删除</button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p v-if="!list.length" class="empty">暂无友链</p>
+    <p v-if="!list.length" class="text-secondary text-center py-4">暂无友链</p>
   </div>
 </template>
 

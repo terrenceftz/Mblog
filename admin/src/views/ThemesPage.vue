@@ -78,7 +78,7 @@ function resetTheme() {
 
 <template>
   <div>
-    <h1 class="page-title">主题管理</h1>
+    <div class="page-header mb-3"><h1 class="page-title">主题管理</h1></div>
     <div class="tabs">
       <button type="button" class="btn" :class="{ active: activeTab === 'normal' }" @click="activeTab = 'normal'">正常主题</button>
       <button type="button" class="btn" :class="{ active: activeTab === 'reader' }" @click="activeTab = 'reader'">极简阅读</button>
@@ -96,28 +96,28 @@ function resetTheme() {
 
       <div class="num-row">
         <label>正文字号（px）
-          <input class="input" type="number" v-model.number="forms[activeTab].fontSize" min="12" max="24" />
+          <input class="form-control" type="number" v-model.number="forms[activeTab].fontSize" min="12" max="24" />
         </label>
         <label>首页文章数
-          <input class="input" type="number" v-model.number="forms[activeTab].homePageSize" min="1" max="50" />
+          <input class="form-control" type="number" v-model.number="forms[activeTab].homePageSize" min="1" max="50" />
         </label>
       </div>
 
       <!-- 首屏内容（仅正常主题生效）：头像 + 自我介绍 -->
       <div v-if="activeTab === 'normal'" class="content-row">
         <label>首屏头像 URL
-          <input class="input" v-model="forms[activeTab].avatar" placeholder="留空使用 /avatar.jpg" />
+          <input class="form-control" v-model="forms[activeTab].avatar" placeholder="留空使用 /avatar.jpg" />
         </label>
         <label>首屏自我介绍（BlurText 逐词模糊揭示）
-          <textarea class="input" v-model="forms[activeTab].intro" rows="3" placeholder="一段简短风趣的自我介绍…"></textarea>
+          <textarea class="form-control" v-model="forms[activeTab].intro" rows="3" placeholder="一段简短风趣的自我介绍…"></textarea>
         </label>
       </div>
 
       <div class="actions">
         <p v-if="saved" class="saved">✓ 已保存</p>
-        <p v-if="error" class="error">{{ error }}</p>
+        <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
         <button type="button" class="btn" @click="resetTheme">重置当前主题（需保存）</button>
-        <button type="submit" class="btn primary">保存主题设置</button>
+        <button type="submit" class="btn btn-primary">保存主题设置</button>
       </div>
     </form>
   </div>

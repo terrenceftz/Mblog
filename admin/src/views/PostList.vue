@@ -49,45 +49,51 @@ onMounted(() => load().catch((e) => { error.value = e instanceof Error ? e.messa
 
 <template>
   <div>
-    <div class="page-header">
-      <div class="page-header-titles">
-        <h1 class="page-title">文章管理</h1>
-      </div>
-      <div class="page-header-actions">
-        <select v-model="statusFilter" class="input" @change="changeFilter">
+    <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <h1 class="page-title">文章管理</h1>
+      <div class="d-flex align-items-center gap-2">
+        <select v-model="statusFilter" class="form-select form-select-sm" @change="changeFilter">
           <option value="">全部状态</option>
           <option value="published">已发布</option>
           <option value="draft">草稿</option>
         </select>
-        <button class="btn primary" @click="router.push('/posts/new')">＋ 新建文章</button>
+        <button class="btn btn-primary btn-sm" @click="router.push('/posts/new')">＋ 新建文章</button>
       </div>
     </div>
-    <p v-if="error" class="error">{{ error }}</p>
-    <div class="table-wrap">
-      <table class="table">
+    <div v-if="error" class="alert alert-danger py-2" role="alert">{{ error }}</div>
+    <div class="table-responsive">
+      <table class="table table-vcenter">
         <thead>
           <tr><th>标题</th><th>状态</th><th>更新时间</th><th>阅读量</th><th>操作</th></tr>
         </thead>
         <tbody>
           <tr v-for="p in posts" :key="p.id">
             <td><router-link :to="`/posts/${p.id}`" class="title-link">{{ p.title }}</router-link></td>
-            <td><span class="badge" :class="p.status">{{ p.status === 'published' ? '已发布' : '草稿' }}</span></td>
+            <td>
+              <span class="badge" :class="p.status === 'published' ? 'bg-success-soft' : 'bg-secondary-soft'">
+                {{ p.status === 'published' ? '已发布' : '草稿' }}
+              </span>
+            </td>
             <td>{{ new Date(p.updatedAt).toLocaleDateString('zh-CN') }}</td>
-            <td>{{ p.viewCount }}</td>
+            <td class="text-secondary">{{ p.viewCount }}</td>
             <td class="op-cell">
-              <button class="btn sm" @click="router.push(`/posts/${p.id}`)">编辑</button>
-              <button class="btn sm bad" @click="remove(p.id)">删除</button>
+              <button class="btn btn-outline-primary btn-sm" @click="router.push(`/posts/${p.id}`)">编辑</button>
+              <button class="btn btn-outline-danger btn-sm" @click="remove(p.id)">删除</button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p v-if="!posts.length && !error" class="empty">暂无文章</p>
-    <div v-if="total > pageSize" class="pagination">
-      <button :disabled="page <= 1" @click="page -= 1; load()">上一页</button>
-      <span class="page-info">{{ page }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages" @click="page += 1; load()">下一页</button>
-    </div>
+    <p v-if="!posts.length && !error" class="text-secondary text-center py-4">暂无文章</p>
+    <nav v-if="total > pageSize" class="pagination pagination-sm justify-content-end mt-3">
+      <li class="page-item" :class="{ disabled: page <= 1 }">
+        <a class="page-link" href="#" @click.prevent="page -= 1; load()">上一页</a>
+      </li>
+      <li class="page-item disabled"><span class="page-link">{{ page }} / {{ totalPages }}</span></li>
+      <li class="page-item" :class="{ disabled: page >= totalPages }">
+        <a class="page-link" href="#" @click.prevent="page += 1; load()">下一页</a>
+      </li>
+    </nav>
   </div>
 </template>
 

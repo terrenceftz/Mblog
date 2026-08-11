@@ -47,6 +47,14 @@ function changeFilter() {
   page.value = 1;
   load();
 }
+const statusText: Record<TalkRow['status'], string> = {
+  pending: '待审核',
+  approved: '已通过',
+  rejected: '已拒绝',
+};
+function statusBadgeClass(s: TalkRow['status']) {
+  return s === 'approved' ? 'bg-success-soft' : s === 'pending' ? 'bg-warning-soft' : 'bg-danger-soft';
+}
 function goPage(p: number) {
   page.value = p;
   load();
@@ -70,7 +78,7 @@ onMounted(load);
         <h1 class="page-title">说说管理</h1>
       </div>
       <div class="page-header-actions">
-        <select v-model="filter" class="input" @change="changeFilter">
+        <select v-model="filter" class="form-control" @change="changeFilter">
           <option value="">全部</option>
           <option value="pending">待审核</option>
           <option value="approved">已通过</option>
@@ -102,7 +110,7 @@ onMounted(load);
       </div>
     </div>
 
-    <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
 
     <div v-if="list.length" class="talk-list">
       <div v-for="t in list" :key="t.id" class="card talk-row">
@@ -111,21 +119,25 @@ onMounted(load);
           <div class="talk-meta">
             <span class="talk-time">{{ fmtDate(t.createdAt) }}</span>
             <span class="talk-ip">{{ t.ip }}</span>
-            <span class="badge" :class="t.status">{{ { pending: '待审核', approved: '已通过', rejected: '已拒绝' }[t.status] }}</span>
+            <span class="badge" :class="statusBadgeClass(t.status)">{{ statusText[t.status] }}</span>
           </div>
         </div>
         <div class="talk-actions">
-          <button v-if="t.status !== 'approved'" class="btn sm ok" @click="setStatus(t, 'approved')">通过</button>
-          <button v-if="t.status !== 'rejected'" class="btn sm bad" @click="setStatus(t, 'rejected')">拒绝</button>
+          <button v-if="t.status !== 'approved'" class="btn btn-success btn-sm" @click="setStatus(t, 'approved')">通过</button>
+          <button v-if="t.status !== 'rejected'" class="btn btn-outline-danger btn-sm" @click="setStatus(t, 'rejected')">拒绝</button>
         </div>
       </div>
     </div>
-    <p v-else class="empty">暂无说说</p>
+    <p v-else class="text-secondary text-center py-4">暂无说说</p>
 
-    <nav v-if="total > pageSize" class="pagination">
-      <button :disabled="page <= 1" @click="goPage(page - 1)">上一页</button>
-      <span class="page-info">{{ page }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages" @click="goPage(page + 1)">下一页</button>
+    <nav v-if="total > pageSize" class="pagination pagination-sm justify-content-end mt-3">
+      <li class="page-item" :class="{ disabled: page <= 1 }">
+        <a class="page-link" href="#" @click.prevent="goPage(page - 1)">上一页</a>
+      </li>
+      <li class="page-item disabled"><span class="page-link">{{ page }} / {{ totalPages }}</span></li>
+      <li class="page-item" :class="{ disabled: page >= totalPages }">
+        <a class="page-link" href="#" @click.prevent="goPage(page + 1)">下一页</a>
+      </li>
     </nav>
   </div>
 </template>

@@ -123,13 +123,14 @@ async function save() {
 
 <template>
   <div>
-    <h1 class="page-title">设置</h1>
+    <div class="page-header mb-3"><h1 class="page-title">设置</h1></div>
     <form class="settings-form" @submit.prevent="save">
       <div class="card">
-        <div class="card-title">站点信息</div>
+        <div class="card-body">
+        <div class="card-header">站点信息</div>
         <div class="field-pair">
           <label>站点名称
-            <input v-model="form.site_name" class="input" placeholder="我的博客" />
+            <input v-model="form.site_name" class="form-control" placeholder="我的博客" />
           </label>
           <label>默认主题
             <select v-model="form.default_theme">
@@ -139,37 +140,43 @@ async function save() {
           </label>
         </div>
         <label>站点简介
-          <input v-model="form.site_description" class="input" />
+          <input v-model="form.site_description" class="form-control" />
         </label>
         <label>站点地址（用于 RSS）
-          <input v-model="form.site_url" class="input" placeholder="https://example.com" />
+          <input v-model="form.site_url" class="form-control" placeholder="https://example.com" />
         </label>
-      </div>
+      
+        </div></div>
 
 
       <div class="card">
-        <div class="card-title">评论人机验证（Turnstile）</div>
+        <div class="card-body">
+        <div class="card-header">评论人机验证（Turnstile）</div>
         <label>Site Key
-          <input v-model="form.turnstile_site_key" class="input" placeholder="在 Cloudflare → Turnstile 创建站点后获取" />
+          <input v-model="form.turnstile_site_key" class="form-control" placeholder="在 Cloudflare → Turnstile 创建站点后获取" />
         </label>
         <label>Secret Key
-          <input v-model="form.turnstile_secret_key" class="input" type="password" placeholder="留空或 **** 表示保持不变" />
+          <input v-model="form.turnstile_secret_key" class="form-control" type="password" placeholder="留空或 **** 表示保持不变" />
         </label>
         <p class="menu-tip">配齐后评论用云验证；留空回落数学验证码。</p>
-      </div>
+      
+        </div></div>
 
       <div class="card">
-        <div class="card-title">友链</div>
+        <div class="card-body">
+        <div class="card-header">友链</div>
         <label>开放访客申请
           <select v-model="form.friend_link_enabled">
             <option value="1">开启</option>
             <option value="0">关闭</option>
           </select>
         </label>
-      </div>
+      
+        </div></div>
 
       <div class="card">
-        <div class="card-title">GitHub 项目展示</div>
+        <div class="card-body">
+        <div class="card-header">GitHub 项目展示</div>
         <label>开启展示
           <select v-model="form.github_enabled">
             <option value="1">开启</option>
@@ -177,26 +184,30 @@ async function save() {
           </select>
         </label>
         <label>GitHub 用户名
-          <input v-model="form.github_username" class="input" placeholder="octocat" />
+          <input v-model="form.github_username" class="form-control" placeholder="octocat" />
         </label>
         <p class="menu-tip">前台 /projects 自动拉取公开仓库（不含 fork）。</p>
-      </div>
+      
+        </div></div>
 
       <div class="card card--full">
-        <div class="card-title">导航菜单（前台顶栏）</div>
+        <div class="card-body">
+        <div class="card-header">导航菜单（前台顶栏）</div>
         <div class="menu-editor">
           <div v-for="(item, index) in menuItems" :key="index" class="menu-row">
-            <input v-model="item.label" class="input" placeholder="菜单名称" />
-            <input v-model="item.url" class="input" placeholder="链接（/归档 或 https://…）" />
-            <button type="button" class="btn sm bad" @click="removeMenuRow(index)">✕</button>
+            <input v-model="item.label" class="form-control" placeholder="菜单名称" />
+            <input v-model="item.url" class="form-control" placeholder="链接（/归档 或 https://…）" />
+            <button type="button" class="btn btn-outline-danger btn-sm" @click="removeMenuRow(index)">✕</button>
           </div>
-          <button type="button" class="btn sm" @click="addMenuRow">＋ 添加菜单项</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" @click="addMenuRow">＋ 添加菜单项</button>
           <p class="menu-tip">`/` 为首页；http 开头新窗口打开；留空行忽略。</p>
         </div>
-      </div>
+      
+        </div></div>
 
       <div class="card">
-        <div class="card-title">存储（图片/音频上传）</div>
+        <div class="card-body">
+        <div class="card-header">存储（图片/音频上传）</div>
         <label>存储方式
           <select v-model="form.storage_provider">
             <option value="local">本地磁盘</option>
@@ -206,45 +217,49 @@ async function save() {
         <template v-if="form.storage_provider === 'cos'">
           <div class="field-pair">
             <label>SecretId
-              <input v-model="form.cos_secret_id" class="input" />
+              <input v-model="form.cos_secret_id" class="form-control" />
             </label>
             <label>SecretKey
-              <input v-model="form.cos_secret_key" class="input" type="password" placeholder="留空或 **** 表示保持不变" />
+              <input v-model="form.cos_secret_key" class="form-control" type="password" placeholder="留空或 **** 表示保持不变" />
             </label>
           </div>
           <div class="field-pair">
             <label>Bucket
-              <input v-model="form.cos_bucket" class="input" placeholder="my-blog-1250000000" />
+              <input v-model="form.cos_bucket" class="form-control" placeholder="my-blog-1250000000" />
             </label>
             <label>Region
-              <input v-model="form.cos_region" class="input" placeholder="ap-guangzhou" />
+              <input v-model="form.cos_region" class="form-control" placeholder="ap-guangzhou" />
             </label>
           </div>
         </template>
-      </div>
+      
+        </div></div>
 
       <div class="card">
-        <div class="card-title">修改密码</div>
+        <div class="card-body">
+        <div class="card-header">修改密码</div>
         <label>当前密码
-          <input v-model="oldPassword" class="input" type="password" autocomplete="current-password" />
+          <input v-model="oldPassword" class="form-control" type="password" autocomplete="current-password" />
         </label>
         <label>新密码（至少 8 位）
-          <input v-model="newPassword" class="input" type="password" autocomplete="new-password" />
+          <input v-model="newPassword" class="form-control" type="password" autocomplete="new-password" />
         </label>
         <label>确认新密码
-          <input v-model="confirmPassword" class="input" type="password" autocomplete="new-password" />
+          <input v-model="confirmPassword" class="form-control" type="password" autocomplete="new-password" />
         </label>
         <div class="sync-row">
           <button type="button" class="btn" :disabled="pwdChanging" @click="changePassword">
             {{ pwdChanging ? '提交中…' : '修改密码' }}
           </button>
           <span v-if="pwdMsg" class="saved">{{ pwdMsg }}</span>
-          <span v-if="pwdError" class="error">{{ pwdError }}</span>
+          <span v-if="pwdError" class="alert alert-danger py-2">{{ pwdError }}</span>
         </div>
-      </div>
+      
+        </div></div>
 
       <div class="card card--full">
-        <div class="card-title">豆瓣影音展示</div>
+        <div class="card-body">
+        <div class="card-header">豆瓣影音展示</div>
         <div class="field-pair">
           <label>开启展示
             <select v-model="form.douban_enabled">
@@ -253,26 +268,27 @@ async function save() {
             </select>
           </label>
           <label>豆瓣用户 ID
-            <input v-model="form.douban_uid" class="input" placeholder="douban 主页 /people/ 后的数字" />
+            <input v-model="form.douban_uid" class="form-control" placeholder="douban 主页 /people/ 后的数字" />
           </label>
         </div>
         <label>TMDB API Key（海报图源）
-          <input v-model="form.tmdb_api_key" class="input" type="password" placeholder="留空或 **** 表示保持不变" />
+          <input v-model="form.tmdb_api_key" class="form-control" type="password" placeholder="留空或 **** 表示保持不变" />
         </label>
         <div class="sync-row">
           <button type="button" class="btn" :disabled="syncing" @click="syncDouban">
             {{ syncing ? '同步中…' : '立即同步豆瓣数据' }}
           </button>
           <span v-if="syncMsg" class="saved">{{ syncMsg }}</span>
-          <span v-if="syncError" class="error">{{ syncError }}</span>
+          <span v-if="syncError" class="alert alert-danger py-2">{{ syncError }}</span>
         </div>
         <p class="menu-tip">同步使用已保存设置——先「保存设置」再同步。拉取「看过」并预热 TMDB 海报缓存（超时 30 秒）。</p>
-      </div>
+      
+        </div></div>
 
       <div class="actions card--full">
         <p v-if="saved" class="saved">✓ 已保存</p>
-        <p v-if="error" class="error">{{ error }}</p>
-        <button type="submit" class="btn primary">保存设置</button>
+        <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
+        <button type="submit" class="btn btn-primary">保存设置</button>
       </div>
 
     </form>
