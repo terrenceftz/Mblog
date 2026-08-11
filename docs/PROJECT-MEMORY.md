@@ -265,6 +265,19 @@ npm test   # 83/83 通过
 - admin.css 是 Gemini 的 --mb-* 体系（与我们旧 --bg/--surface token 不同），**自定义新样式时用 Gemini 的变量**（--mb-primary 等，看 admin.css 定义）
 - 编辑器 vditor 依赖保留在 package.json（vditor ^3.10.9）
 
+### 2026-08-11 21:00 —— Gemini UI 功能补全（46a7044）
+
+用户要求核对所有页面，把 Gemini 遗漏的旧功能补齐：
+
+**补全清单**：
+- SettingsPage：+6 卡片（Turnstile 评论验证/友链开关/GitHub 展示/导航菜单动态行/存储+COS/修改密码）+ 基础信息补默认主题/站点地址；适配层 getSettings/updateSettings 全字段映射（含掩码约定）
+- ThemesPage：+配色细节 5 色（bg/text/muted/primary/border color picker，normal/reader 各自维护）+ 首屏头像/自我介绍（normal 主题）+ 色板选择联动写入 primary；适配层 getThemeConfig/updateThemeConfig 读写 theme_normal/theme_reader JSON
+- PostEditor：+localStorage 草稿自动保存（3s 防抖，mblog_admin_draft_ 键，保存成功清除）+ Vditor 工具栏音频插入按钮
+- 后端：+DELETE /talks/:id（适配层 deleteTalk 真实调用）；friendLinks 后端本就有 POST（适配层误判，已修正支持后台手动添加友链）
+- 核对确认已有：CommentManager 回复/批量/状态、TalkManager 450/500 字数提示、PostList/Category/Tag 删除确认
+
+**SiteSettings/ThemeConfig 类型扩展**（api/admin.ts）：新增 siteUrl/defaultTheme/turnstileSiteKey/turnstileSecretKey/friendLinkEnabled/githubEnabled/githubUsername/navMenu/storageProvider/cosBucket/cosRegion + ThemeConfig.colors{normal,reader}
+
 ## 9. 参考
 
 - 灵感/借鉴：https://eonova.me 源码 https://github.com/eonova/eonova.me
