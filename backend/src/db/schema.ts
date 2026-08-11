@@ -49,6 +49,7 @@ export const comments = sqliteTable('comments', {
   postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
   author: text('author').notNull(),
   email: text('email').notNull().default(''),
+  website: text('website').notNull().default(''),
   content: text('content').notNull(),
   ip: text('ip').notNull().default(''),
   status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),

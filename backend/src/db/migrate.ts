@@ -11,6 +11,14 @@ export function ensureMigrated(ctx: Db): void {
     CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(title, content_md);
   `);
 
+  // 增量列迁移：早期库无 website 列时补充（幂等）
+  const hasWebsite = (ctx.sqlite.prepare('PRAGMA table_info(comments)').all() as { name: string }[]).some(
+    (c) => c.name === 'website',
+  );
+  if (!hasWebsite) {
+    ctx.sqlite.exec(`ALTER TABLE comments ADD COLUMN website text NOT NULL DEFAULT ''`);
+  }
+
   const existing = ctx.db.select({ id: users.id }).from(users).limit(1).get();
   if (existing) return;
 

@@ -120,4 +120,24 @@ describe('public posts', () => {
     expect(body.data.length).toBe(2);
     expect(body.data[0].month).toBe('2026-08'); // 新的在前
   });
+
+  it('详情返回上一篇与下一篇', async () => {
+    // 独立实例，避免共享 ctx 中的历史文章干扰排序
+    const iso = makeTestApp();
+    iso.ctx.db.insert(posts).values([
+      { title: '第一篇', slug: 'p1', status: 'published', contentMd: '', contentHtml: '', createdAt: 1000 },
+      { title: '第二篇', slug: 'p2', status: 'published', contentMd: '', contentHtml: '', createdAt: 2000 },
+      { title: '第三篇', slug: 'p3', status: 'published', contentMd: '', contentHtml: '', createdAt: 3000 },
+      { title: '草稿', slug: 'pd', status: 'draft', contentMd: '', contentHtml: '', createdAt: 2500 },
+    ]).run();
+    const mid = await (await iso.app.request('/api/posts/p2')).json();
+    expect(mid.data.prev.slug).toBe('p1');
+    expect(mid.data.next.slug).toBe('p3');
+    const first = await (await iso.app.request('/api/posts/p1')).json();
+    expect(first.data.prev).toBeNull();
+    expect(first.data.next.slug).toBe('p2');
+    const last = await (await iso.app.request('/api/posts/p3')).json();
+    expect(last.data.next).toBeNull();
+  });
+
 });

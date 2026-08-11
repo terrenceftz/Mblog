@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and, desc, count, inArray } from 'drizzle-orm';
+import { eq, and, asc, desc, count, gt, inArray, lt, or } from 'drizzle-orm';
 import { posts, postTags, tags, categories } from '../../db/schema';
 import { toSearchText } from '../../services/posts';
 import type { Db } from '../../db';
@@ -111,7 +111,33 @@ export function postsRoutes(ctx: Db) {
       ? ctx.db.select().from(categories).where(eq(categories.id, post.categoryId)).get()
       : null;
 
-    return c.json({ data: { ...post, viewCount, tags: postTagList, category } });
+    // 上一篇 / 下一篇（按发布时间与 id 排序，时间相同按 id 兜底）
+    const siblingCond = (dir: 'prev' | 'next') =>
+      dir === 'prev'
+        ? or(
+            lt(posts.createdAt, post.createdAt),
+            and(eq(posts.createdAt, post.createdAt), lt(posts.id, post.id)),
+          )
+        : or(
+            gt(posts.createdAt, post.createdAt),
+            and(eq(posts.createdAt, post.createdAt), gt(posts.id, post.id)),
+          );
+    const prev = ctx.db
+      .select({ title: posts.title, slug: posts.slug })
+      .from(posts)
+      .where(and(eq(posts.status, 'published'), siblingCond('prev')))
+      .orderBy(desc(posts.createdAt), desc(posts.id))
+      .limit(1)
+      .get() ?? null;
+    const next = ctx.db
+      .select({ title: posts.title, slug: posts.slug })
+      .from(posts)
+      .where(and(eq(posts.status, 'published'), siblingCond('next')))
+      .orderBy(asc(posts.createdAt), asc(posts.id))
+      .limit(1)
+      .get() ?? null;
+
+    return c.json({ data: { ...post, viewCount, tags: postTagList, category, prev, next } });
   });
 
   return app;

@@ -18,6 +18,7 @@ export function commentsRoutes(ctx: Db) {
         id: comments.id,
         postId: comments.postId,
         author: comments.author,
+        website: comments.website,
         content: comments.content,
         parentId: comments.parentId,
         createdAt: comments.createdAt,
@@ -39,6 +40,10 @@ export function commentsRoutes(ctx: Db) {
     const email = typeof body.email === 'string' ? body.email.trim().slice(0, 100) : '';
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return c.json({ error: { code: 'INVALID', message: '邮箱格式不正确' } }, 400);
+    }
+    const website = typeof body.website === 'string' ? body.website.trim().slice(0, 200) : '';
+    if (website && !/^https?:\/\/.+/i.test(website)) {
+      return c.json({ error: { code: 'INVALID', message: '个人网站需以 http(s):// 开头' } }, 400);
     }
     if (!author || !content) return c.json({ error: { code: 'INVALID', message: '昵称和内容不能为空' } }, 400);
 
@@ -66,7 +71,7 @@ export function commentsRoutes(ctx: Db) {
       c.req.header('x-forwarded-for')?.split(',').pop()?.trim() ||
       'unknown';
 
-    ctx.db.insert(comments).values({ postId: post.id, author, email, content, ip, status: 'pending', parentId }).run();
+    ctx.db.insert(comments).values({ postId: post.id, author, email, website, content, ip, status: 'pending', parentId }).run();
     return c.json({ data: { message: '评论已提交，等待审核' } }, 201);
   });
 
