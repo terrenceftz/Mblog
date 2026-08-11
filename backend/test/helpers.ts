@@ -26,3 +26,11 @@ export async function loginAsAdmin(app: ReturnType<typeof createApp>): Promise<s
 export function authHeaders(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
+
+/** 获取并解算评论数学验证码（供所有需要发表评论的测试使用） */
+export async function solveCaptcha(app: ReturnType<typeof createApp>) {
+  const res = await app.request('/api/comments/captcha');
+  const { data } = (await res.json()) as { data: { id: string; question: string } };
+  const m = data.question.match(/(\d+)\s*\+\s*(\d+)/);
+  return { captchaId: data.id, captchaAnswer: String(Number(m[1]) + Number(m[2])) };
+}

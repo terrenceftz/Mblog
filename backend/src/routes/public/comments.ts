@@ -2,10 +2,16 @@ import { Hono } from 'hono';
 import { eq, and, asc } from 'drizzle-orm';
 import { comments, posts } from '../../db/schema';
 import { rateLimit } from '../../middleware/rateLimit';
+import { createCaptcha, verifyCaptcha } from '../../lib/captcha';
+import { verifyTurnstile } from '../../lib/turnstile';
+import { getSetting } from '../../lib/settings';
 import type { Db } from '../../db';
 
 export function commentsRoutes(ctx: Db) {
   const app = new Hono();
+
+  // 评论验证码（防机器人）：返回一道数学题
+  app.get('/comments/captcha', (c) => c.json({ data: createCaptcha() }));
 
   app.get('/comments', (c) => {
     const postId = Number(c.req.query('post_id'));
@@ -34,6 +40,26 @@ export function commentsRoutes(ctx: Db) {
     const body = await c.req.json().catch(() => null);
     if (!body || typeof body.postId !== 'number' || typeof body.author !== 'string' || typeof body.content !== 'string') {
       return c.json({ error: { code: 'INVALID', message: '参数错误' } }, 400);
+    }
+    // 蜜罐字段：真人不填，机器人自动填充 → 直接拒绝
+    if (typeof body._hp === 'string' && body._hp.trim() !== '') {
+      return c.json({ error: { code: 'INVALID', message: '参数错误' } }, 400);
+    }
+
+    const ip =
+      c.req.header('x-real-ip')?.trim() ||
+      c.req.header('x-forwarded-for')?.split(',').pop()?.trim() ||
+      'unknown';
+
+    // 云验证（Turnstile）：配置了 Secret Key 就走云验证；未配置回落数学验证码
+    const turnstileSecret = getSetting(ctx, 'turnstile_secret_key');
+    if (turnstileSecret) {
+      const token = typeof body.cfTurnstileToken === 'string' ? body.cfTurnstileToken : '';
+      if (!token || !(await verifyTurnstile(token, turnstileSecret, ip === 'unknown' ? undefined : ip))) {
+        return c.json({ error: { code: 'CAPTCHA_FAILED', message: '人机验证未通过，请重试' } }, 400);
+      }
+    } else if (!verifyCaptcha(body.captchaId, body.captchaAnswer)) {
+      return c.json({ error: { code: 'CAPTCHA_FAILED', message: '验证码不正确或已过期' } }, 400);
     }
     const author = body.author.trim().slice(0, 50);
     const content = body.content.trim().slice(0, 2000);
@@ -65,11 +91,6 @@ export function commentsRoutes(ctx: Db) {
         return c.json({ error: { code: 'INVALID', message: '回复的评论不存在或不可回复' } }, 400);
       }
     }
-
-    const ip =
-      c.req.header('x-real-ip')?.trim() ||
-      c.req.header('x-forwarded-for')?.split(',').pop()?.trim() ||
-      'unknown';
 
     ctx.db.insert(comments).values({ postId: post.id, author, email, website, content, ip, status: 'pending', parentId }).run();
     return c.json({ data: { message: '评论已提交，等待审核' } }, 201);

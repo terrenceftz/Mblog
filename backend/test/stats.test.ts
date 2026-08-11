@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { makeTestApp, loginAsAdmin, authHeaders } from './helpers';
+import { makeTestApp, loginAsAdmin, authHeaders, solveCaptcha } from './helpers';
 
 describe('公共统计接口 /api/stats', () => {
   it('返回文章/评论/浏览/友链统计', async () => {
@@ -20,7 +20,7 @@ describe('公共统计接口 /api/stats', () => {
     const commentRes = await app.request('/api/comments', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ postId: 1, author: 'a', email: 'a@a.com', content: 'x' }),
+      body: JSON.stringify({ ...(await solveCaptcha(app)), postId: 1, author: 'a', email: 'a@a.com', content: 'x' }),
     });
     expect(commentRes.status).toBe(201);
 

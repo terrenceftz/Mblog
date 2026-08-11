@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { comments } from '../src/db/schema';
-import { makeTestApp, loginAsAdmin, authHeaders } from './helpers';
+import { makeTestApp, loginAsAdmin, authHeaders, solveCaptcha } from './helpers';
 import { resetRateLimit } from '../src/middleware/rateLimit';
 
 describe('admin auth', () => {
@@ -289,7 +289,7 @@ describe('admin comments', () => {
     const commentRes = await app.request('/api/comments', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ postId: 1, author: '访客', content: '好文' }),
+      body: JSON.stringify({ ...(await solveCaptcha(app)), postId: 1, author: '访客', content: '好文' }),
     });
     expect(commentRes.status).toBe(201);
 
@@ -314,7 +314,7 @@ describe('admin comments', () => {
     await app.request('/api/comments', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ postId: 1, author: '路人', content: '第二条' }),
+      body: JSON.stringify({ ...(await solveCaptcha(app)), postId: 1, author: '路人', content: '第二条' }),
     });
     const batch = await app.request('/api/admin/comments/batch', {
       method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
@@ -337,7 +337,7 @@ describe('admin comments', () => {
     const commentRes = await app.request('/api/comments', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ postId: 2, author: '批量拒绝访客', content: '待拒绝评论' }),
+      body: JSON.stringify({ ...(await solveCaptcha(app)), postId: 2, author: '批量拒绝访客', content: '待拒绝评论' }),
     });
     expect(commentRes.status).toBe(201);
     const row = ctx.db.select().from(comments).where(eq(comments.author, '批量拒绝访客')).get();
@@ -541,5 +541,23 @@ describe('admin settings', () => {
     const get2 = await app.request('/api/admin/settings', { headers });
     const get2Body = await get2.json();
     expect(get2Body.data.tmdb_api_key).toBe('********');
+  });
+
+  it('Turnstile Secret Key 掩码往返', async () => {
+    const headers = authHeaders(token);
+    const put = await app.request('/api/admin/settings', {
+      method: 'PUT', headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ turnstile_secret_key: 'cf-secret-123', turnstile_site_key: '0x4AAABBB' }),
+    });
+    expect(put.status).toBe(200);
+    const putBody = await put.json();
+    expect(putBody.data.turnstile_secret_key).toBe('********');
+    expect(putBody.data.turnstile_site_key).toBe('0x4AAABBB'); // site key 非密文，明文返回
+    const pub = await app.request('/api/settings/public');
+    const pubBody = await pub.json();
+    expect(pubBody.data.turnstileSiteKey).toBe('0x4AAABBB'); // 公开暴露 site key
+    const get = await app.request('/api/admin/settings', { headers });
+    const getBody = await get.json();
+    expect(getBody.data.turnstile_secret_key).toBe('********');
   });
 });

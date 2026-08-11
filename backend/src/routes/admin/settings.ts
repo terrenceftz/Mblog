@@ -4,16 +4,19 @@ import type { Db } from '../../db';
 
 // 密文掩码约定：GET 返回占位符，PUT 收到占位符时保留原值
 const MASK = '********';
+const MASKED_KEYS = new Set(['cos_secret_key', 'tmdb_api_key', 'turnstile_secret_key']);
+
+function maskSecrets(data: Record<string, string>): Record<string, string> {
+  for (const k of MASKED_KEYS) if (data[k]) data[k] = MASK;
+  return data;
+}
 
 export function settingsAdminRoutes(ctx: Db) {
   const app = new Hono();
 
   app.get('/settings', (c) => {
-    const keys = Object.keys(DEFAULT_SETTINGS);
-    const data = getSettings(ctx, keys);
-    if (data.cos_secret_key) data.cos_secret_key = MASK;
-    if (data.tmdb_api_key) data.tmdb_api_key = MASK;
-    return c.json({ data });
+    const data = getSettings(ctx, Object.keys(DEFAULT_SETTINGS));
+    return c.json({ data: maskSecrets(data) });
   });
 
   app.put('/settings', async (c) => {
@@ -25,13 +28,11 @@ export function settingsAdminRoutes(ctx: Db) {
     for (const [key, value] of Object.entries(body)) {
       if (!allowed.has(key) || typeof value !== 'string') continue;
       // 掩码占位符 → 保留已存密钥
-      if ((key === 'cos_secret_key' || key === 'tmdb_api_key') && value === MASK) continue;
+      if (MASKED_KEYS.has(key) && value === MASK) continue;
       setSetting(ctx, key, value);
     }
     const data = getSettings(ctx, Object.keys(DEFAULT_SETTINGS));
-    if (data.cos_secret_key) data.cos_secret_key = MASK;
-    if (data.tmdb_api_key) data.tmdb_api_key = MASK;
-    return c.json({ data });
+    return c.json({ data: maskSecrets(data) });
   });
 
   return app;

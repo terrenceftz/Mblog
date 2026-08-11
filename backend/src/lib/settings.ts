@@ -32,6 +32,9 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   douban_enabled: '0',
   douban_uid: '',
   tmdb_api_key: '', // TMDB API Key（豆瓣海报图源）
+  // 评论云验证：Cloudflare Turnstile（未配置时回落数学验证码）
+  turnstile_site_key: '',
+  turnstile_secret_key: '',
 };
 
 export function getSetting(ctx: Db, key: string): string {
