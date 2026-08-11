@@ -52,7 +52,7 @@ const navItems = [
 </script>
 
 <template>
-  <div class="admin-layout">
+  <div class="layout-fluid">
     <!-- 移动端顶栏 -->
     <div class="admin-topbar">
       <div class="admin-brand-sm">MBLOG</div>
@@ -68,167 +68,111 @@ const navItems = [
       </button>
     </div>
 
-    <!-- 侧栏（移动端为抽屉） -->
-    <aside class="admin-side" :class="{ open: menuOpen }">
-      <div class="admin-brand">MBLOG 后台</div>
-      <nav>
-        <router-link
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          :class="{ active: isActive(item.to) }"
-          @click="menuOpen = false"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path :d="item.icon" />
-          </svg>
-          <span>{{ item.label }}</span>
-        </router-link>
-      </nav>
-      <div class="admin-actions">
-        <button
-          type="button"
-          class="theme-toggle"
-          :title="'主题：' + themeLabel + '（点击切换）'"
-          :aria-label="'切换主题，当前' + themeLabel"
-          @click="cycleTheme"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path :d="themeIcon" />
-          </svg>
-          <span>{{ themeLabel }}</span>
-        </button>
-        <a href="http://localhost:4321/" target="_blank" rel="noopener noreferrer">← 查看站点</a>
-        <button type="button" class="logout-btn" @click="doLogout">退出登录</button>
+    <!-- 侧栏（Tabler navbar-vertical 结构，移动端为抽屉） -->
+    <aside class="navbar navbar-vertical navbar-expand-lg" :class="{ open: menuOpen }">
+      <div class="container">
+        <div class="admin-brand navbar-brand navbar-brand-autodark">MBLOG 后台</div>
+        <div class="collapse navbar-collapse" :class="{ show: menuOpen }">
+          <ul class="navbar-nav">
+            <li v-for="item in navItems" :key="item.to" class="nav-item">
+              <router-link
+                :to="item.to"
+                class="nav-link"
+                :class="{ active: isActive(item.to) }"
+                @click="menuOpen = false"
+              >
+                <span class="nav-link-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path :d="item.icon" />
+                  </svg>
+                </span>
+                <span class="nav-link-title">{{ item.label }}</span>
+              </router-link>
+            </li>
+          </ul>
+
+          <!-- 侧栏底部操作区 -->
+          <div class="admin-actions">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm w-100"
+              :title="'主题：' + themeLabel + '（点击切换）'"
+              :aria-label="'切换主题，当前' + themeLabel"
+              @click="cycleTheme"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path :d="themeIcon" />
+              </svg>
+              <span class="ms-2">{{ themeLabel }}</span>
+            </button>
+            <a class="btn btn-outline-secondary btn-sm w-100" href="http://localhost:4321/" target="_blank" rel="noopener noreferrer">
+              ← 查看站点
+            </a>
+            <button type="button" class="btn btn-outline-danger btn-sm w-100" @click="doLogout">退出登录</button>
+          </div>
+        </div>
       </div>
     </aside>
     <div v-if="menuOpen" class="admin-mask" @click="menuOpen = false" />
 
-    <main class="admin-main"><router-view /></main>
+    <!-- 主内容区（Tabler page-wrapper） -->
+    <div class="page-wrapper">
+      <div class="page-body">
+        <div class="container-xl"><router-view /></div>
+      </div>
+    </div>
     <ToastContainer />
   </div>
 </template>
 
 <style scoped>
-.admin-layout {
+/* ---------- 布局壳：layout-fluid + page-wrapper（Tabler 类接管主样式） ---------- */
+.layout-fluid {
   display: flex;
   min-height: 100vh;
-  background: var(--bg);
 }
-.admin-side {
-  width: 210px;
-  background: var(--surface);
-  color: var(--text-muted);
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-4) 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  max-height: 100vh;
-  overflow-y: auto;
-  border-right: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.admin-side nav {
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-2) 0;
+
+.page-wrapper {
   flex: 1;
-}
-.admin-brand {
-  padding: 0 var(--space-5) var(--space-4);
-  font-weight: 700;
-  font-size: var(--font-md);
-  color: var(--text);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.admin-side nav a {
-  color: var(--text-muted);
-  text-decoration: none;
-  padding: 10px var(--space-5);
-  font-size: var(--font-base);
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  border-left: 2px solid transparent;
-  transition: color var(--transition-base), background-color var(--transition-base),
-    border-color var(--transition-base);
+  flex-direction: column;
 }
-.admin-side nav a.active,
-.admin-side nav a:hover {
-  color: var(--primary);
-  background: var(--primary-soft);
-  border-left-color: var(--primary);
+.page-body {
+  flex: 1;
+  padding: var(--space-6) 0;
+}
+.page-body .container-xl {
+  max-width: 1200px;
+}
+
+/* ---------- 侧栏微调（Tabler navbar-vertical 基础上） ---------- */
+.navbar-vertical {
+  flex-shrink: 0;
 }
 .admin-actions {
-  margin-top: auto;
-  padding: var(--space-3) var(--space-5);
+  margin-top: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
 }
-.theme-toggle {
+.admin-actions .btn {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  border-radius: var(--radius-md);
-  padding: 7px var(--space-3);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--font-sm);
-  transition: border-color var(--transition-base), color var(--transition-base),
-    background-color var(--transition-base);
-}
-.theme-toggle:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-.admin-actions a {
-  color: var(--text-muted);
-  font-size: var(--font-sm);
-  text-decoration: none;
-  transition: color var(--transition-base);
-}
-.admin-actions a:hover {
-  color: var(--primary);
-}
-.logout-btn {
-  background: none;
-  border: 1px solid var(--border-strong);
-  color: var(--text);
-  border-radius: var(--radius-md);
-  padding: 7px;
-  cursor: pointer;
-  font-size: var(--font-sm);
-  transition: border-color var(--transition-base), color var(--transition-base);
-}
-.logout-btn:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-.admin-main {
-  flex: 1;
-  padding: var(--space-6);
-  max-width: 1200px;
-  min-width: 0;
+  justify-content: center;
+  gap: 6px;
 }
 
-/* 移动端 */
+/* ---------- 移动端：顶栏 + 抽屉（保留原逻辑） ---------- */
 .admin-topbar,
 .admin-hamburger,
 .admin-mask {
   display: none;
 }
 @media (max-width: 768px) {
-  .admin-layout {
+  .layout-fluid {
     flex-direction: column;
   }
   .admin-topbar {
@@ -271,7 +215,7 @@ const navItems = [
   .admin-hamburger.open .bar:nth-child(2) { opacity: 0; }
   .admin-hamburger.open .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-  .admin-side {
+  .navbar-vertical {
     position: fixed;
     left: 0;
     top: 52px;
@@ -280,10 +224,9 @@ const navItems = [
     z-index: 110;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    border-right: 1px solid var(--border);
     box-shadow: var(--shadow-lg);
   }
-  .admin-side.open {
+  .navbar-vertical.open {
     transform: translateX(0);
   }
   .admin-mask {
@@ -293,7 +236,7 @@ const navItems = [
     background: rgba(0, 0, 0, 0.5);
     z-index: 105;
   }
-  .admin-main {
+  .page-body {
     padding: var(--space-4);
   }
 }
