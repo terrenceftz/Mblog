@@ -33,7 +33,11 @@ function layout() {
   circleRefs.value.forEach((circle, index) => {
     const pill = circle?.parentElement;
     if (!pill) return;
-    const { width: w, height: h } = pill.getBoundingClientRect();
+    const rect = pill.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    // 无布局（隐藏/display:none）时跳过几何计算，避免 NaN
+    if (w === 0 || h === 0) return;
     const R = ((w * w) / 4 + h * h) / (2 * h);
     const D = Math.ceil(2 * R) + 2;
     const delta = Math.ceil(R - Math.sqrt(Math.max(0, R * R - (w * w) / 4))) + 1;
@@ -66,19 +70,52 @@ function handleLeave(i: number) {
 }
 
 let onResize: () => void = () => {};
+let onThemeChange: () => void = () => {};
+
+// 宽度展开动画：仅在元素有真实布局时执行
+//（reader 主题下 header 为 display:none，getClientRects 为空，GSAP 量不到 auto 宽度会停在 0）
+function animateWidthIn() {
+  const el = navItemsRef.value;
+  if (!el) return;
+  if (el.getClientRects().length === 0) {
+    // 隐藏态：直接落到最终状态，避免 width:0;overflow:hidden 内联样式残留
+    gsap.set(el, { width: 'auto', overflow: 'visible' });
+    return;
+  }
+  gsap.set(el, { width: 0, overflow: 'hidden' });
+  gsap.to(el, {
+    width: 'auto',
+    duration: 0.6,
+    ease: props.ease,
+    onComplete: () => {
+      // 强制最终宽度为 auto，保证任何旧的 width:0 内联样式都不再存活
+      gsap.set(el, { width: 'auto', overflow: 'visible' });
+    },
+  });
+}
+
+// 主题切换后 header 可见性可能变化：等 rAF 让布局可测后重新应用宽度状态并重算几何
+function restoreVisible() {
+  requestAnimationFrame(() => {
+    animateWidthIn();
+    layout();
+  });
+}
+
 onMounted(() => {
   layout();
   onResize = () => layout();
   window.addEventListener('resize', onResize);
 
-  // 初始加载动画：导航容器宽度展开
-  if (navItemsRef.value) {
-    gsap.set(navItemsRef.value, { width: 0, overflow: 'hidden' });
-    gsap.to(navItemsRef.value, { width: 'auto', duration: 0.6, ease: props.ease });
-  }
+  animateWidthIn();
+
+  // ThemeToggle 切换主题后触发；重跑宽度状态 + 悬停几何（元素可能刚从 display:none 恢复）
+  onThemeChange = () => restoreVisible();
+  window.addEventListener('mblog-theme-change', onThemeChange);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize);
+  window.removeEventListener('mblog-theme-change', onThemeChange);
   timelines.forEach((tl) => tl?.kill());
 });
 </script>
