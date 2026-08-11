@@ -5,6 +5,7 @@ import '../styles/themes/reader.css';
 import 'highlight.js/styles/github.css';
 import ThemeToggle from '../components/ThemeToggle.vue';
 import PillNav from '../components/PillNav.vue';
+import MobileHeader from '../components/MobileHeader.vue';
 import { getPublicSettings, type ThemeConfig } from '../lib/api';
 import { TECH_LOGOS } from '../lib/techLogos';
 
@@ -83,6 +84,9 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
         <PillNav client:load items={navItems} path={path} />
       </div>
     </header>
+
+    <!-- 移动端导航：≤768px 显示（双主题通用），替代桌面导航 -->
+    <MobileHeader client:load items={navItems} siteName={siteName} />
 
     {layout === 'article' ? (
       <!-- 文章页：窄列竖排品牌 + 右侧目录 -->
@@ -185,6 +189,11 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
     background: var(--color-primary);
     z-index: 9998; pointer-events: none;
     transition: width 0.1s linear;
+  }
+  /* 移动端导航：桌面隐藏，≤768px 显示 */
+  .mobile-header { display: none; }
+  @media (max-width: 768px) {
+    .mobile-header { display: block; }
   }
   /* 顶栏（normal 主题） */
   .site-header { background: var(--color-surface); border-bottom: 1px solid var(--color-border); }

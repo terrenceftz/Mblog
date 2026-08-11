@@ -1345,8 +1345,13 @@
 }
 @media (max-width: 1100px) {
   [data-theme='normal'] .page-layout.article-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0;
+  }
+  /* 防止文章头部/正文被内容撑宽导致横向溢出 */
+  [data-theme='normal'] .article-layout .article-head,
+  [data-theme='normal'] .article-layout .article-wrapper {
+    min-width: 0;
   }
   [data-theme='normal'] .article-layout .article-toc {
     display: none;
@@ -1532,4 +1537,130 @@
   margin: 0 0 10px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* =========================================================
+   移动端适配（≤768px）
+   ========================================================= */
+@media (max-width: 768px) {
+  /* 桌面药丸导航隐藏，改用 MobileHeader 汉堡菜单 */
+  [data-theme='normal'] .site-header {
+    display: none;
+  }
+
+  /* 首页 Hero：文字与头像改为纵向堆叠 */
+  [data-theme='normal'] .nh-hero {
+    min-height: auto;
+    padding: 48px 0 24px;
+  }
+  [data-theme='normal'] .nh-hero-content.nh-hero-split {
+    flex-direction: column;
+    gap: 32px;
+    text-align: center;
+  }
+  [data-theme='normal'] .nh-intro {
+    width: 100%;
+  }
+  [data-theme='normal'] .nh-desc {
+    margin: 0 auto;
+  }
+  [data-theme='normal'] .nh-avatar-wrap {
+    gap: 20px;
+  }
+  [data-theme='normal'] .nh-avatar img {
+    width: 96px;
+    height: 96px;
+  }
+  [data-theme='normal'] .nh-bubble {
+    width: 72px;
+    height: 72px;
+  }
+  [data-theme='normal'] .nh-bubble .num {
+    font-size: 17px;
+  }
+  [data-theme='normal'] .nh-bubble .label {
+    font-size: 10px;
+  }
+  [data-theme='normal'] .nh-title {
+    font-size: clamp(1.6rem, 6vw, 2rem);
+  }
+
+  /* 首页模块留白收紧 */
+  [data-theme='normal'] .nh-section {
+    margin-top: 56px;
+  }
+  [data-theme='normal'] .nh-post-grid {
+    grid-template-columns: 1fr;
+  }
+  [data-theme='normal'] .nh-projects {
+    grid-template-columns: 1fr;
+  }
+  [data-theme='normal'] .nh-douban {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* 文章页：banner 降低、标题内边距收紧 */
+  [data-theme='normal'] .article-head.has-cover .article-hero {
+    height: 180px;
+  }
+  [data-theme='normal'] .article-head.has-cover .article-header {
+    padding: 0 20px;
+  }
+  [data-theme='normal'] .page-layout.article-layout {
+    padding: 20px 16px 48px;
+  }
+  [data-theme='normal'] .article-title {
+    font-size: 26px;
+  }
+  [data-theme='normal'] .article-content {
+    font-size: 16px;
+  }
+  [data-theme='normal'] .post-nav {
+    grid-template-columns: 1fr;
+  }
+  [data-theme='normal'] .post-nav-item.next {
+    text-align: left;
+  }
+
+  /* 页脚：技术栈滚动在小屏隐藏，两端文字紧凑 */
+  [data-theme='normal'] .site-footer {
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  [data-theme='normal'] .tech-loop {
+    display: none;
+  }
+  [data-theme='normal'] .site-footer .site-footer-text,
+  [data-theme='normal'] .site-footer .footer-right {
+    white-space: normal;
+  }
+
+  /* 全部文章/归档/说说页 */
+  [data-theme='normal'] .posts-page {
+    padding: 36px 16px 64px;
+  }
+  [data-theme='normal'] .posts-title {
+    font-size: 18px;
+  }
+  [data-theme='normal'] .posts-meta {
+    flex-wrap: wrap;
+  }
+
+  /* 评论表单：窄屏三栏输入自动换行、可收缩 */
+  [data-theme='normal'] .comment-form .row {
+    flex-wrap: wrap;
+  }
+  [data-theme='normal'] .comment-form input {
+    min-width: 0;
+    flex: 1 1 45%;
+  }
+  [data-theme='normal'] .comment-form .captcha-row {
+    flex-wrap: wrap;
+  }
+  /* 内联代码允许换行（长代码串不溢出） */
+  [data-theme='normal'] .article-content :not(pre) > code {
+    overflow-wrap: anywhere;
+  }
 }

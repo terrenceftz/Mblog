@@ -1086,3 +1086,29 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* =========================================================
+   移动端适配（≤768px）：侧栏导航收进 MobileHeader 汉堡菜单
+   ========================================================= */
+@media (max-width: 768px) {
+  [data-theme='reader'] .sidebar {
+    display: none;
+  }
+  [data-theme='reader'] .page-layout:not(.article-layout) {
+    grid-template-columns: 1fr;
+  }
+  [data-theme='reader'] .page-layout:not(.article-layout) .site-main {
+    grid-column: 1;
+  }
+  /* 文章页：竖排品牌列隐藏（原 720 断点统一到 768） */
+  [data-theme='reader'] .sidebar-vertical {
+    display: none;
+  }
+  [data-theme='reader'] .page-layout.article-layout {
+    grid-template-columns: 1fr;
+    padding: 24px 16px 56px;
+  }
+  [data-theme='reader'] .article-title {
+    font-size: 1.7rem;
+  }
+}
