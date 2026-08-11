@@ -93,6 +93,11 @@
   pointer-events: none;
   background: radial-gradient(ellipse at center, rgba(9, 9, 11, 0.2) 0%, rgba(9, 9, 11, 0.72) 100%);
 }
+/* island 铺满 Hero，触发 client:visible 水合；canvas 绝对定位铺满 */
+[data-theme='normal'] .nh-hero astro-island {
+  position: absolute;
+  inset: 0;
+}
 [data-theme='normal'] .nh-eyebrow {
   font-size: 12px;
   letter-spacing: 0.25em;
