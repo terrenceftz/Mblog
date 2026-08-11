@@ -656,3 +656,22 @@
 [data-theme='normal'] .markdown-body blockquote {
   border-left-color: var(--color-primary);
 }
+
+/* 顶栏主题切换图标按钮（去边框，与导航同色） */
+[data-theme='normal'] .site-header .theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+[data-theme='normal'] .site-header .theme-toggle:hover {
+  color: var(--color-primary);
+}
+/* 文章页目录仅极简模式显示 */
+[data-theme='normal'] .article-toc {
+  display: none;
+}

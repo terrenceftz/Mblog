@@ -933,3 +933,8 @@
   color: var(--color-text-muted);
   opacity: 0.8;
 }
+
+/* 正常主题首页模块在极简模式隐藏 */
+[data-theme='reader'] .normal-home {
+  display: none;
+}

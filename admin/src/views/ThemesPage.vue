@@ -9,7 +9,7 @@ interface ThemeForm {
 }
 // 与 CSS 内置默认一致的初始值（保存时全量写入，所见即所得）
 const DEFAULTS: Record<ThemeKey, ThemeForm> = {
-  normal: { bg: '#f5f6f8', text: '#1f2328', muted: '#6b7280', primary: '#3b82f6', border: '#e5e7eb', fontSize: 16, homePageSize: 10 },
+  normal: { bg: '#09090b', text: '#f4f4f5', muted: '#9d9d95', primary: '#e8b64c', border: '#26262a', fontSize: 16, homePageSize: 10 },
   reader: { bg: '#f3f0e9', text: '#3a3837', muted: '#b0aba4', primary: '#8b3525', border: '#e5e1da', fontSize: 17, homePageSize: 10 },
 };
 
