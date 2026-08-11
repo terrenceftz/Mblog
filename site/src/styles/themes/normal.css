@@ -681,15 +681,15 @@
 }
 [data-theme='normal'] .tech-loop {
   overflow: hidden;
-  padding: 28px 0 32px;
-  margin-bottom: 20px;
+  padding: 16px 0 20px;
+  margin-bottom: 16px;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
 }
 [data-theme='normal'] .tech-loop__track {
   display: flex;
   align-items: center;
-  gap: 56px;
+  gap: 32px;
   width: max-content;
   animation: techScroll 28s linear infinite;
 }
@@ -697,12 +697,12 @@
   animation-play-state: paused;
 }
 [data-theme='normal'] .tech-loop__item {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   letter-spacing: 0.02em;
   white-space: nowrap;
   font-family: var(--font-ui);
-  opacity: 0.8;
+  opacity: 0.7;
   transition: opacity 0.2s ease;
 }
 [data-theme='normal'] .tech-loop__item:hover {
