@@ -84,11 +84,8 @@ export interface FriendLink {
 export interface SiteSettings {
   title: string;
   subtitle: string;
-  description: string;
-  keywords: string;
   author: string;
   avatar: string;
-  icp: string;
   apiKey: string;
   apiSecret: string;
   doubanUserId: string;
@@ -506,11 +503,8 @@ export const api = {
     return {
       title: s.site_name || '',
       subtitle: s.site_description || '',
-      description: s.site_description || '',
-      keywords: s.keywords || '',
       author: s.author || '',
       avatar: s.avatar || '',
-      icp: s.icp || '',
       apiKey: s.cos_secret_id || '',
       apiSecret: s.cos_secret_key || '',
       doubanUserId: s.douban_uid || '',
@@ -541,10 +535,8 @@ export const api = {
       site_description: settings.subtitle ?? current.site_description,
       site_url: settings.siteUrl ?? current.site_url,
       default_theme: settings.defaultTheme ?? current.default_theme,
-      keywords: settings.keywords ?? current.keywords,
       author: settings.author ?? current.author,
       avatar: settings.avatar ?? current.avatar,
-      icp: settings.icp ?? current.icp,
       cos_secret_id: settings.apiKey ?? current.cos_secret_id,
       cos_bucket: settings.cosBucket ?? current.cos_bucket,
       cos_region: settings.cosRegion ?? current.cos_region,

@@ -6,11 +6,8 @@ import { toast } from '../lib/toast';
 const settings = ref<SiteSettings>({
   title: '',
   subtitle: '',
-  description: '',
-  keywords: '',
   author: '',
   avatar: '',
-  icp: '',
   apiKey: '********',
   apiSecret: '********',
   doubanUserId: '',
@@ -127,7 +124,7 @@ onMounted(() => {
     <div class="page-header">
       <div>
         <h2 class="page-title">站点设置</h2>
-        <div class="text-muted">配置博客基本元信息、SEO 参数、系统密钥与豆瓣同步</div>
+        <div class="text-muted">配置站点信息、存储与上传、评论验证、前台功能与豆瓣同步</div>
       </div>
       <button @click="handleSaveSettings" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm" :disabled="saving">
         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
@@ -135,9 +132,8 @@ onMounted(() => {
       </button>
     </div>
 
-    <!-- Dual Column Settings Grid (.settings-grid) -->
     <div class="settings-grid">
-      <!-- Card 1: 基础信息 -->
+      <!-- 站点基础信息 -->
       <div class="card">
         <div class="card-header py-3">
           <h3 class="card-title fw-bold m-0">站点基础信息</h3>
@@ -148,8 +144,8 @@ onMounted(() => {
             <input type="text" v-model="settings.title" class="form-control" />
           </div>
           <div class="mb-3">
-            <label class="form-label small fw-medium">副标题</label>
-            <input type="text" v-model="settings.subtitle" class="form-control" />
+            <label class="form-label small fw-medium">站点简介</label>
+            <textarea v-model="settings.subtitle" class="form-control" rows="2"></textarea>
           </div>
           <div class="mb-3">
             <label class="form-label small fw-medium">默认主题</label>
@@ -163,58 +159,54 @@ onMounted(() => {
             <input type="text" v-model="settings.siteUrl" class="form-control font-monospace" placeholder="https://example.com" />
           </div>
           <div class="mb-3">
-            <label class="form-label small fw-medium">博主名称</label>
+            <label class="form-label small fw-medium">博主名称（前台首屏「你好，我是…」）</label>
             <input type="text" v-model="settings.author" class="form-control" />
           </div>
-          <div class="mb-3">
-            <label class="form-label small fw-medium">博主头像 URL</label>
-            <input type="text" v-model="settings.avatar" class="form-control" />
-          </div>
           <div>
-            <label class="form-label small fw-medium">ICP 备案号</label>
-            <input type="text" v-model="settings.icp" class="form-control font-monospace" />
+            <label class="form-label small fw-medium">博主头像 URL（前台首屏头像）</label>
+            <input type="text" v-model="settings.avatar" class="form-control" placeholder="留空使用默认头像" />
           </div>
         </div>
       </div>
 
-      <!-- Card 2: SEO 参数 -->
+      <!-- 存储与上传 -->
       <div class="card">
         <div class="card-header py-3">
-          <h3 class="card-title fw-bold m-0">SEO 与搜索引擎优化</h3>
+          <h3 class="card-title fw-bold m-0">存储与上传（图片/音频）</h3>
         </div>
         <div class="card-body">
           <div class="mb-3">
-            <label class="form-label small fw-medium">关键词 (Meta Keywords)</label>
-            <input type="text" v-model="settings.keywords" class="form-control" placeholder="用逗号分隔..." />
+            <label class="form-label small fw-medium">存储方式</label>
+            <select v-model="settings.storageProvider" class="form-select">
+              <option value="local">本地磁盘</option>
+              <option value="cos">腾讯云 COS</option>
+            </select>
           </div>
-          <div>
-            <label class="form-label small fw-medium">站点描述 (Meta Description)</label>
-            <textarea v-model="settings.description" class="form-control" rows="5"></textarea>
-          </div>
+          <template v-if="settings.storageProvider === 'cos'">
+            <div class="alert alert-info py-2 small mb-3">
+              密钥展示 <code>'********'</code> 表示保持现有密钥不变，如需重置请输入新值。
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">COS SecretId</label>
+              <input type="password" v-model="settings.apiKey" class="form-control font-monospace" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">COS SecretKey</label>
+              <input type="password" v-model="settings.apiSecret" class="form-control font-monospace" placeholder="留空或 **** 表示保持不变" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Bucket</label>
+              <input type="text" v-model="settings.cosBucket" class="form-control font-monospace" placeholder="my-blog-1250000000" />
+            </div>
+            <div>
+              <label class="form-label small fw-medium">Region</label>
+              <input type="text" v-model="settings.cosRegion" class="form-control font-monospace" placeholder="ap-guangzhou" />
+            </div>
+          </template>
         </div>
       </div>
 
-      <!-- Card 3: 系统密钥安全配置 -->
-      <div class="card">
-        <div class="card-header py-3">
-          <h3 class="card-title fw-bold m-0">API 密钥与安全性</h3>
-        </div>
-        <div class="card-body">
-          <div class="alert alert-info py-2 small mb-3">
-            提示：密钥项展示 <code>'********'</code> 表示保持现有密钥不变，如需重置请输入新值。
-          </div>
-          <div class="mb-3">
-            <label class="form-label small fw-medium">腾讯云 COS SecretId</label>
-            <input type="password" v-model="settings.apiKey" class="form-control font-monospace" />
-          </div>
-          <div>
-            <label class="form-label small fw-medium">腾讯云 COS SecretKey</label>
-            <input type="password" v-model="settings.apiSecret" class="form-control font-monospace" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Card 4: 评论人机验证（Turnstile） -->
+      <!-- 评论人机验证（Turnstile） -->
       <div class="card">
         <div class="card-header py-3">
           <h3 class="card-title fw-bold m-0">评论人机验证（Turnstile）</h3>
@@ -234,73 +226,39 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Card 5: 友链设置 -->
+      <!-- 前台功能 -->
       <div class="card">
         <div class="card-header py-3">
-          <h3 class="card-title fw-bold m-0">友链</h3>
+          <h3 class="card-title fw-bold m-0">前台功能</h3>
         </div>
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center">
             <div>
-              <div class="fw-semibold small">开放访客申请</div>
+              <div class="fw-semibold small">开放友链申请</div>
               <div class="text-muted micro-text">关闭后前台不再展示友链申请入口</div>
             </div>
             <div class="form-check form-switch m-0">
               <input type="checkbox" v-model="settings.friendLinkEnabled" class="form-check-input" id="friendLinkSwitch" />
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Card 6: GitHub 项目展示 -->
-      <div class="card">
-        <div class="card-header py-3">
-          <h3 class="card-title fw-bold m-0">GitHub 项目展示</h3>
-        </div>
-        <div class="card-body">
-          <div class="mb-3 d-flex justify-content-between align-items-center">
+          <hr class="my-3" />
+          <div class="d-flex justify-content-between align-items-center">
             <div>
-              <div class="fw-semibold small">开启展示</div>
+              <div class="fw-semibold small">GitHub 项目展示</div>
               <div class="text-muted micro-text">前台 /projects 自动拉取公开仓库（不含 fork）</div>
             </div>
             <div class="form-check form-switch m-0">
               <input type="checkbox" v-model="settings.githubEnabled" class="form-check-input" id="githubSwitch" />
             </div>
           </div>
-          <div>
+          <div class="mt-3">
             <label class="form-label small fw-medium">GitHub 用户名</label>
             <input type="text" v-model="settings.githubUsername" class="form-control" placeholder="octocat" />
           </div>
         </div>
       </div>
 
-      <!-- Card 7: 存储设置 -->
-      <div class="card">
-        <div class="card-header py-3">
-          <h3 class="card-title fw-bold m-0">存储（图片/音频上传）</h3>
-        </div>
-        <div class="card-body">
-          <div class="mb-3">
-            <label class="form-label small fw-medium">存储方式</label>
-            <select v-model="settings.storageProvider" class="form-select">
-              <option value="local">本地磁盘</option>
-              <option value="cos">腾讯云 COS</option>
-            </select>
-          </div>
-          <template v-if="settings.storageProvider === 'cos'">
-            <div class="mb-3">
-              <label class="form-label small fw-medium">Bucket</label>
-              <input type="text" v-model="settings.cosBucket" class="form-control font-monospace" placeholder="my-blog-1250000000" />
-            </div>
-            <div>
-              <label class="form-label small fw-medium">Region</label>
-              <input type="text" v-model="settings.cosRegion" class="form-control font-monospace" placeholder="ap-guangzhou" />
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- Card 8: 导航菜单 -->
+      <!-- 导航菜单 -->
       <div class="card">
         <div class="card-header py-3">
           <h3 class="card-title fw-bold m-0">导航菜单（前台顶栏）</h3>
@@ -318,7 +276,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Card 9: 修改密码 -->
+      <!-- 修改密码 -->
       <div class="card">
         <div class="card-header py-3">
           <h3 class="card-title fw-bold m-0">修改密码</h3>
@@ -348,7 +306,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Card 10: 豆瓣同步配置 -->
+      <!-- 豆瓣影音同步 -->
       <div class="card">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
           <h3 class="card-title fw-bold m-0">豆瓣读书 / 影音同步</h3>
@@ -365,7 +323,6 @@ onMounted(() => {
             <label class="form-label small fw-medium">TMDB API Key（海报图源）</label>
             <input type="password" v-model="settings.doubanApiKey" class="form-control font-monospace" placeholder="留空或 **** 表示保持不变" />
           </div>
-
           <div class="p-3 bg-body-tertiary rounded-3 border d-flex align-items-center justify-content-between">
             <div>
               <div class="fw-semibold small">上次同步时间</div>
