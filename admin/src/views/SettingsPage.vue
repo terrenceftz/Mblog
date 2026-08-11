@@ -146,6 +146,18 @@ async function save() {
         </label>
       </div>
 
+
+      <div class="card">
+        <div class="card-title">评论人机验证（Turnstile）</div>
+        <label>Site Key
+          <input v-model="form.turnstile_site_key" class="input" placeholder="在 Cloudflare → Turnstile 创建站点后获取" />
+        </label>
+        <label>Secret Key
+          <input v-model="form.turnstile_secret_key" class="input" type="password" placeholder="留空或 **** 表示保持不变" />
+        </label>
+        <p class="menu-tip">配齐后评论用云验证；留空回落数学验证码。</p>
+      </div>
+
       <div class="card">
         <div class="card-title">友链</div>
         <label>开放访客申请
@@ -157,14 +169,17 @@ async function save() {
       </div>
 
       <div class="card">
-        <div class="card-title">评论人机验证（Turnstile）</div>
-        <label>Site Key
-          <input v-model="form.turnstile_site_key" class="input" placeholder="在 Cloudflare → Turnstile 创建站点后获取" />
+        <div class="card-title">GitHub 项目展示</div>
+        <label>开启展示
+          <select v-model="form.github_enabled">
+            <option value="1">开启</option>
+            <option value="0">关闭</option>
+          </select>
         </label>
-        <label>Secret Key
-          <input v-model="form.turnstile_secret_key" class="input" type="password" placeholder="留空或 **** 表示保持不变" />
+        <label>GitHub 用户名
+          <input v-model="form.github_username" class="input" placeholder="octocat" />
         </label>
-        <p class="menu-tip">配齐后评论用云验证；留空回落数学验证码。</p>
+        <p class="menu-tip">前台 /projects 自动拉取公开仓库（不含 fork）。</p>
       </div>
 
       <div class="card card--full">
@@ -209,17 +224,23 @@ async function save() {
       </div>
 
       <div class="card">
-        <div class="card-title">GitHub 项目展示</div>
-        <label>开启展示
-          <select v-model="form.github_enabled">
-            <option value="1">开启</option>
-            <option value="0">关闭</option>
-          </select>
+        <div class="card-title">修改密码</div>
+        <label>当前密码
+          <input v-model="oldPassword" class="input" type="password" autocomplete="current-password" />
         </label>
-        <label>GitHub 用户名
-          <input v-model="form.github_username" class="input" placeholder="octocat" />
+        <label>新密码（至少 8 位）
+          <input v-model="newPassword" class="input" type="password" autocomplete="new-password" />
         </label>
-        <p class="menu-tip">前台 /projects 自动拉取公开仓库（不含 fork）。</p>
+        <label>确认新密码
+          <input v-model="confirmPassword" class="input" type="password" autocomplete="new-password" />
+        </label>
+        <div class="sync-row">
+          <button type="button" class="btn" :disabled="pwdChanging" @click="changePassword">
+            {{ pwdChanging ? '提交中…' : '修改密码' }}
+          </button>
+          <span v-if="pwdMsg" class="saved">{{ pwdMsg }}</span>
+          <span v-if="pwdError" class="error">{{ pwdError }}</span>
+        </div>
       </div>
 
       <div class="card card--full">
@@ -248,31 +269,12 @@ async function save() {
         <p class="menu-tip">同步使用已保存设置——先「保存设置」再同步。拉取「看过」并预热 TMDB 海报缓存（超时 30 秒）。</p>
       </div>
 
-      <div class="card">
-        <div class="card-title">修改密码</div>
-        <label>当前密码
-          <input v-model="oldPassword" class="input" type="password" autocomplete="current-password" />
-        </label>
-        <label>新密码（至少 8 位）
-          <input v-model="newPassword" class="input" type="password" autocomplete="new-password" />
-        </label>
-        <label>确认新密码
-          <input v-model="confirmPassword" class="input" type="password" autocomplete="new-password" />
-        </label>
-        <div class="sync-row">
-          <button type="button" class="btn" :disabled="pwdChanging" @click="changePassword">
-            {{ pwdChanging ? '提交中…' : '修改密码' }}
-          </button>
-          <span v-if="pwdMsg" class="saved">{{ pwdMsg }}</span>
-          <span v-if="pwdError" class="error">{{ pwdError }}</span>
-        </div>
-      </div>
-
       <div class="actions card--full">
         <p v-if="saved" class="saved">✓ 已保存</p>
         <p v-if="error" class="error">{{ error }}</p>
         <button type="submit" class="btn primary">保存设置</button>
       </div>
+
     </form>
   </div>
 </template>
@@ -282,8 +284,13 @@ async function save() {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
   max-width: none;
+}
+.settings-form .card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .card--full {
   grid-column: 1 / -1;
