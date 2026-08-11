@@ -74,8 +74,8 @@ async function create() {
       <input v-model="query" class="input" placeholder="搜索标签…" />
     </div>
 
-    <!-- 匹配选项 + 内联新建 -->
-    <div v-if="query.trim() || filtered.length" class="tag-options">
+    <!-- 仅在搜索时显示可选项与内联新建 -->
+    <div v-if="query.trim()" class="tag-options">
       <button v-if="canCreate" type="button" class="tag-create" @click="create">
         ＋ 创建标签「{{ query.trim() }}」
       </button>
