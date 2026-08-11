@@ -1,0 +1,59 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostLoadMore from '../components/PostLoadMore.vue';
+import { getPosts, getCategories, type PostListItem, type Category } from '../lib/api';
+
+// 分段加载：每段 8 篇，首段 SSR 渲染，后续由 PostLoadMore 客户端追加
+const PAGE_SIZE = 8;
+const firstPage = await getPosts({ page: 1, pageSize: PAGE_SIZE });
+const posts: PostListItem[] = firstPage.list;
+const total = firstPage.total;
+const categories: Category[] = await getCategories().catch(() => []);
+const catOf = (id: number | null) => categories.find((c) => c.id === id);
+function fmtDate(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+}
+---
+<BaseLayout title="全部文章" description="长文、技术笔记与深度思考。">
+  <div class="posts-page">
+    <header class="posts-header">
+      <h1 class="posts-heading">全部文章</h1>
+      <p class="posts-subtitle">长文、技术笔记与深度思考。</p>
+      <p class="posts-count">共 {total} 篇</p>
+    </header>
+
+    <ul class="posts-list">
+      {posts.map((p) => (
+        <li class="posts-item">
+          <div class="posts-meta">
+            {catOf(p.categoryId) && (
+              <a class="posts-cat" href={`/category/${catOf(p.categoryId)!.slug}`}>{catOf(p.categoryId)!.name}</a>
+            )}
+            <time class="posts-date" datetime={new Date(p.createdAt).toISOString()}>{fmtDate(p.createdAt)}</time>
+          </div>
+          <h2 class="posts-title"><a href={`/post/${p.slug}`}>{p.title}</a></h2>
+          {p.summary && <p class="posts-summary">{p.summary}</p>}
+          {p.tags.length > 0 && (
+            <div class="posts-tags">
+              {p.tags.map((t) => (
+                <a class="posts-tag" href={`/tag/${t.slug}`}>#{t.name}</a>
+              ))}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+
+    {total > posts.length && (
+      <PostLoadMore
+        client:load
+        pageSize={PAGE_SIZE}
+        total={total}
+        startPage={2}
+        initialCount={posts.length}
+        cats={categories}
+      />
+    )}
+  </div>
+</BaseLayout>

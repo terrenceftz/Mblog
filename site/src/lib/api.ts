@@ -4,10 +4,10 @@ const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
 export interface PostListItem {
   id: number; title: string; slug: string; summary: string; cover: string;
   viewCount: number; categoryId: number | null; createdAt: number;
+  tags: { name: string; slug: string }[];
 }
 export interface PostDetail extends PostListItem {
   contentHtml: string;
-  tags: { name: string; slug: string }[];
   category: { id: number; name: string; slug: string } | null;
   prev: { title: string; slug: string } | null;
   next: { title: string; slug: string } | null;

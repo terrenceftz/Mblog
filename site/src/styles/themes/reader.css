@@ -966,3 +966,93 @@
 [data-theme='reader'] .article-toc .line-sidebar__item {
   padding: 0;
 }
+
+/* 全部文章页（极简模式适配：去除列表圆点，保持朴素） */
+[data-theme='reader'] .posts-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 20px 72px;
+}
+[data-theme='reader'] .posts-heading {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+[data-theme='reader'] .posts-subtitle {
+  color: var(--color-text-muted);
+  margin: 0 0 12px;
+}
+[data-theme='reader'] .posts-count {
+  color: var(--color-primary);
+  font-size: 0.833rem;
+}
+[data-theme='reader'] .posts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+[data-theme='reader'] .posts-item {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+[data-theme='reader'] .posts-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+[data-theme='reader'] .posts-cat {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+[data-theme='reader'] .posts-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+[data-theme='reader'] .posts-title a {
+  color: var(--color-text-heading);
+  text-decoration: none;
+}
+[data-theme='reader'] .posts-title a:hover {
+  color: var(--color-primary);
+}
+[data-theme='reader'] .posts-summary {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  margin: 0 0 8px;
+}
+[data-theme='reader'] .posts-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+[data-theme='reader'] .posts-tag {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+[data-theme='reader'] .posts-more-bar {
+  text-align: center;
+  padding: 32px 0 0;
+}
+[data-theme='reader'] .posts-more-btn {
+  border: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 9px 26px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+[data-theme='reader'] .posts-more-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+[data-theme='reader'] .posts-more-done,
+[data-theme='reader'] .posts-more-error {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}

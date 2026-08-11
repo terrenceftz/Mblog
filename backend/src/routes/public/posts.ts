@@ -77,7 +77,25 @@ export function postsRoutes(ctx: Db) {
       .offset((page - 1) * pageSize)
       .all();
 
-    return c.json({ data: { list, total } });
+    // 补每篇的标签（供列表页展示 #标签）
+    const pageIds = list.map((p) => p.id);
+    const tagRows = pageIds.length
+      ? ctx.db
+          .select({ postId: postTags.postId, name: tags.name, slug: tags.slug })
+          .from(postTags)
+          .innerJoin(tags, eq(postTags.tagId, tags.id))
+          .where(inArray(postTags.postId, pageIds))
+          .all()
+      : [];
+    const tagsByPost = new Map<number, { name: string; slug: string }[]>();
+    for (const t of tagRows) {
+      const arr = tagsByPost.get(t.postId) ?? [];
+      arr.push({ name: t.name, slug: t.slug });
+      tagsByPost.set(t.postId, arr);
+    }
+    const listWithTags = list.map((p) => ({ ...p, tags: tagsByPost.get(p.id) ?? [] }));
+
+    return c.json({ data: { list: listWithTags, total } });
   });
 
   app.get('/posts/:slug', async (c) => {
