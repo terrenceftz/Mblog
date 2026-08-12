@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroBackground from '../components/HeroBackground.vue';
 import BlurText from '../components/BlurText.vue';
 import BorderGlow from '../components/BorderGlow.vue';
+import StatBubbles from '../components/StatBubbles.vue';
 import {
   getPosts, getPublicSettings, getCategories, getTags, getStats, getDouban, getProjects,
   type PostListItem, type Category, type Tag,
@@ -99,12 +100,13 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
         </div>
         <div class="nh-avatar-wrap">
           <div class="nh-avatar"><img src={avatarUrl} alt={siteName} /></div>
-          <div class="nh-stats-bubbles">
-            <div class="nh-bubble b1"><span class="num">{stats.postTotal}</span><span class="label">文章</span></div>
-            <div class="nh-bubble b2"><span class="num">{stats.commentTotal}</span><span class="label">评论</span></div>
-            <div class="nh-bubble b3"><span class="num">{stats.totalViews}</span><span class="label">浏览</span></div>
-            <div class="nh-bubble b4"><span class="num">{stats.friendLinkCount}</span><span class="label">友链</span></div>
-          </div>
+          <StatBubbles
+            client:visible
+            postTotal={stats.postTotal}
+            commentTotal={stats.commentTotal}
+            totalViews={stats.totalViews}
+            friendLinkCount={stats.friendLinkCount}
+          />
         </div>
       </div>
     </section>
@@ -114,15 +116,15 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
     <BorderGlow client:load />
     <!-- 最新文章（首屏底部露出，引导下滑） -->
     <section class="nh-section">
-      <div class="nh-section-head nh-latest-head">
+      <div class="nh-section-head nh-latest-head" data-reveal>
         <p class="nh-eyebrow">LATEST POSTS</p>
         <h2>最新文章</h2>
         <a class="nh-more" href="/posts">查看全部文章 →</a>
       </div>
       {data.list.length > 0 ? (
         <div class="nh-post-grid">
-          {data.list.slice(0, 9).map((p) => (
-            <a class="nh-post-card border-glow-card" href={`/post/${p.slug}`}>
+          {data.list.slice(0, 9).map((p, i) => (
+            <a class="nh-post-card border-glow-card" data-reveal style={`--reveal-delay: ${i * 70}ms`} href={`/post/${p.slug}`}>
               <span class="edge-light" aria-hidden="true" />
               <div class="border-glow-inner">
                 <div class="nh-post-cover">
@@ -152,13 +154,13 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
 
     <!-- 分类与标签 -->
     <section class="nh-section">
-      <div class="nh-section-head"><p class="nh-eyebrow">EXPLORE</p><h2>分类与标签</h2></div>
-      <div class="nh-cats">
+      <div class="nh-section-head" data-reveal><p class="nh-eyebrow">EXPLORE</p><h2>分类与标签</h2></div>
+      <div class="nh-cats" data-reveal>
         {categories.map((c: Category) => (
           <a class="nh-cat" href={`/category/${c.slug}`}>{c.name}<span class="nh-cat-count">{c.postCount}</span></a>
         ))}
       </div>
-      <div class="nh-tags">
+      <div class="nh-tags" data-reveal style="--reveal-delay: 100ms">
         {tags.map((t: Tag) => (
           <a class="nh-tag" href={`/tag/${t.slug}`}>#{t.name}</a>
         ))}
@@ -167,7 +169,7 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
 
     <!-- 影音与项目 -->
     <section class="nh-section">
-      <div class="nh-sub">
+      <div class="nh-sub" data-reveal>
         <div class="nh-section-head nh-sub-head">
           <div><p class="nh-eyebrow">MOVIES</p><h2>最近观影</h2></div>
           <a class="nh-more" href="/douban">查看全部 →</a>
@@ -182,7 +184,7 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
           </div>
         )}
       </div>
-      <div class="nh-sub">
+      <div class="nh-sub" data-reveal>
         <div class="nh-section-head nh-sub-head">
           <div><p class="nh-eyebrow">PROJECTS</p><h2>精选项目</h2></div>
           <a class="nh-more" href="/projects">查看全部 →</a>

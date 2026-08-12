@@ -4,7 +4,7 @@ import CommentSection from '../../components/CommentSection.vue';
 import LikeButton from '../../components/LikeButton.vue';
 import MobileToc from '../../components/MobileToc.vue';
 import GradientBlob from '../../components/GradientBlob.vue';
-import { getPost, getPublicSettings, type PostDetail } from '../../lib/api';
+import { getPost, getPosts, getPublicSettings, type PostDetail } from '../../lib/api';
 import { withTocIds } from '../../lib/toc';
 
 const { slug } = Astro.params;
@@ -15,6 +15,12 @@ if (post === null) Astro.response.status = 404;
 const { html: contentHtml, toc } = post ? withTocIds(post.contentHtml) : { html: '', toc: [] };
 // 评论云验证（Turnstile）site key：中间件已共享设置，未命中时兜底直取
 const settings = Astro.locals.settings ?? (await getPublicSettings());
+// 相关文章：同分类下取 3 篇（排除当前），失败降级为空
+const related = post?.category
+  ? await getPosts({ category: post.category.slug, pageSize: 4 })
+      .then((d) => d.list.filter((p) => p.slug !== post!.slug).slice(0, 3))
+      .catch(() => [])
+  : [];
 ---
 <BaseLayout title={post ? post.title : '页面未找到'} description={post ? post.summary : '文章不存在或已被删除'} layout={post ? 'article' : 'full'} image={post?.cover}>
   {post ? (
@@ -117,9 +123,41 @@ const settings = Astro.locals.settings ?? (await getPublicSettings());
         )}
       </nav>
     )}
+    {related.length > 0 && (
+      <section class="related-posts" data-reveal>
+        <h2 class="related-title">相关文章</h2>
+        <div class="related-grid">
+          {related.map((r) => (
+            <a class="related-card" href={`/post/${r.slug}`}>
+              <div class="related-cover">
+                {r.cover ? <img src={r.cover} alt="" loading="lazy" /> : <span class="related-cover-fallback">{r.title.slice(0, 1)}</span>}
+              </div>
+              <div class="related-body">
+                <h3 class="related-name">{r.title}</h3>
+                {r.summary && <p class="related-summary">{r.summary}</p>}
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
     <CommentSection client:load postId={post.id} turnstileSiteKey={settings.turnstileSiteKey ?? ''} />
   </article>
-  {toc.length > 0 && (
+  {/* 移动端目录抽屉（窄屏显示） */}
+  {toc.length > 0 && <MobileToc client:load items={toc} />}
+    </Fragment>
+  ) : (
+    <div class="posts-page">
+      <GradientBlob />
+      <header class="posts-header">
+        <h1 class="posts-heading">404</h1>
+        <p class="posts-subtitle">文章不存在或已被删除</p>
+        <p class="posts-count"><a href="/">← 返回首页</a></p>
+      </header>
+    </div>
+  )}
+  {/* 目录 slot：必须为 BaseLayout 直接子级才能进 named slot（嵌套在上方条件 Fragment 内会失效） */}
+  {post && toc.length > 0 && (
     <Fragment slot="toc">
       <nav class="article-toc line-sidebar" aria-label="文章目录">
         <p class="article-toc-title">目录</p>
@@ -136,19 +174,6 @@ const settings = Astro.locals.settings ?? (await getPublicSettings());
         </ul>
       </nav>
     </Fragment>
-  )}
-  {/* 移动端目录抽屉（窄屏显示） */}
-  {toc.length > 0 && <MobileToc client:load items={toc} />}
-    </Fragment>
-  ) : (
-    <div class="posts-page">
-      <GradientBlob />
-      <header class="posts-header">
-        <h1 class="posts-heading">404</h1>
-        <p class="posts-subtitle">文章不存在或已被删除</p>
-        <p class="posts-count"><a href="/">← 返回首页</a></p>
-      </header>
-    </div>
   )}
 </BaseLayout>
 
@@ -235,4 +260,9 @@ const settings = Astro.locals.settings ?? (await getPublicSettings());
   };
   updateTocFade();
   window.addEventListener('resize', updateTocFade);
+</script>
+
+<script>
+  // 代码块增强：语言标签 + 一键复制（仅文章页正文）
+  import '../../scripts/code-enhance.ts';
 </script>
