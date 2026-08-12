@@ -30,6 +30,7 @@ MBLOG 是个人博客系统，**三端分离**，代码都在本仓库根目录�
 - **双主题各自独立导航菜单**（`nav_menu_normal` / `nav_menu_reader`），后台「主题配置」分别编辑
 - **功能**：文章（Vditor 富文本/草稿自动保存）、分类/标签/归档/搜索（FTS5 中文）、评论（Turnstile/数学验证码 + 审核）、友链、GitHub 项目、豆瓣影音、说说、**相册**（瀑布流 + lightbox + 后台管理）、**关于页**（后台编辑 + eonova 名片式）
 - **部署**：docker-compose（api / site / nginx），`deploy/nginx` 反代
+- **⚠️ 线上真相（2026-08-12 确认）**：cs.mboker.cn 实际走**宿主 Nginx**（非 docker-compose！），见下方「生产部署」节
 - **工作流**：直接提交 `main`；已关联 GitHub 远程
 
 ### 启动方式（本机开发）
@@ -160,8 +161,20 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - 并行会话 Tabler 换肤（路径修正）
 - Gemini UI 接入完成（terrenceftz/mblog-ui）
 
-## 9. 参考
+## 9. 生产部署（cs.mboker.cn，2026-08-12 实勘）
 
+> ⚠️ **重要**：线上域名走宿主 Nginx + PM2 进程 + /var/www 静态文件，**不是** docker-compose 那套（docker 栈 3000/4321/8082 是 agent 部署的另一套，域名不经过它）。
+
+- **服务器**：49.235.112.36（腾讯云），用户 **ubuntu**；SSH 私钥 `ssh812.pem`（**在桌面**，2026-08-12）
+- **宿主 Nginx**（80/443，Let's Encrypt）：`/etc/nginx/sites-available/cs-mboker-cn`（sites-enabled 软链）
+  - `/admin/` → **alias** `/var/www/cs.mboker.cn/admin/`（Vite 构建产物拷贝部署，不是容器！）
+  - `/api/` → `localhost:3003`；`/uploads/` → `localhost:3003`；`/` → `localhost:4322`
+- **进程**：PM2 跑 backend（:3003，mblog-api）和 site（:4322，mblog-site）；代码在 `/root/.openclaw/workspace/agent-e7b30f31/mblog`（**非 git 仓库**，agent 拷贝部署）
+- **缓存策略（2026-08-12 修复）**：`map $uri $mblog_cache_control` → `/admin/assets/`、`/_astro/` immutable 1 年；`/uploads/` 86400；其余（HTML/API）no-cache。仓库内 `deploy/nginx/sites-available/cs-mboker-cn.conf` 即线上实际配置，`deploy/nginx/nginx.conf` 是 docker 等价版
+- **部署步骤**：改宿主配置 → `sudo cp <conf> /etc/nginx/sites-available/cs-mboker-cn && sudo nginx -t && sudo systemctl reload nginx`；admin 发版 = 本地 `admin` 构建 → 产物拷到 `/var/www/cs.mboker.cn/admin/`
+- **坑**：Nginx `try_files` 按 root+$uri 拼路径、与 alias 冲突；`alias`+正则 location 无捕获组会 301 加尾斜杠——admin 资源拆分缓存不要用正则+alias，用 map 按 $uri 分发
+
+## 10. 参考
 - 灵感：https://eonova.me（关于页名片式参考）源码 https://github.com/eonova/eonova.me
 - Reactbits 组件移植（border-glow / pill-nav / blur-text / liquid-ether / line-sidebar / **masonry**）
 - 已装 skill：web-design-guidelines、ui-inspiration-triad、ui-ux-pro-max 等
