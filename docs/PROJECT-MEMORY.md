@@ -113,6 +113,7 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 10. **双主题菜单**（b76756e）：settings 拆 nav_menu_normal/reader + 前台双套 + 后台主题设置编辑（随布局模式联动）；站点设置移除导航卡
 11. **GitHub 推送**（0ef6f8f）：README 完整重写 + 创建远程仓库 **terrenceftz/Mblog（Public）** + push main
 12. **首页偶发极慢修复**（7adfa38 + 本会话）：根因=首页 SSR 同步等待 `/api/douban`（豆瓣分页+TMDB 逐部）与 `/api/projects`（GitHub 无超时），30min 缓存过期即阻塞（nginx 60s 超时实证）。修复：公开接口 **stale-while-revalidate 永不阻塞**（有旧数据立即返回 stale，无则空+syncing，后台单飞刷新），GitHub fetch 补 10s 超时，site fetch 补 12s 兜底。测试 83→85。
+13. **前台特效全无修复**（本会话）：根因=`mblog_theme` localStorage key 被后台/前台共用——后台写入 light/dark/system（默认 system），前台 ThemeToggle 无验证套用到 `data-theme` → 变成 'system' → 双主题 CSS 全部失效 + LiquidEther `isNormalTheme()` 判 false → 特效全无（用户每开过后台再刷首页即触发）。修复：前台只接受 normal/reader 并清理非法残留；后台改独立 key `mblog_admin_theme`（含 mblog_theme/admin_theme 迁移，仅迁移后台主题值不误删前台值）+ index.html 首屏脚本同步。已部署。
 
 **当前提交链**：`0ef6f8f`（docs README + 名片式 + 后台修复）→ `b76756e`（相册 + 关于后台 + 双主题菜单）→ `33df582`（reader prev/next）→ `b1fca22`（reader 空白修复）→ `796aa1e`（首页视觉 + 文章页 + reader 回归）→ `e6e4514`（normal 全面优化）→ `319a081`（上一版记忆）
 
@@ -141,6 +142,7 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 12. **settings 白名单**：新增设置 key 必须加 DEFAULT_SETTINGS，否则 PUT 静默丢弃
 13. **密码/密钥掩码**：MASKED_KEYS 占位符保留原值
 14. **backend 登录路径**：`/api/admin/login`（不是 /auth/login）
+15. **mblog_theme key 前台/后台值域冲突**（已修复 2026-08-12）：后台改 `mblog_admin_theme`，前台 `mblog_theme` 只存 normal/reader；**前台 ThemeToggle 应用 localStorage 前必须校验**，别再把后台主题值当双主题套用
 
 ## 8. 事故记录（重要！）
 

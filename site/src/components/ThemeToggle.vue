@@ -59,9 +59,19 @@ function onThemeChange(e: Event) {
 onMounted(() => {
   const saved = localStorage.getItem(THEME_KEY);
   const currentTheme = document.documentElement.getAttribute('data-theme') ?? 'normal';
-  current.value = saved ?? currentTheme;
-  if (saved && saved !== currentTheme) {
-    apply(saved, false);
+  // 只接受前台双主题值 normal/reader：后台在同一 key（mblog_theme）写入 light/dark/system，
+  // 直接套用会把 data-theme 污染成 'system'，导致双主题 CSS 与 LiquidEther 特效全部失效
+  const validSaved = saved === 'normal' || saved === 'reader' ? saved : null;
+  current.value = validSaved ?? currentTheme;
+  if (validSaved && validSaved !== currentTheme) {
+    apply(validSaved, false);
+  } else if (validSaved === null && saved !== null) {
+    // 清理后台残留的主题值（light/dark/system），保持存储状态干净
+    try {
+      localStorage.removeItem(THEME_KEY);
+    } catch {
+      /* ignore */
+    }
   }
   window.addEventListener('mblog-theme-change', onThemeChange);
 });

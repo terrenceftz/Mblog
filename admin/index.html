@@ -8,10 +8,10 @@
     <title>MBLOG 后台</title>
     <script>
       // 首屏防闪白：在模块加载前同步应用主题（data-theme 自定义 + data-bs-theme Tabler 暗色）
-      // 优先读 mblog_theme（dark/light/system），兼容旧键 admin_theme（dark/light/auto）
+      // 优先读 mblog_admin_theme（后台独立主题键），兼容旧键 mblog_theme（dark/light/system）与 admin_theme（dark/light/auto）
       (function () {
         try {
-          var choice = localStorage.getItem('mblog_theme') || localStorage.getItem('admin_theme') || 'system';
+          var choice = localStorage.getItem('mblog_admin_theme') || localStorage.getItem('mblog_theme') || localStorage.getItem('admin_theme') || 'system';
           if (choice === 'auto') choice = 'system';
           var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           var resolved = choice === 'system' ? (dark ? 'dark' : 'light') : choice;
