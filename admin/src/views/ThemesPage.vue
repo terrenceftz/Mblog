@@ -236,7 +236,7 @@ onMounted(() => {
         </div>
 
         <!-- Font Size & Page Count Card -->
-        <div class="card">
+        <div class="card mb-4">
           <div class="card-header py-3">
             <h3 class="card-title fw-bold m-0">正文字号与分页数</h3>
           </div>
@@ -258,33 +258,28 @@ onMounted(() => {
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- 双主题导航菜单 -->
-      <div class="card">
-        <div class="card-header py-3">
-          <h3 class="card-title fw-bold m-0">导航菜单（Normal 主题）</h3>
-        </div>
-        <div class="card-body">
-          <div v-for="(item, index) in menuNormal" :key="index" class="d-flex gap-2 mb-2">
-            <input v-model="item.label" class="form-control form-control-sm" style="flex: 0 0 130px" placeholder="菜单名称" />
-            <input v-model="item.url" class="form-control form-control-sm" placeholder="链接（/归档 或 https://…）" />
-            <button type="button" class="btn btn-sm btn-outline-danger" @click="removeMenuRow('normal', index)">✕</button>
+        <div class="card mb-4">
+          <div class="card-header py-3">
+            <h3 class="card-title fw-bold m-0">导航菜单（{{ themeConfig.layoutMode === 'normal' ? 'Normal 主题' : 'Reader 极简主题' }}）</h3>
           </div>
-          <button type="button" class="btn btn-sm btn-outline-secondary" @click="addMenuRow('normal')">＋ 添加菜单项</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header py-3">
-          <h3 class="card-title fw-bold m-0">导航菜单（Reader 极简主题）</h3>
-        </div>
-        <div class="card-body">
-          <div v-for="(item, index) in menuReader" :key="index" class="d-flex gap-2 mb-2">
-            <input v-model="item.label" class="form-control form-control-sm" style="flex: 0 0 130px" placeholder="菜单名称" />
-            <input v-model="item.url" class="form-control form-control-sm" placeholder="链接（/归档 或 https://…）" />
-            <button type="button" class="btn btn-sm btn-outline-danger" @click="removeMenuRow('reader', index)">✕</button>
+          <div class="card-body">
+            <template v-if="themeConfig.layoutMode === 'normal'">
+              <div v-for="(item, index) in menuNormal" :key="index" class="d-flex gap-2 mb-2">
+                <input v-model="item.label" class="form-control form-control-sm" style="flex: 0 0 130px" placeholder="菜单名称" />
+                <input v-model="item.url" class="form-control form-control-sm" placeholder="链接（/归档 或 https://…）" />
+                <button type="button" class="btn btn-sm btn-outline-danger" @click="removeMenuRow('normal', index)">✕</button>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary" @click="addMenuRow('normal')">＋ 添加菜单项</button>
+            </template>
+            <template v-else>
+              <div v-for="(item, index) in menuReader" :key="index" class="d-flex gap-2 mb-2">
+                <input v-model="item.label" class="form-control form-control-sm" style="flex: 0 0 130px" placeholder="菜单名称" />
+                <input v-model="item.url" class="form-control form-control-sm" placeholder="链接（/归档 或 https://…）" />
+                <button type="button" class="btn btn-sm btn-outline-danger" @click="removeMenuRow('reader', index)">✕</button>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary" @click="addMenuRow('reader')">＋ 添加菜单项</button>
+            </template>
           </div>
-          <button type="button" class="btn btn-sm btn-outline-secondary" @click="addMenuRow('reader')">＋ 添加菜单项</button>
         </div>
       </div>
 

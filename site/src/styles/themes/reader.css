@@ -144,6 +144,10 @@
   font-size: 0.833rem;
   letter-spacing: 0.15em;
 }
+/* 双主题菜单容器：继承原导航间距（site-nav 的 gap 现在作用于容器，需透传给菜单项） */
+[data-theme='reader'] .site-nav [data-menu-for='reader'] {
+  gap: 16px;
+}
 [data-theme='reader'] .site-nav a {
   color: var(--color-text-secondary);
   display: inline-flex;
@@ -1370,4 +1374,35 @@
   display: block;
   border-top: 1px solid var(--color-border);
   margin-bottom: 20px;
+}
+/* eonova 名片式：分段名片块（reader 更细的分隔） */
+[data-theme='reader'] .about-blocks {
+  margin-top: 24px;
+  width: 100%;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+}
+[data-theme='reader'] .about-block {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border);
+}
+[data-theme='reader'] .about-block:last-child {
+  padding-bottom: 0;
+}
+[data-theme='reader'] .about-block-emoji {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  flex-shrink: 0;
+}
+[data-theme='reader'] .about-block-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.9;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
 }

@@ -10,6 +10,11 @@ const themeNormal = settings.themeNormal ?? {};
 const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博主';
 const stats = await getStats().catch(() => ({ postTotal: 0, commentTotal: 0, totalViews: 0, friendLinkCount: 0 }));
 const year = new Date().getFullYear();
+// eonova 名片式：关于内容按空行分段，每段一个名片块（段首 emoji 作为区块标签）
+const aboutBlocks = (settings.aboutContent || '')
+  .split(/\n\s*\n/)
+  .map((s) => s.trim())
+  .filter(Boolean);
 ---
 <BaseLayout title="关于" description="关于这个博客与博主。">
   <PageHeader title="关于" subtitle="关于这个博客与博主。" class="about-page">
@@ -19,8 +24,22 @@ const year = new Date().getFullYear();
       <p class="about-intro">{introText}</p>
       {settings.siteDesc && <p class="about-desc">{settings.siteDesc}</p>}
 
-      {settings.aboutContent && (
-        <div class="about-content">{settings.aboutContent}</div>
+      {aboutBlocks.length > 0 && (
+        <div class="about-blocks">
+          {aboutBlocks.map((block) => {
+            const chars = [...block];
+            const first = chars[0];
+            // 段首 emoji 检测：命中则作为名片块标签放大显示
+            const hasEmoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2700}-\u{27BF}]/u.test(first || '');
+            const text = hasEmoji ? block.slice(chars[0].length).trim() : block;
+            return (
+              <div class="about-block">
+                {hasEmoji && <span class="about-block-emoji" aria-hidden="true">{first}</span>}
+                <p class="about-block-text">{text}</p>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       <div class="about-stats">

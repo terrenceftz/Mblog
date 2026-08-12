@@ -2077,3 +2077,32 @@
   border-top: 1px solid var(--color-border);
   margin-bottom: 24px;
 }
+/* eonova 名片式：分段名片块（段首 emoji 标签 + 短横线分隔） */
+[data-theme='normal'] .about-blocks {
+  margin-top: 28px;
+  width: 100%;
+  max-width: 640px;
+  text-align: left;
+}
+[data-theme='normal'] .about-block {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px 0;
+  border-top: 1px dashed var(--color-border);
+}
+[data-theme='normal'] .about-block:last-child {
+  padding-bottom: 0;
+}
+[data-theme='normal'] .about-block-emoji {
+  font-size: 22px;
+  line-height: 1.7;
+  flex-shrink: 0;
+}
+[data-theme='normal'] .about-block-text {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+}
