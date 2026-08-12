@@ -5,6 +5,7 @@ import { rateLimit } from '../../middleware/rateLimit';
 import { createCaptcha, verifyCaptcha } from '../../lib/captcha';
 import { verifyTurnstile } from '../../lib/turnstile';
 import { getSetting } from '../../lib/settings';
+import { clientIp } from '../../lib/clientIp';
 import type { Db } from '../../db';
 
 export function commentsRoutes(ctx: Db) {
@@ -46,10 +47,8 @@ export function commentsRoutes(ctx: Db) {
       return c.json({ error: { code: 'INVALID', message: '参数错误' } }, 400);
     }
 
-    const ip =
-      c.req.header('x-real-ip')?.trim() ||
-      c.req.header('x-forwarded-for')?.split(',').pop()?.trim() ||
-      'unknown';
+    // 评论 IP 与限流同一套解析（TRUST_PROXY 控制是否信任代理头），拿不到时存 'unknown'
+    const ip = clientIp(c) ?? 'unknown';
 
     // 云验证（Turnstile）：配置了 Secret Key 就走云验证；未配置回落数学验证码
     const turnstileSecret = getSetting(ctx, 'turnstile_secret_key');

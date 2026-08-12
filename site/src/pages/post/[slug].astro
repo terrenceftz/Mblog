@@ -179,9 +179,9 @@ const related = post?.category
 
 <script>
   // 文章目录：滚动高亮 + LineSidebar 线标动效（reactbits 移植）
-  const sidebarList = document.querySelector('.article-toc .line-sidebar__list');
-  const sidebarItems = sidebarList ? [...sidebarList.querySelectorAll('.line-sidebar__item')] : [];
-  const links = sidebarItems.map((li) => li.querySelector('.line-sidebar__label'));
+  const sidebarList = document.querySelector<HTMLElement>('.article-toc .line-sidebar__list');
+  const sidebarItems = sidebarList ? [...sidebarList.querySelectorAll<HTMLElement>('.line-sidebar__item')] : [];
+  const links = sidebarItems.map((li) => li.querySelector<HTMLElement>('.line-sidebar__label'));
 
   // 滚动高亮：IntersectionObserver 驱动 activeIndex
   const activeIndex = { v: -1 };
@@ -237,7 +237,7 @@ const related = post?.category
 
     sidebarList.addEventListener('pointermove', (e) => {
       const rect = sidebarList.getBoundingClientRect();
-      const pointerY = e.clientY - rect.top;
+      const pointerY = (e as PointerEvent).clientY - rect.top;
       sidebarItems.forEach((li, i) => {
         const center = li.offsetTop + li.offsetHeight / 2;
         const d = Math.abs(pointerY - center);

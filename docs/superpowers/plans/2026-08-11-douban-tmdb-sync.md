@@ -392,7 +392,7 @@ git commit -m "feat: 后台设置页 TMDB Key 配置 + 豆瓣立即同步按钮"
 
 通过 admin API（python urllib，登录 admin/admin123）设置：
 - `douban_enabled: '1'`、`douban_uid: '1017197'`
-- `tmdb_api_key: 'REDACTED_TMDB_API_KEY'`（用户提供的 key）
+- `tmdb_api_key: '<REDACTED>'`（用户提供的 key，已在 .env 中配置，勿提交明文）
 
 **Step 2: 同步 + 验证**
 

@@ -6,9 +6,12 @@ services:
       PORT: "3000"
       DB_PATH: /app/data/mblog.db
       UPLOAD_DIR: /app/uploads
-      JWT_SECRET: ${JWT_SECRET:-change-me}
+      # 必填：缺失会在 compose 阶段直接报错，避免弱密钥/弱口令上线
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET（至少 32 位随机字符串）}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?请在 .env 中设置 ADMIN_PASSWORD（至少 8 位）}
+      # 本 API 位于可信 nginx 反代之后，必须信任代理注入的真实 IP 头，否则限流退化为共享单桶
+      TRUST_PROXY: "1"
     volumes:
       - mblog-data:/app/data
       - mblog-uploads:/app/uploads

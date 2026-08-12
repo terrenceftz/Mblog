@@ -8,6 +8,7 @@ export interface PostListItem {
 }
 export interface PostDetail extends PostListItem {
   contentHtml: string;
+  updatedAt: number;
   category: { id: number; name: string; slug: string } | null;
   prev: { title: string; slug: string } | null;
   next: { title: string; slug: string } | null;

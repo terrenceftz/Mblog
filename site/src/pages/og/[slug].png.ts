@@ -7,6 +7,10 @@ import { getPost } from '../../lib/api';
 
 export const prerender = false;
 
+// 服务端内存缓存：OG 图渲染（sharp）开销不低，按 slug+updatedAt 缓存，文章更新即失效
+const OG_CACHE_TTL = 60 * 60 * 1000; // 与响应 Cache-Control 一致（1h）
+const ogCache = new Map<string, { time: number; png: Buffer<ArrayBuffer> }>();
+
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
@@ -30,6 +34,15 @@ export const GET: APIRoute = async ({ params }) => {
     return new Response('Not Found', { status: 404 });
   }
   if (!post) return new Response('Not Found', { status: 404 });
+
+  // 命中缓存直接返回（文章未更新），避免每次请求都跑 sharp 渲染
+  const cacheKey = `${slug}:${post.updatedAt}`;
+  const hit = ogCache.get(cacheKey);
+  if (hit && Date.now() - hit.time < OG_CACHE_TTL) {
+    return new Response(hit.png, {
+      headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' },
+    });
+  }
 
   const lines = wrapTitle(post.title);
   const titleTsps = lines
@@ -59,6 +72,8 @@ export const GET: APIRoute = async ({ params }) => {
 </svg>`;
 
   const png = await sharp(Buffer.from(svg)).png().toBuffer();
+  if (ogCache.size >= 200) ogCache.clear();
+  ogCache.set(cacheKey, { time: Date.now(), png });
   return new Response(png, {
     headers: {
       'Content-Type': 'image/png',
