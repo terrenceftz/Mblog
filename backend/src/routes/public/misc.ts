@@ -76,34 +76,41 @@ ${items}
   app.get('/settings/public', (c) => {
     const {
       site_name: siteName, site_description: siteDesc, site_url: siteUrl, default_theme: theme,
-      friend_link_enabled: friendLinkEnabled, nav_menu: navMenuRaw,
+      friend_link_enabled: friendLinkEnabled,
+      nav_menu_normal: navMenuNormalRaw, nav_menu_reader: navMenuReaderRaw,
       theme_normal: themeNormalRaw, theme_reader: themeReaderRaw,
       github_enabled: githubEnabled, github_username: githubUsername,
       douban_enabled: doubanEnabled, douban_uid: doubanUid,
       turnstile_site_key: turnstileSiteKey,
-      author: author, avatar: avatar,
+      author, avatar, about_content: aboutContent,
     } = getSettings(ctx, [
-      'site_name', 'site_description', 'site_url', 'default_theme', 'friend_link_enabled', 'nav_menu',
+      'site_name', 'site_description', 'site_url', 'default_theme', 'friend_link_enabled',
+      'nav_menu_normal', 'nav_menu_reader',
       'theme_normal', 'theme_reader', 'github_enabled', 'github_username',
-      'douban_enabled', 'douban_uid', 'turnstile_site_key', 'author', 'avatar',
+      'douban_enabled', 'douban_uid', 'turnstile_site_key', 'author', 'avatar', 'about_content',
     ]);
 
-    // 解析导航菜单 JSON；非法/空则回退默认
-    let navMenu: { label: string; url: string }[] = [];
-    try {
-      const parsed = JSON.parse(navMenuRaw);
-      if (Array.isArray(parsed)) {
-        navMenu = parsed
-          .filter((i) => i && typeof i.label === 'string' && typeof i.url === 'string')
-          .map((i) => ({ label: i.label, url: i.url }));
+    // 解析导航菜单 JSON；非法/空则回退空
+    const parseMenu = (raw: string): { label: string; url: string }[] => {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter((i) => i && typeof i.label === 'string' && typeof i.url === 'string')
+            .map((i) => ({ label: i.label, url: i.url }));
+        }
+      } catch {
+        /* ignore */
       }
-    } catch {
-      navMenu = [];
-    }
+      return [];
+    };
+    const navMenuNormal = parseMenu(navMenuNormalRaw);
+    const navMenuReader = parseMenu(navMenuReaderRaw);
 
     return c.json({
       data: {
-        siteName, siteDesc, siteUrl, theme, friendLinkEnabled: friendLinkEnabled === '1', navMenu,
+        siteName, siteDesc, siteUrl, theme, friendLinkEnabled: friendLinkEnabled === '1',
+        navMenuNormal, navMenuReader, aboutContent,
         themeNormal: parseThemeConfig(themeNormalRaw),
         themeReader: parseThemeConfig(themeReaderRaw),
         githubEnabled: githubEnabled === '1',

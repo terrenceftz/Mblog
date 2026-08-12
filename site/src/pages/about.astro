@@ -1,0 +1,46 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import { getPublicSettings, getStats } from '../lib/api';
+
+const settings = Astro.locals.settings ?? (await getPublicSettings());
+const siteName = settings.author || settings.siteName || '我的博客';
+const avatarUrl = settings.avatar || '/avatar.jpg';
+const themeNormal = settings.themeNormal ?? {};
+const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博主';
+const stats = await getStats().catch(() => ({ postTotal: 0, commentTotal: 0, totalViews: 0, friendLinkCount: 0 }));
+const year = new Date().getFullYear();
+---
+<BaseLayout title="关于" description="关于这个博客与博主。">
+  <PageHeader title="关于" subtitle="关于这个博客与博主。" class="about-page">
+    <div class="about-card">
+      <img class="about-avatar" src={avatarUrl} alt={siteName} />
+      <h2 class="about-name">{siteName}</h2>
+      <p class="about-intro">{introText}</p>
+      {settings.siteDesc && <p class="about-desc">{settings.siteDesc}</p>}
+
+      {settings.aboutContent && (
+        <div class="about-content">{settings.aboutContent}</div>
+      )}
+
+      <div class="about-stats">
+        <div class="about-stat"><span>{stats.postTotal}</span><em>文章</em></div>
+        <div class="about-stat"><span>{stats.commentTotal}</span><em>评论</em></div>
+        <div class="about-stat"><span>{stats.totalViews}</span><em>浏览</em></div>
+        <div class="about-stat"><span>{stats.friendLinkCount}</span><em>友链</em></div>
+      </div>
+
+      <div class="about-links">
+        {settings.githubUsername && (
+          <a href={`https://github.com/${settings.githubUsername}`} target="_blank" rel="noopener noreferrer">GitHub</a>
+        )}
+        {settings.doubanUid && (
+          <a href={`https://www.douban.com/people/${settings.doubanUid}/`} target="_blank" rel="noopener noreferrer">豆瓣</a>
+        )}
+        <a href="/api/rss" target="_blank" rel="noopener noreferrer">RSS</a>
+      </div>
+
+      <p class="about-copyright">© {year} {siteName} · Powered by MBLOG</p>
+    </div>
+  </PageHeader>
+</BaseLayout>

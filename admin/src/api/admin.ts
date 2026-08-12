@@ -71,6 +71,15 @@ export interface Talk {
   created_at: string;
 }
 
+export interface Photo {
+  id: number;
+  url: string;
+  title: string;
+  description: string;
+  sortOrder: number;
+  created_at: string;
+}
+
 export interface FriendLink {
   id: number;
   name: string;
@@ -104,8 +113,11 @@ export interface SiteSettings {
   /** GitHub 项目展示 */
   githubEnabled: boolean;
   githubUsername: string;
-  /** 导航菜单 JSON 字符串 */
-  navMenu: string;
+  /** 导航菜单 JSON 字符串（双主题各自） */
+  navMenuNormal: string;
+  navMenuReader: string;
+  /** 关于页内容（纯文本段落） */
+  aboutContent: string;
   /** 存储方式 local/cos */
   storageProvider: string;
   cosBucket: string;
@@ -147,6 +159,7 @@ import type {
   CommentRow,
   FriendLinkRow,
   TalkRow,
+  PhotoRow,
   PostPayload
 } from './posts';
 
@@ -405,6 +418,43 @@ export const api = {
     return true;
   },
 
+  // ---------- 相册 ----------
+  async getPhotos(): Promise<Photo[]> {
+    const { list } = await request<Page<PhotoRow>>('/admin/photos?page=1&pageSize=100');
+    return list.map(p => ({
+      id: p.id,
+      url: p.url,
+      title: p.title,
+      description: p.description,
+      sortOrder: p.sortOrder,
+      created_at: fmtTime(p.createdAt),
+    }));
+  },
+
+  async createPhoto(input: { url: string; title?: string; description?: string }): Promise<Photo> {
+    await request<{ url: string }>('/admin/photos', { method: 'POST', body: JSON.stringify(input) });
+    const list = await api.getPhotos();
+    return list[0];
+  },
+
+  async updatePhoto(id: number, input: { url?: string; title?: string; description?: string }): Promise<boolean> {
+    await request<{ id: number }>(`/admin/photos/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+    return true;
+  },
+
+  async deletePhoto(id: number): Promise<boolean> {
+    await request<{ ok: true }>(`/admin/photos/${id}`, { method: 'DELETE' });
+    return true;
+  },
+
+  /** 上传图片，返回可访问 url（复用 /admin/upload）；blob 可传压缩后的图 */
+  async uploadPhoto(file: Blob, filename: string): Promise<string> {
+    const fd = new FormData();
+    fd.append('file', file, filename);
+    const data = await request<{ url: string }>('/admin/upload', { method: 'POST', body: fd });
+    return data.url;
+  },
+
   // ---------- 说说 ----------
   async getTalks(): Promise<Talk[]> {
     const { list } = await request<Page<TalkRow>>('/admin/talks?page=1&pageSize=100');
@@ -518,7 +568,9 @@ export const api = {
       friendLinkEnabled: s.friend_link_enabled === '1',
       githubEnabled: s.github_enabled === '1',
       githubUsername: s.github_username || '',
-      navMenu: s.nav_menu || '[]',
+      navMenuNormal: s.nav_menu_normal || '[]',
+      navMenuReader: s.nav_menu_reader || '[]',
+      aboutContent: s.about_content || '',
       storageProvider: s.storage_provider || 'local',
       cosBucket: s.cos_bucket || '',
       cosRegion: s.cos_region || ''
@@ -545,7 +597,9 @@ export const api = {
       friend_link_enabled: boolStr(settings.friendLinkEnabled, current.friend_link_enabled),
       github_enabled: boolStr(settings.githubEnabled, current.github_enabled),
       github_username: settings.githubUsername ?? current.github_username,
-      nav_menu: settings.navMenu ?? current.nav_menu,
+      nav_menu_normal: settings.navMenuNormal ?? current.nav_menu_normal,
+      nav_menu_reader: settings.navMenuReader ?? current.nav_menu_reader,
+      about_content: settings.aboutContent ?? current.about_content,
       douban_uid: settings.doubanUserId ?? current.douban_uid,
       douban_enabled: boolStr(settings.doubanSyncEnabled, current.douban_enabled),
       douban_last_sync: settings.lastDoubanSync ?? current.douban_last_sync

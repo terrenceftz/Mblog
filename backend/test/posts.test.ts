@@ -104,10 +104,12 @@ describe('public posts', () => {
     const body = await res.json();
     expect(body.data.siteName).toBeTruthy();
     expect(body.data.theme).toBe('normal');
-    // 导航菜单：默认含 6 项（含「项目」「影音」）
-    expect(Array.isArray(body.data.navMenu)).toBe(true);
-    expect(body.data.navMenu.length).toBe(6);
-    expect(body.data.navMenu[0].label).toBe('首页');
+    // 导航菜单（双主题各自）：默认含 8 项（含「项目」「影音」「相册」「关于」）
+    expect(Array.isArray(body.data.navMenuNormal)).toBe(true);
+    expect(body.data.navMenuNormal.length).toBe(8);
+    expect(body.data.navMenuNormal[0].label).toBe('首页');
+    expect(Array.isArray(body.data.navMenuReader)).toBe(true);
+    expect(body.data.navMenuReader.length).toBe(8);
   });
 
   it('归档按月份分组', async () => {

@@ -91,3 +91,12 @@ export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull().default(''),
 });
+
+export const photos = sqliteTable('photos', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  url: text('url').notNull(),
+  title: text('title').notNull().default(''),
+  description: text('description').notNull().default(''),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+});

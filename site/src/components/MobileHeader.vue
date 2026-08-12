@@ -1,21 +1,39 @@
 <script setup lang="ts">
 // 移动端导航：顶部栏（站名 + 汉堡）+ 滑出菜单面板（双主题通用，≤768px 显示）
+// 支持双主题各自菜单：SSR 按 initialTheme 渲染，主题切换时同步更新
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import ThemeToggle from './ThemeToggle.vue';
 
-const props = defineProps<{ items: { label: string; url: string }[]; siteName: string }>();
+const props = defineProps<{
+  normalItems: { label: string; url: string }[];
+  readerItems: { label: string; url: string }[];
+  siteName: string;
+  initialTheme?: string;
+}>();
 const open = ref(false);
+const currentItems = ref(props.initialTheme === 'reader' ? props.readerItems : props.normalItems);
 const isExternal = (u: string) => u.startsWith('http');
 
 function close() {
   open.value = false;
 }
+function syncItems() {
+  const theme = document.documentElement.getAttribute('data-theme') ?? props.initialTheme ?? 'normal';
+  currentItems.value = theme === 'reader' ? props.readerItems : props.normalItems;
+}
 // Escape 关闭菜单（键盘可达性）
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && open.value) close();
 }
-onMounted(() => window.addEventListener('keydown', onKeydown));
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
+onMounted(() => {
+  syncItems();
+  window.addEventListener('keydown', onKeydown);
+  window.addEventListener('mblog-theme-change', syncItems);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown);
+  window.removeEventListener('mblog-theme-change', syncItems);
+});
 </script>
 
 <template>
@@ -37,7 +55,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
     <Transition name="menu">
       <nav v-if="open" class="mobile-menu" @click.self="close">
         <a
-          v-for="item in items"
+          v-for="item in currentItems"
           :key="item.url"
           class="mobile-link"
           :href="item.url"

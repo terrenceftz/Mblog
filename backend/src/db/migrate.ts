@@ -38,6 +38,18 @@ export function ensureMigrated(ctx: Db): void {
     );
   `);
 
+  // 相册表（简约单相册：url + 标题/描述 + 排序）
+  ctx.sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS photos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url TEXT NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+  `);
+
   const existing = ctx.db.select({ id: users.id }).from(users).limit(1).get();
   if (existing) return;
 

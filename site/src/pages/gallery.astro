@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import PhotoGallery from '../components/PhotoGallery.vue';
+import { getPhotos } from '../lib/api';
+
+const photos = await getPhotos().catch(() => []);
+// 后端返回的上传地址是相对路径（/uploads/...），拼成后端绝对 URL 才能被浏览器加载
+const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
+const photoItems = photos.map((p) => ({
+  ...p,
+  url: p.url.startsWith('/') ? `${API_BASE}${p.url}` : p.url,
+}));
+---
+<BaseLayout title="相册" description="生活碎片与光影记录。">
+  <PageHeader title="相册" subtitle="生活碎片与光影记录。" count={photos.length > 0 ? `共 ${photos.length} 张` : undefined} class="gallery-page">
+    {photoItems.length > 0 ? (
+      <PhotoGallery client:visible photos={photoItems} />
+    ) : (
+      <p class="gallery-empty">相册还是空的，去后台添加照片吧</p>
+    )}
+  </PageHeader>
+</BaseLayout>

@@ -28,7 +28,9 @@ export interface PublicSettings {
   siteUrl: string;
   theme: string;
   friendLinkEnabled: boolean;
-  navMenu: { label: string; url: string }[];
+  navMenuNormal: { label: string; url: string }[];
+  navMenuReader: { label: string; url: string }[];
+  aboutContent: string;
   themeNormal: ThemeConfig;
   themeReader: ThemeConfig;
   githubEnabled: boolean;
@@ -42,6 +44,7 @@ export interface Tag { id: number; name: string; slug: string; postCount: number
 export interface ArchiveGroup { month: string; items: { createdAt: number; title: string; slug: string }[] }
 export interface Talk { id: number; content: string; createdAt: number }
 export interface FriendLink { id: number; name: string; url: string; description: string; avatar: string }
+export interface Photo { id: number; url: string; title: string; description: string }
 export interface Project {
   name: string; description: string; url: string;
   language: string | null; stars: number; updatedAt: string;
@@ -61,13 +64,25 @@ export function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
     siteName: '我的博客', author: '', avatar: '', siteDesc: '', siteUrl: 'http://localhost', theme: 'normal', friendLinkEnabled: true,
     themeNormal: {}, themeReader: {}, githubEnabled: false, githubUsername: '',
-    doubanEnabled: false, doubanUid: '', turnstileSiteKey: '',
-    navMenu: [
+    doubanEnabled: false, doubanUid: '', turnstileSiteKey: '', aboutContent: '',
+    navMenuNormal: [
       { label: '首页', url: '/' },
       { label: '归档', url: '/archive' },
       { label: '友链', url: '/friends' },
       { label: '项目', url: '/projects' },
       { label: '影音', url: '/douban' },
+      { label: '相册', url: '/gallery' },
+      { label: '关于', url: '/about' },
+      { label: 'RSS', url: '/api/rss' },
+    ],
+    navMenuReader: [
+      { label: '首页', url: '/' },
+      { label: '归档', url: '/archive' },
+      { label: '友链', url: '/friends' },
+      { label: '项目', url: '/projects' },
+      { label: '影音', url: '/douban' },
+      { label: '相册', url: '/gallery' },
+      { label: '关于', url: '/about' },
       { label: 'RSS', url: '/api/rss' },
     ],
   }));
@@ -88,6 +103,7 @@ export const getTags = () => get<Tag[]>('/tags');
 export const getArchive = () => get<ArchiveGroup[]>('/archive');
 export const getFriendLinks = () => get<FriendLink[]>('/friend-links');
 export const getTalks = () => get<Talk[]>('/talks');
+export const getPhotos = () => get<Photo[]>('/photos');
 export const getProjects = () => get<ProjectsData>('/projects');
 export interface DoubanMovie {
   title: string;

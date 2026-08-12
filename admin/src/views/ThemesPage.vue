@@ -22,6 +22,26 @@ const themeConfig = ref<ThemeConfig>({
 
 const saving = ref(false);
 
+// 双主题导航菜单（存 settings.nav_menu_normal / nav_menu_reader）
+const menuNormal = ref<{ label: string; url: string }[]>([]);
+const menuReader = ref<{ label: string; url: string }[]>([]);
+function parseMenu(raw: string): { label: string; url: string }[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((i: { label?: string; url?: string }) => i && typeof i.label === 'string' && typeof i.url === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+function addMenuRow(which: 'normal' | 'reader') {
+  (which === 'normal' ? menuNormal : menuReader).value.push({ label: '', url: '' });
+}
+function removeMenuRow(which: 'normal' | 'reader', index: number) {
+  (which === 'normal' ? menuNormal : menuReader).value.splice(index, 1);
+}
+
 /** 当前编辑的主题（随 layoutMode 切换） */
 const currentColors = () =>
   themeConfig.value.colors[themeConfig.value.layoutMode === 'reader' ? 'reader' : 'normal'];
@@ -43,13 +63,22 @@ function pickPalette(p: ThemeConfig['colorPalette']) {
 }
 
 async function loadConfig() {
-  themeConfig.value = await api.getThemeConfig();
+  const [cfg, s] = await Promise.all([api.getThemeConfig(), api.getSettings()]);
+  themeConfig.value = cfg;
+  menuNormal.value = parseMenu(s.navMenuNormal);
+  menuReader.value = parseMenu(s.navMenuReader);
 }
 
 async function handleSaveTheme() {
   saving.value = true;
   try {
-    const updated = await api.updateThemeConfig(themeConfig.value);
+    const [updated] = await Promise.all([
+      api.updateThemeConfig(themeConfig.value),
+      api.updateSettings({
+        navMenuNormal: JSON.stringify(menuNormal.value.filter((i) => i.label.trim() && i.url.trim())),
+        navMenuReader: JSON.stringify(menuReader.value.filter((i) => i.label.trim() && i.url.trim())),
+      }),
+    ]);
     themeConfig.value = updated;
     toast.success('前台主题与阅读配置已更新');
   } catch (err) {
@@ -228,6 +257,34 @@ onMounted(() => {
               <input type="range" min="5" max="30" step="5" v-model.number="themeConfig.postsPerPage" class="form-range" />
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- 双主题导航菜单 -->
+      <div class="card">
+        <div class="card-header py-3">
+          <h3 class="card-title fw-bold m-0">导航菜单（Normal 主题）</h3>
+        </div>
+        <div class="card-body">
+          <div v-for="(item, index) in menuNormal" :key="index" class="d-flex gap-2 mb-2">
+            <input v-model="item.label" class="form-control form-control-sm" style="flex: 0 0 130px" placeholder="菜单名称" />
+            <input v-model="item.url" class="form-control form-control-sm" placeholder="链接（/归档 或 https://…）" />
+            <button type="button" class="btn btn-sm btn-outline-danger" @click="removeMenuRow('normal', index)">✕</button>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" @click="addMenuRow('normal')">＋ 添加菜单项</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header py-3">
+          <h3 class="card-title fw-bold m-0">导航菜单（Reader 极简主题）</h3>
+        </div>
+        <div class="card-body">
+          <div v-for="(item, index) in menuReader" :key="index" class="d-flex gap-2 mb-2">
+            <input v-model="item.label" class="form-control form-control-sm" style="flex: 0 0 130px" placeholder="菜单名称" />
+            <input v-model="item.url" class="form-control form-control-sm" placeholder="链接（/归档 或 https://…）" />
+            <button type="button" class="btn btn-sm btn-outline-danger" @click="removeMenuRow('reader', index)">✕</button>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" @click="addMenuRow('reader')">＋ 添加菜单项</button>
         </div>
       </div>
 

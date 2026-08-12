@@ -37,3 +37,7 @@ export interface TalkRow {
   id: number; content: string; ip: string;
   status: 'pending' | 'approved' | 'rejected'; createdAt: number;
 }
+export interface PhotoRow {
+  id: number; url: string; title: string; description: string;
+  sortOrder: number; createdAt: number;
+}

@@ -16,15 +16,29 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   cos_secret_key: '',
   cos_bucket: '',
   cos_region: '',
-  // 前台导航菜单：JSON 数组 [{label, url}]，后台可自定义
-  nav_menu: JSON.stringify([
+  // 前台导航菜单（双主题各自）：JSON 数组 [{label, url}]，后台主题设置可自定义
+  nav_menu_normal: JSON.stringify([
     { label: '首页', url: '/' },
     { label: '归档', url: '/archive' },
     { label: '友链', url: '/friends' },
     { label: '项目', url: '/projects' },
     { label: '影音', url: '/douban' },
+    { label: '相册', url: '/gallery' },
+    { label: '关于', url: '/about' },
     { label: 'RSS', url: '/api/rss' },
   ]),
+  nav_menu_reader: JSON.stringify([
+    { label: '首页', url: '/' },
+    { label: '归档', url: '/archive' },
+    { label: '友链', url: '/friends' },
+    { label: '项目', url: '/projects' },
+    { label: '影音', url: '/douban' },
+    { label: '相册', url: '/gallery' },
+    { label: '关于', url: '/about' },
+    { label: 'RSS', url: '/api/rss' },
+  ]),
+  // 关于页内容（纯文本段落，后台站点设置可编辑）
+  about_content: '',
   // 主题配置（JSON，空串 = 使用 CSS 内置默认）
   theme_normal: '',
   theme_reader: '',

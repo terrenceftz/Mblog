@@ -21,7 +21,9 @@ const settings = ref<SiteSettings>({
   friendLinkEnabled: true,
   githubEnabled: false,
   githubUsername: '',
-  navMenu: '[]',
+  navMenuNormal: '[]',
+  navMenuReader: '[]',
+  aboutContent: '',
   storageProvider: 'local',
   cosBucket: '',
   cosRegion: '',
@@ -29,9 +31,6 @@ const settings = ref<SiteSettings>({
 
 const saving = ref(false);
 const syncingDouban = ref(false);
-
-// 导航菜单：独立数组，保存时序列化为 JSON 写入 settings.navMenu
-const menuItems = ref<{ label: string; url: string }[]>([]);
 
 // 修改密码
 const oldPassword = ref('');
@@ -41,32 +40,11 @@ const pwdChanging = ref(false);
 
 async function loadSettings() {
   settings.value = await api.getSettings();
-  try {
-    const parsed = JSON.parse(settings.value.navMenu || '[]');
-    menuItems.value = Array.isArray(parsed)
-      ? parsed.filter(
-          (i: { label?: string; url?: string }) =>
-            i && typeof i.label === 'string' && typeof i.url === 'string'
-        )
-      : [];
-  } catch {
-    menuItems.value = [];
-  }
-}
-
-function addMenuRow() {
-  menuItems.value.push({ label: '', url: '' });
-}
-function removeMenuRow(index: number) {
-  menuItems.value.splice(index, 1);
 }
 
 async function handleSaveSettings() {
   saving.value = true;
   try {
-    settings.value.navMenu = JSON.stringify(
-      menuItems.value.filter(i => i.label.trim() && i.url.trim())
-    );
     const saved = await api.updateSettings(settings.value);
     settings.value = saved;
     toast.success('站点设置已成功保存！');
@@ -166,6 +144,10 @@ onMounted(() => {
             <label class="form-label small fw-medium">博主头像 URL（前台首屏头像）</label>
             <input type="text" v-model="settings.avatar" class="form-control" placeholder="留空使用默认头像" />
           </div>
+          <div class="mt-3">
+            <label class="form-label small fw-medium">关于我内容（前台「关于」页展示）</label>
+            <textarea v-model="settings.aboutContent" class="form-control" rows="6" placeholder="写下自我介绍、经历、联系方式…（换行分段）"></textarea>
+          </div>
         </div>
       </div>
 
@@ -254,24 +236,6 @@ onMounted(() => {
           <div class="mt-3">
             <label class="form-label small fw-medium">GitHub 用户名</label>
             <input type="text" v-model="settings.githubUsername" class="form-control" placeholder="octocat" />
-          </div>
-        </div>
-      </div>
-
-      <!-- 导航菜单 -->
-      <div class="card">
-        <div class="card-header py-3">
-          <h3 class="card-title fw-bold m-0">导航菜单（前台顶栏）</h3>
-        </div>
-        <div class="card-body">
-          <div v-for="(item, index) in menuItems" :key="index" class="d-flex gap-2 mb-2">
-            <input v-model="item.label" class="form-control form-control-sm" style="flex: 0 0 130px" placeholder="菜单名称" />
-            <input v-model="item.url" class="form-control form-control-sm" placeholder="链接（/归档 或 https://…）" />
-            <button type="button" class="btn btn-sm btn-outline-danger" @click="removeMenuRow(index)">✕</button>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary" @click="addMenuRow">＋ 添加菜单项</button>
-            <span class="text-muted micro-text">`/` 为首页；http 开头新窗口打开；留空行忽略。</span>
           </div>
         </div>
       </div>
