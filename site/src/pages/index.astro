@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import LiquidEther from '../components/LiquidEther.vue';
+import HeroBackground from '../components/HeroBackground.vue';
 import BlurText from '../components/BlurText.vue';
 import BorderGlow from '../components/BorderGlow.vue';
 import {
@@ -15,7 +15,7 @@ const siteName = settings.author || settings.siteName || '我的博客';
 const defaultTheme = settings.theme === 'reader' ? settings.themeReader : settings.themeNormal;
 const pageSize = defaultTheme.homePageSize ?? 10;
 const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
-const data = await getPosts({ page, pageSize });
+const data = await getPosts({ page, pageSize }).catch(() => ({ list: [] as PostListItem[], total: 0 }));
 const total = data.total;
 const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -68,7 +68,7 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
                   <a class="item-title" href={`/post/${post.slug}`}>{post.title}</a>
                 </div>
                 {post.summary && <p class="item-summary">{post.summary}</p>}
-                <span class="item-views">👁 {post.viewCount}</span>
+                <span class="item-views" aria-label={`${post.viewCount} 次浏览`}><span aria-hidden="true">👁</span> {post.viewCount}</span>
               </li>
             ))}
           </ul>
@@ -89,7 +89,7 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
   <div class="normal-home">
     <!-- 首屏（Liquid Ether 流体背景；左侧文字 + 右侧头像，统计气泡弹出于头像右侧） -->
     <section class="nh-hero">
-      <LiquidEther client:visible />
+      <HeroBackground client:visible />
       <div class="nh-hero-content nh-hero-split">
         <div class="nh-intro">
           <p class="nh-eyebrow"><BlurText client:load text="NOVA EON · BLOG" start-delay={0} delay={60} /></p>
@@ -119,31 +119,35 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
         <h2>最新文章</h2>
         <a class="nh-more" href="/posts">查看全部文章 →</a>
       </div>
-      <div class="nh-post-grid">
-        {data.list.map((p) => (
-          <a class="nh-post-card border-glow-card" href={`/post/${p.slug}`}>
-            <span class="edge-light" aria-hidden="true" />
-            <div class="border-glow-inner">
-              <div class="nh-post-cover">
-                {p.cover ? (
-                  <img src={p.cover} alt="" loading="lazy" />
-                ) : (
-                  <span class="nh-post-cover-fallback">{p.title.slice(0, 1)}</span>
-                )}
-              </div>
-              <div class="nh-post-body">
-                <h3 class="nh-post-title">{p.title}</h3>
-                {p.summary && <p class="nh-post-summary">{p.summary}</p>}
-                <div class="nh-post-meta">
-                  <span>{fmtMonthDay(p.createdAt)}</span>
-                  <span>👁 {p.viewCount}</span>
-                  {catName(p.categoryId) && <span>{catName(p.categoryId)}</span>}
+      {data.list.length > 0 ? (
+        <div class="nh-post-grid">
+          {data.list.slice(0, 9).map((p) => (
+            <a class="nh-post-card border-glow-card" href={`/post/${p.slug}`}>
+              <span class="edge-light" aria-hidden="true" />
+              <div class="border-glow-inner">
+                <div class="nh-post-cover">
+                  {p.cover ? (
+                    <img src={p.cover} alt="" loading="lazy" />
+                  ) : (
+                    <span class="nh-post-cover-fallback">{p.title.slice(0, 1)}</span>
+                  )}
+                </div>
+                <div class="nh-post-body">
+                  <h3 class="nh-post-title">{p.title}</h3>
+                  {p.summary && <p class="nh-post-summary">{p.summary}</p>}
+                  <div class="nh-post-meta">
+                    <span>{fmtMonthDay(p.createdAt)}</span>
+                    <span aria-label={`${p.viewCount} 次浏览`}><span aria-hidden="true">👁</span> {p.viewCount}</span>
+                    {catName(p.categoryId) && <span>{catName(p.categoryId)}</span>}
+                  </div>
                 </div>
               </div>
-            </div>
-          </a>
-        ))}
-      </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p class="post-empty">暂无文章</p>
+      )}
     </section>
 
     <!-- 分类与标签 -->

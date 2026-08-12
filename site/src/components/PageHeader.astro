@@ -1,0 +1,24 @@
+---
+// 通用页面头部：复用 posts/archive 的 .posts-page 容器 + GradientBlob 装饰 + 居中标题区。
+// 消除 posts/archive/projects/friends/douban/talk 六页的 header 样板重复。
+import GradientBlob from './GradientBlob.vue';
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  /** 计数行（如「共 N 篇」），为空则不渲染 */
+  count?: string;
+  /** 透传到 .posts-page 容器的附加类名（如 archive-page / friends-page） */
+  class?: string;
+}
+const { title, subtitle, count, class: className } = Astro.props;
+---
+<div class={`posts-page${className ? ` ${className}` : ''}`}>
+  <GradientBlob />
+  <header class="posts-header">
+    <h1 class="posts-heading">{title}</h1>
+    {subtitle && <p class="posts-subtitle">{subtitle}</p>}
+    {count && <p class="posts-count">{count}</p>}
+  </header>
+  <slot />
+</div>

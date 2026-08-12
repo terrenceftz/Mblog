@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // 移动端导航：顶部栏（站名 + 汉堡）+ 滑出菜单面板（双主题通用，≤768px 显示）
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import ThemeToggle from './ThemeToggle.vue';
 
 const props = defineProps<{ items: { label: string; url: string }[]; siteName: string }>();
@@ -10,6 +10,12 @@ const isExternal = (u: string) => u.startsWith('http');
 function close() {
   open.value = false;
 }
+// Escape 关闭菜单（键盘可达性）
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && open.value) close();
+}
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
 </script>
 
 <template>

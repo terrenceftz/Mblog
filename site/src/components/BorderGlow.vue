@@ -5,7 +5,12 @@
 // 全部视觉效果由 normal.css 的 .border-glow-card 样式完成。
 import { onMounted, onBeforeUnmount } from 'vue';
 
-function onPointerMove(e: PointerEvent) {
+let pending = false;
+let lastEvent: PointerEvent | null = null;
+let alive = false;
+
+// 真正计算并写入 CSS 变量（在 rAF 内执行，合并同一帧内的多次 pointermove）
+function applyAngles(e: PointerEvent) {
   const card = (e.target as HTMLElement | null)?.closest<HTMLElement>('.border-glow-card');
   if (!card) return;
   const rect = card.getBoundingClientRect();
@@ -30,8 +35,28 @@ function onPointerMove(e: PointerEvent) {
   card.style.setProperty('--cursor-angle', `${angle.toFixed(3)}deg`);
 }
 
-onMounted(() => document.addEventListener('pointermove', onPointerMove, { passive: true }));
-onBeforeUnmount(() => document.removeEventListener('pointermove', onPointerMove));
+function onPointerMove(e: PointerEvent) {
+  // reader 主题下 .border-glow-card 全部 display:none，getBoundingClientRect 必返回 0 且无意义：
+  // 此处用一次廉价的 getAttribute 判定提前返回，避免持续 reflow。
+  if (document.documentElement.getAttribute('data-theme') === 'reader') return;
+  lastEvent = e;
+  if (pending) return;
+  pending = true;
+  requestAnimationFrame(() => {
+    pending = false;
+    if (!alive || !lastEvent) return;
+    applyAngles(lastEvent);
+  });
+}
+
+onMounted(() => {
+  alive = true;
+  document.addEventListener('pointermove', onPointerMove, { passive: true });
+});
+onBeforeUnmount(() => {
+  alive = false;
+  document.removeEventListener('pointermove', onPointerMove);
+});
 </script>
 
 <template>

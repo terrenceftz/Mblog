@@ -1,8 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostLoadMore from '../components/PostLoadMore.vue';
-import GradientBlob from '../components/GradientBlob.vue';
+import PageHeader from '../components/PageHeader.astro';
 import { getPosts, getCategories, type PostListItem, type Category } from '../lib/api';
+import { fmtDate } from '../lib/date';
 
 // 分段加载：每段 8 篇，首段 SSR 渲染，后续由 PostLoadMore 客户端追加
 const PAGE_SIZE = 8;
@@ -11,20 +12,9 @@ const posts: PostListItem[] = firstPage.list;
 const total = firstPage.total;
 const categories: Category[] = await getCategories().catch(() => []);
 const catOf = (id: number | null) => categories.find((c) => c.id === id);
-function fmtDate(ts: number): string {
-  const d = new Date(ts);
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-}
 ---
 <BaseLayout title="全部文章" description="长文、技术笔记与深度思考。">
-  <div class="posts-page">
-    <GradientBlob />
-    <header class="posts-header">
-      <h1 class="posts-heading">全部文章</h1>
-      <p class="posts-subtitle">长文、技术笔记与深度思考。</p>
-      <p class="posts-count">共 {total} 篇</p>
-    </header>
-
+  <PageHeader title="全部文章" subtitle="长文、技术笔记与深度思考。" count={`共 ${total} 篇`}>
     <ul class="posts-list">
       {posts.map((p) => (
         <li class="posts-item">
@@ -57,5 +47,5 @@ function fmtDate(ts: number): string {
         cats={categories}
       />
     )}
-  </div>
+  </PageHeader>
 </BaseLayout>

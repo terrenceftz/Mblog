@@ -1,34 +1,24 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PostList from '../../components/PostList.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import Pagination from '../../components/Pagination.astro';
 import { getPosts, getCategories } from '../../lib/api';
 
 const { slug } = Astro.params;
 const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
 const pageSize = 10;
-const [data, categories] = await Promise.all([getPosts({ category: slug, page, pageSize }), getCategories()]);
+// 名称查询单独降级，避免拖垮整页；核心列表也兜底，失败时显示空
+const [data, categories] = await Promise.all([
+  getPosts({ category: slug, page, pageSize }).catch(() => ({ list: [], total: 0 })),
+  getCategories().catch(() => []),
+]);
 const name = categories.find((c) => c.slug === slug)?.name ?? String(slug);
 const totalPages = Math.max(1, Math.ceil(data.total / pageSize));
 ---
-<BaseLayout title={`分类：${name}`}>
-  <h1 class="page-title">分类：{name}</h1>
-  <PostList posts={data.list} />
-  {totalPages > 1 && (
-    <nav class="pagination">
-      {page > 1 && <a href={`/category/${slug}?page=${page - 1}`}>← 前页</a>}
-      <span class="page-info">{page} / {totalPages}</span>
-      {page < totalPages && <a href={`/category/${slug}?page=${page + 1}`}>后页 →</a>}
-    </nav>
-  )}
+<BaseLayout title={`分类：${name}`} description={`「${name}」分类下的全部文章。`}>
+  <PageHeader title={`分类：${name}`} subtitle="分类下的全部文章" count={`共 ${data.total} 篇`}>
+    <PostList posts={data.list} />
+    <Pagination page={page} totalPages={totalPages} href={(n) => `/category/${slug}?page=${n}`} />
+  </PageHeader>
 </BaseLayout>
-
-<style is:global>
-  .page-title { font-size: 22px; margin-bottom: 20px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
-  .pagination {
-    display: flex; gap: 16px; align-items: center; justify-content: center;
-    padding: 24px 0; max-width: var(--max-width); margin: 0 auto;
-  }
-  .pagination a { color: var(--color-text); text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 6px 14px; background: var(--color-surface); }
-  .pagination a:hover { color: var(--color-primary); border-color: var(--color-primary); }
-  .page-info { color: var(--color-text-muted); font-size: 14px; }
-</style>

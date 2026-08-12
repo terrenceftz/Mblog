@@ -11,3 +11,13 @@ declare namespace App {
     settings?: import('./lib/api').PublicSettings;
   }
 }
+
+// Cloudflare Turnstile（评论验证码）：通过 CDN script 注入到 window，此处补全局类型
+declare interface Window {
+  turnstile?: {
+    render: (el: HTMLElement | string, opts: Record<string, unknown>) => string;
+    reset: (id?: string) => void;
+    remove: (id: string) => void;
+    getResponse: (id: string) => string | undefined;
+  };
+}

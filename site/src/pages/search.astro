@@ -1,52 +1,40 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostList from '../components/PostList.astro';
+import PageHeader from '../components/PageHeader.astro';
+import Pagination from '../components/Pagination.astro';
 import { getPosts } from '../lib/api';
 
 const q = Astro.url.searchParams.get('q')?.trim() ?? '';
 const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
 const pageSize = 10;
-const results = q ? await getPosts({ q, page, pageSize }) : null;
+const results = q ? await getPosts({ q, page, pageSize }).catch(() => ({ list: [], total: 0 })) : null;
 const totalPages = results ? Math.max(1, Math.ceil(results.total / pageSize)) : 0;
+const total = results?.total ?? 0;
 ---
-<BaseLayout title={q ? `搜索：${q}` : '搜索'}>
-  <form class="search-form" action="/search" method="get">
-    <input name="q" value={q} placeholder="搜索文章标题或正文…" />
-    <button type="submit">搜索</button>
-  </form>
-  {results && (
-    <>
-      <p class="result-info">共找到 {results.total} 篇相关文章</p>
-      <PostList posts={results.list} />
-      {totalPages > 1 && (
-        <nav class="pagination">
-          {page > 1 && <a href={`/search?q=${encodeURIComponent(q)}&page=${page - 1}`}>← 前页</a>}
-          <span class="page-info">{page} / {totalPages}</span>
-          {page < totalPages && <a href={`/search?q=${encodeURIComponent(q)}&page=${page + 1}`}>后页 →</a>}
-        </nav>
-      )}
-    </>
-  )}
+<BaseLayout title={q ? `搜索：${q}` : '搜索'} description={q ? `搜索「${q}」的相关文章` : '搜索站内文章标题与正文。'}>
+  <PageHeader title={q ? `搜索：${q}` : '搜索'} subtitle="搜索文章标题或正文" count={results ? `共找到 ${total} 篇` : undefined}>
+    <form class="search-form" action="/search" method="get" role="search">
+      <input name="q" value={q} type="search" aria-label="搜索关键词" placeholder="搜索文章标题或正文…" />
+      <button type="submit">搜索</button>
+    </form>
+    {results && (
+      <>
+        <PostList posts={results.list} />
+        <Pagination page={page} totalPages={totalPages} href={(n) => `/search?q=${encodeURIComponent(q)}&page=${n}`} />
+      </>
+    )}
+  </PageHeader>
 </BaseLayout>
 
 <style is:global>
-  .search-form {
-    display: flex; gap: 8px; max-width: var(--max-width); margin: 0 auto 20px;
-  }
+  .search-form { display: flex; gap: 8px; max-width: 480px; margin: 0 auto 24px; }
   .search-form input {
-    flex: 1; border: 1px solid var(--color-border); border-radius: var(--radius);
+    flex: 1; min-width: 0; border: 1px solid var(--color-border); border-radius: var(--radius);
     padding: 8px 12px; background: var(--color-surface); color: var(--color-text);
   }
   .search-form button {
     border: none; background: var(--color-primary); color: var(--color-primary-contrast);
     border-radius: var(--radius); padding: 8px 16px; cursor: pointer;
   }
-  .result-info { color: var(--color-text-muted); font-size: 14px; margin: 0 0 16px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
-  .pagination {
-    display: flex; gap: 16px; align-items: center; justify-content: center;
-    padding: 24px 0; max-width: var(--max-width); margin: 0 auto;
-  }
-  .pagination a { color: var(--color-text); text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 6px 14px; background: var(--color-surface); }
-  .pagination a:hover { color: var(--color-primary); border-color: var(--color-primary); }
-  .page-info { color: var(--color-text-muted); font-size: 14px; }
 </style>

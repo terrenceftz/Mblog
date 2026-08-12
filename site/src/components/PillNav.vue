@@ -21,7 +21,7 @@ const props = withDefaults(
 );
 
 const isActive = (url: string) =>
-  url === '/' ? props.path === '/' : props.path === url || (url !== '/' && props.path.startsWith(url));
+  url === '/' ? props.path === '/' : props.path === url || props.path.startsWith(url + '/');
 
 const navItemsRef = ref<HTMLElement | null>(null);
 const circleRefs = ref<HTMLElement[]>([]);
@@ -168,8 +168,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   height: 42px;
-  background: rgba(19, 19, 22, 0.65);
-  border: 1px solid #26262a;
+  background: color-mix(in srgb, var(--color-surface) 65%, transparent);
+  border: 1px solid var(--color-border);
   border-radius: 9999px;
   backdrop-filter: blur(10px);
 }
@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
   height: 100%;
   padding: 0 16px;
   background: transparent;
-  color: #a1a1aa;
+  color: var(--color-text-secondary);
   text-decoration: none;
   border-radius: 9999px;
   box-sizing: border-box;
@@ -226,7 +226,7 @@ onBeforeUnmount(() => {
   left: 50%;
   bottom: 0;
   border-radius: 50%;
-  background: #e8b64c;
+  background: var(--color-primary);
   z-index: 1;
   display: block;
   pointer-events: none;
@@ -249,7 +249,7 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   top: 0;
-  color: #09090b;
+  color: var(--color-primary-contrast);
   z-index: 3;
   display: inline-block;
   will-change: transform, opacity;
@@ -262,11 +262,11 @@ onBeforeUnmount(() => {
   transform: translateX(-50%);
   width: 12px;
   height: 12px;
-  background: #e8b64c;
+  background: var(--color-primary);
   border-radius: 50%;
   z-index: 4;
 }
 .pill.is-active {
-  color: #f4f4f5;
+  color: var(--color-text);
 }
 </style>

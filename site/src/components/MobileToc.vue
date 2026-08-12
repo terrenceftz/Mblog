@@ -1,17 +1,70 @@
 <script setup lang="ts">
 // 移动端目录抽屉：窄屏右下角悬浮按钮，点击滑出目录
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 const props = defineProps<{ items: { id: string; text: string; level: number }[] }>();
 const open = ref(false);
+const closeBtn = ref<HTMLElement | null>(null);
+const sheetEl = ref<HTMLElement | null>(null);
+let restoreFocus: HTMLElement | null = null;
+let goTimer: number | undefined;
 
+function openMenu() {
+  restoreFocus = document.activeElement as HTMLElement;
+  open.value = true;
+  // 焦点移入对话框，便于键盘操作
+  nextTick(() => closeBtn.value?.focus());
+}
+function close() {
+  open.value = false;
+  if (goTimer) {
+    clearTimeout(goTimer);
+    goTimer = undefined;
+  }
+  restoreFocus?.focus?.();
+  restoreFocus = null;
+}
+function toggle() {
+  open.value ? close() : openMenu();
+}
 function go(id: string) {
   open.value = false;
-  setTimeout(() => {
+  if (goTimer) clearTimeout(goTimer);
+  goTimer = window.setTimeout(() => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 80);
 }
+// Escape 关闭 + Tab 焦点陷阱（dialog 可达性）
+function onKeydown(e: KeyboardEvent) {
+  if (!open.value) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    close();
+    return;
+  }
+  if (e.key === 'Tab' && sheetEl.value) {
+    const focusables = sheetEl.value.querySelectorAll<HTMLElement>(
+      'button, a, input, [tabindex]:not([tabindex="-1"])',
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement as HTMLElement;
+    if (e.shiftKey && active === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+}
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown);
+  if (goTimer) clearTimeout(goTimer);
+});
 </script>
 
 <template>
@@ -21,17 +74,17 @@ function go(id: string) {
       class="mobile-toc-btn"
       :aria-expanded="open"
       aria-label="打开目录"
-      @click="open = !open"
+      @click="toggle"
     >目录</button>
 
     <Transition name="toc-fade">
-      <div v-if="open" class="mobile-toc-backdrop" @click="open = false" />
+      <div v-if="open" class="mobile-toc-backdrop" @click="close" />
     </Transition>
     <Transition name="toc-sheet">
-      <div v-if="open" class="mobile-toc-sheet" role="dialog" aria-label="文章目录">
+      <div v-if="open" ref="sheetEl" class="mobile-toc-sheet" role="dialog" aria-modal="true" aria-label="文章目录">
         <div class="mobile-toc-head">
           <span class="mobile-toc-title">目录</span>
-          <button type="button" class="mobile-toc-close" aria-label="关闭目录" @click="open = false">✕</button>
+          <button type="button" ref="closeBtn" class="mobile-toc-close" aria-label="关闭目录" @click="close">✕</button>
         </div>
         <ul class="mobile-toc-list">
           <li v-for="(t, i) in items" :key="t.id" :class="{ 'is-h3': t.level === 3 }">

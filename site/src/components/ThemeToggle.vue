@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 
 const props = withDefaults(defineProps<{ variant?: 'text' | 'icon' }>(), { variant: 'text' });
 const THEME_KEY = 'mblog_theme';
@@ -53,6 +53,9 @@ function toggle(e: MouseEvent) {
   apply(cur === 'reader' ? 'normal' : 'reader', true, e);
 }
 // onMounted 内读 localStorage，避免 SSR 期访问 window；同时把保存的主题应用到文档（回访用户加载即生效）
+function onThemeChange(e: Event) {
+  current.value = (e as CustomEvent<string>).detail;
+}
 onMounted(() => {
   const saved = localStorage.getItem(THEME_KEY);
   const currentTheme = document.documentElement.getAttribute('data-theme') ?? 'normal';
@@ -60,9 +63,10 @@ onMounted(() => {
   if (saved && saved !== currentTheme) {
     apply(saved, false);
   }
-  window.addEventListener('mblog-theme-change', (e) => {
-    current.value = (e as CustomEvent<string>).detail;
-  });
+  window.addEventListener('mblog-theme-change', onThemeChange);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('mblog-theme-change', onThemeChange);
 });
 </script>
 

@@ -1,24 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import GradientBlob from '../components/GradientBlob.vue';
+import PageHeader from '../components/PageHeader.astro';
 import { getArchive } from '../lib/api';
+import { fmtDate } from '../lib/date';
 
 const groups = await getArchive();
 const totalPosts = groups.reduce((n, g) => n + g.items.length, 0);
-function fmtDate(ts: number): string {
-  const d = new Date(ts);
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-}
 ---
 <BaseLayout title="归档" description="按月份归档的长文与笔记。">
-  <div class="posts-page archive-page">
-    <GradientBlob />
-    <header class="posts-header">
-      <h1 class="posts-heading">归档</h1>
-      <p class="posts-subtitle">按月份归档的长文与笔记。</p>
-      <p class="posts-count">共 {totalPosts} 篇</p>
-    </header>
-
+  <PageHeader title="归档" subtitle="按月份归档的长文与笔记。" count={`共 ${totalPosts} 篇`} class="archive-page">
     {groups.map((g) => (
       <section class="archive-group">
         <h2 class="archive-month">{g.month}</h2>
@@ -34,5 +24,5 @@ function fmtDate(ts: number): string {
         </ul>
       </section>
     ))}
-  </div>
+  </PageHeader>
 </BaseLayout>

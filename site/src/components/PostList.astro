@@ -1,4 +1,5 @@
 ---
+import { fmtDate } from '../lib/date';
 interface PostRow {
   title: string;
   slug: string;
@@ -21,8 +22,10 @@ const { posts } = Astro.props;
           </h2>
           {post.summary && <p class="post-summary">{post.summary}</p>}
           <div class="post-meta">
-            <span>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</span>
-            <span class="post-views">👁 {post.viewCount}</span>
+            <time datetime={new Date(post.createdAt).toISOString()}>{fmtDate(post.createdAt)}</time>
+            <span class="post-views" aria-label={`${post.viewCount} 次浏览`}>
+              <span aria-hidden="true">👁</span> {post.viewCount}
+            </span>
           </div>
         </article>
       ))}

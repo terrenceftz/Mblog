@@ -14,9 +14,11 @@ interface Props {
   description?: string;
   /** full = 侧栏布局（首页/列表页）；article = 窄列竖排品牌 + 右侧目录（文章页） */
   layout?: 'full' | 'article';
+  /** 社交分享 / og 用图（相对路径或绝对 URL），缺省回退站点 banner */
+  image?: string;
 }
 
-const { title = '', description = '', layout = 'full' } = Astro.props;
+const { title = '', description = '', layout = 'full', image } = Astro.props;
 // 服务端读取默认主题与导航菜单，直接注入 <html data-theme>，避免闪烁
 // 优先复用 middleware 每请求一次的 settings，避免重复 HTTP 往返
 const settings = Astro.locals.settings ?? (await getPublicSettings());
@@ -43,6 +45,12 @@ function themeStyleBlock(theme: 'normal' | 'reader', cfg: ThemeConfig): string {
   return `<style>:root[data-theme='${theme}']{${vars.join(';')}}</style>`;
 }
 const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleBlock('reader', settings.themeReader)].join('');
+
+// SEO：canonical / og / twitter 标签统一注入（相对 URL 解析为绝对，便于搜索引擎与社交分享抓取）
+const ogTitle = title ? `${title} · ${siteName}` : siteName;
+const baseUrl = settings.siteUrl || 'http://localhost';
+const canonicalUrl = new URL(Astro.url.pathname, baseUrl).href;
+const pageImage = new URL(image || '/banner.png', baseUrl).href;
 ---
 <!doctype html>
 <html lang="zh-CN" data-theme={defaultTheme}>
@@ -51,6 +59,17 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title ? `${title} · ${siteName}` : siteName}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:title" content={ogTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={pageImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={ogTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={pageImage} />
     <!-- 首帧前应用 localStorage 保存的主题，防止刷新时闪现默认（normal）主题 -->
     <script is:inline>
       (function () {
@@ -61,6 +80,17 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
           }
         } catch (e) {
           /* localStorage 不可用时忽略 */
+        }
+        // 低端设备标记：首帧前设置，CSS 据此关闭 backdrop-filter 等高开销效果
+        // （避免低端机先渲染重效再降级的闪烁）；桌面端不命中，全部炫酷效果保留
+        try {
+          var nav = navigator;
+          var lowEnd = (nav.hardwareConcurrency || 4) < 4
+            || (nav.deviceMemory || 4) < 4
+            || matchMedia('(pointer: coarse)').matches;
+          if (lowEnd) document.documentElement.setAttribute('data-lowend', 'true');
+        } catch (e) {
+          /* 能力检测失败时保守起见不动 */
         }
       })();
     </script>
@@ -75,6 +105,7 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
     <Fragment set:html={themeStyle} />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">跳到主内容</a>
     <!-- 顶部阅读进度条（双主题通用） -->
     <div class="nav-progress" aria-hidden="true"></div>
 
@@ -96,7 +127,7 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
             <span class="brand-name-vertical">{siteName}</span>
           </a>
         </aside>
-        <main class="site-main"><slot /></main>
+        <main class="site-main" id="main-content"><slot /></main>
         <slot name="toc" />
       </div>
     ) : (
@@ -132,7 +163,7 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
             <span class="sidebar-copyright">© {year} {siteName}</span>
           </footer>
         </aside>
-        <main class="site-main"><slot /></main>
+        <main class="site-main" id="main-content"><slot /></main>
       </div>
     )}
 
@@ -241,4 +272,26 @@ const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleB
   .post-card .post-summary { color: var(--color-text-muted); margin: 0 0 12px; font-size: 14px; line-height: 1.6; }
   .post-meta { display: flex; gap: 16px; flex-wrap: wrap; color: var(--color-text-muted); font-size: 13px; align-items: center; }
   .post-empty { text-align: center; color: var(--color-text-muted); padding: 48px 0; }
+  /* 键盘焦点可见（双主题通用，跟随 --color-primary） */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  /* 跳到主内容：平时离屏，Tab 聚焦时现身（键盘可达性） */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 9999;
+    background: var(--color-primary);
+    color: var(--color-primary-contrast);
+    padding: 8px 16px;
+    border-radius: 0 0 8px 8px;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .skip-link:focus {
+    left: 0;
+  }
 </style>

@@ -7,9 +7,14 @@ const message = ref('');
 const submitting = ref(false);
 
 onMounted(async () => {
-  const res = await fetch('/api/settings/public');
-  const body = await res.json();
-  enabled.value = body.data.friendLinkEnabled;
+  try {
+    const res = await fetch('/api/settings/public');
+    const body = await res.json();
+    enabled.value = body.data.friendLinkEnabled;
+  } catch {
+    // 拉取失败时保留默认（允许申请），避免表单卡死
+    enabled.value = true;
+  }
 });
 
 async function submit() {
@@ -36,9 +41,9 @@ async function submit() {
 <template>
   <form v-if="enabled" class="link-form" @submit.prevent="submit">
     <h2>申请友链</h2>
-    <input v-model="form.name" placeholder="站点名称 *" maxlength="50" />
-    <input v-model="form.url" placeholder="站点网址（https://…） *" maxlength="300" />
-    <input v-model="form.description" placeholder="一句话简介" maxlength="200" />
+    <input v-model="form.name" aria-label="站点名称" placeholder="站点名称 *" maxlength="50" />
+    <input v-model="form.url" aria-label="站点网址" placeholder="站点网址（https://…） *" maxlength="300" />
+    <input v-model="form.description" aria-label="一句话简介" placeholder="一句话简介" maxlength="200" />
     <div class="row end">
       <p v-if="message" class="link-message">{{ message }}</p>
       <button type="submit" :disabled="submitting">{{ submitting ? '提交中…' : '提交申请' }}</button>

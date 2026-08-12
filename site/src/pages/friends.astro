@@ -1,32 +1,37 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
 import FriendLinkForm from '../components/FriendLinkForm.vue';
 import { getFriendLinks } from '../lib/api';
 
-const links = await getFriendLinks();
+const links = await getFriendLinks().catch(() => []);
 ---
-<BaseLayout title="友情链接">
-  <h1 class="page-title">友情链接</h1>
-  {links.length > 0 ? (
-    <div class="link-grid">
-      {links.map((l) => (
-        <a class="link-card" href={l.url} target="_blank" rel="noopener noreferrer">
-          <div class="link-avatar">{l.name.slice(0, 1)}</div>
-          <div>
-            <div class="link-name">{l.name}</div>
-            {l.description && <div class="link-desc">{l.description}</div>}
-          </div>
-        </a>
-      ))}
-    </div>
-  ) : (
-    <p class="link-empty">暂无友链</p>
-  )}
-  <FriendLinkForm client:load />
+<BaseLayout title="友情链接" description="交换链接，一起写作。">
+  <PageHeader title="友情链接" subtitle="交换链接，一起写作。" count={`共 ${links.length} 个站点`} class="friends-page">
+    {links.length > 0 ? (
+      <div class="link-grid">
+        {links.map((l) => (
+            <a class="link-card" href={l.url} target="_blank" rel="noopener noreferrer">
+              {l.avatar ? (
+                <img class="link-avatar-img" src={l.avatar} alt={l.name} loading="lazy" />
+              ) : (
+                <div class="link-avatar">{l.name.slice(0, 1)}</div>
+              )}
+            <div>
+              <div class="link-name">{l.name}</div>
+              {l.description && <div class="link-desc">{l.description}</div>}
+            </div>
+          </a>
+        ))}
+      </div>
+    ) : (
+      <p class="link-empty">暂无友链</p>
+    )}
+    <FriendLinkForm client:load />
+  </PageHeader>
 </BaseLayout>
 
 <style is:global>
-  .page-title { font-size: 22px; margin-bottom: 20px; max-width: var(--max-width); margin-left: auto; margin-right: auto; }
   .link-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
     max-width: var(--max-width); margin: 0 auto;
@@ -36,10 +41,12 @@ const links = await getFriendLinks();
     background: var(--color-surface); border: 1px solid var(--color-border);
     border-radius: var(--radius); box-shadow: var(--shadow); text-decoration: none; color: var(--color-text);
   }
-  .link-card:hover { border-color: var(--color-primary); }
   .link-avatar {
     width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary);
-    color: var(--color-primary-contrast); display: flex; align-items: center; justify-content: center; font-weight: 700;
+    color: var(--color-primary-contrast); display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;
+  }
+  .link-avatar-img {
+    width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
   }
   .link-name { font-weight: 600; }
   .link-desc { color: var(--color-text-muted); font-size: 13px; margin-top: 2px; }

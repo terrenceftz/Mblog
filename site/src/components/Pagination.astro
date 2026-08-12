@@ -1,0 +1,33 @@
+---
+// 通用分页组件：消除 index/category/tag/search 四处重复的 <nav class="pagination"> 标记与样式。
+interface Props {
+  page: number;
+  totalPages: number;
+  /** 根据页码生成链接（各页路由前缀不同，由调用方提供） */
+  href: (n: number) => string;
+}
+const { page, totalPages, href } = Astro.props;
+---
+{totalPages > 1 && (
+  <nav class="pagination" aria-label="分页导航">
+    {page > 1 && <a href={href(page - 1)} rel="prev">← 前页</a>}
+    <span class="page-info" aria-current="page">{page} / {totalPages}</span>
+    {page < totalPages && <a href={href(page + 1)} rel="next">后页 →</a>}
+  </nav>
+)}
+
+<style is:global>
+  /* 分页样式（双主题通用，靠 CSS 变量自适应） */
+  .pagination {
+    display: flex; gap: 16px; align-items: center; justify-content: center;
+    padding: 24px 0; max-width: var(--max-width); margin: 0 auto;
+  }
+  .pagination a {
+    color: var(--color-text); text-decoration: none;
+    border: 1px solid var(--color-border); border-radius: var(--radius);
+    padding: 6px 14px; background: var(--color-surface);
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .pagination a:hover { color: var(--color-primary); border-color: var(--color-primary); }
+  .page-info { color: var(--color-text-muted); font-size: 14px; }
+</style>

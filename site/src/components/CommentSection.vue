@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
 
 const props = defineProps<{
   postId: number;
@@ -35,8 +35,9 @@ const captchaAnswer = ref('');
 const turnstileEl = ref<HTMLElement | null>(null);
 const turnstileToken = ref('');
 const turnstileWidgetId = ref('');
-const turnstileReady = ref(false);
 const useTurnstile = computed(() => !!props.turnstileSiteKey);
+// 卸载标志：异步回调（Turnstile 加载、fetch）在组件销毁后早返回，避免写已销毁的 ref
+let disposed = false;
 
 // 评论者头像色板（按名字取色，保持稳定）
 const AVATAR_COLORS = ['#e8b64c', '#7c9cf5', '#f472b6', '#34d399', '#a78bfa', '#fbbf24', '#f87171', '#22d3ee'];
@@ -61,11 +62,13 @@ async function load() {
     const res = await fetch(`/api/comments?post_id=${props.postId}`);
     if (!res.ok) throw new Error('加载失败');
     const body = await res.json();
+    if (disposed) return;
     list.value = body.data ?? [];
   } catch {
+    if (disposed) return;
     list.value = [];
   } finally {
-    loaded.value = true;
+    if (!disposed) loaded.value = true;
   }
 }
 
@@ -85,21 +88,21 @@ function loadTurnstileScript(): Promise<boolean> {
 async function initTurnstile() {
   if (!useTurnstile.value) return;
   const ok = await loadTurnstileScript();
-  if (!ok) return;
+  if (!ok || disposed) return;
   // 脚本加载后 render 可用（等一个宏任务）
   await new Promise((r) => setTimeout(r, 50));
+  if (disposed) return;
   const el = turnstileEl.value;
   if (!el || !window.turnstile?.render) return;
   turnstileWidgetId.value = window.turnstile.render(el, {
     sitekey: props.turnstileSiteKey!,
     callback: (token: string) => {
-      turnstileToken.value = token;
+      if (!disposed) turnstileToken.value = token;
     },
     'expired-callback': () => {
-      turnstileToken.value = '';
+      if (!disposed) turnstileToken.value = '';
     },
   });
-  turnstileReady.value = true;
 }
 
 function resetTurnstile() {
@@ -114,6 +117,7 @@ async function fetchMathCaptcha() {
     const res = await fetch('/api/comments/captcha');
     if (!res.ok) return;
     const body = await res.json();
+    if (disposed) return;
     captcha.value = body.data ?? null;
     captchaAnswer.value = '';
   } catch {
@@ -237,6 +241,12 @@ onMounted(() => {
   load();
   initCaptcha();
 });
+onBeforeUnmount(() => {
+  disposed = true;
+  // 释放 Turnstile widget（注入的 CDN script 全局共享，不主动移除以免影响其他实例）
+  const id = turnstileWidgetId.value;
+  if (id && window.turnstile?.remove) window.turnstile.remove(id);
+});
 </script>
 
 <template>
@@ -282,7 +292,7 @@ onMounted(() => {
         </ul>
 
         <form v-if="replyTo?.id === c.id" class="reply-form" @submit.prevent="submitReply(c.id)">
-          <textarea v-model="replyContent" :placeholder="`回复 @${replyTo.author}`" maxlength="2000" rows="2" />
+          <textarea v-model="replyContent" :aria-label="`回复 @${replyTo.author}`" :placeholder="`回复 @${replyTo.author}`" maxlength="2000" rows="2" />
           <div class="reply-actions">
             <button type="button" class="cancel-btn" @click="replyTo = null; replyContent = ''">取消</button>
             <button type="submit" :disabled="submitting">回复</button>
@@ -295,11 +305,11 @@ onMounted(() => {
 
     <form class="comment-form" @submit.prevent="submit">
       <div class="row">
-        <input v-model="author" placeholder="昵称 *" maxlength="50" />
-        <input v-model="email" type="email" placeholder="邮箱（不会公开）" maxlength="100" />
-        <input v-model="website" type="url" placeholder="个人网站（选填）" maxlength="200" />
+        <input v-model="author" aria-label="昵称" placeholder="昵称 *" maxlength="50" />
+        <input v-model="email" type="email" aria-label="邮箱（不会公开）" placeholder="邮箱（不会公开）" maxlength="100" />
+        <input v-model="website" type="url" aria-label="个人网站" placeholder="个人网站（选填）" maxlength="200" />
       </div>
-      <textarea v-model="content" placeholder="说点什么… *" maxlength="2000" rows="4" />
+      <textarea v-model="content" aria-label="评论内容" placeholder="说点什么… *" maxlength="2000" rows="4" />
       <!-- 蜜罐：对用户隐藏，机器人自动填充 -->
       <input v-model="hp" class="hp-field" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <div class="row captcha-row">
@@ -308,7 +318,7 @@ onMounted(() => {
         <!-- 数学验证码回落 -->
         <template v-else-if="captcha">
           <span class="captcha-question mono">{{ captcha.question }}</span>
-          <input v-model="captchaAnswer" class="captcha-answer" placeholder="答案" maxlength="5" inputmode="numeric" />
+          <input v-model="captchaAnswer" class="captcha-answer" aria-label="验证码答案" placeholder="答案" maxlength="5" inputmode="numeric" />
         </template>
         <div class="row end" style="flex: 1">
           <p v-if="message" class="comment-message">{{ message }}</p>
