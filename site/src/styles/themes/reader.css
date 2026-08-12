@@ -680,6 +680,45 @@
   padding-top: 48px;
   border-top: 1px solid var(--color-border);
 }
+/* 上一篇/下一篇（reader 极简：无卡片边框/背景，仅细分隔线 + 文字，hover 标题变主色） */
+[data-theme='reader'] .post-nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--color-border);
+}
+[data-theme='reader'] .post-nav-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  min-width: 0;
+}
+[data-theme='reader'] .post-nav-item.next {
+  text-align: right;
+  align-items: flex-end;
+}
+[data-theme='reader'] .post-nav-item.empty {
+  visibility: hidden;
+}
+[data-theme='reader'] .post-nav-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+}
+[data-theme='reader'] .post-nav-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text-heading);
+  line-height: 1.5;
+  transition: color 0.2s ease;
+}
+[data-theme='reader'] .post-nav-item:hover .post-nav-title {
+  color: var(--color-primary);
+}
 [data-theme='reader'] .tags {
   list-style: none;
   display: flex;
