@@ -23,9 +23,4 @@
     radial-gradient(ellipse 36% 55% at 74% 24%, rgba(249, 115, 22, 0.28), transparent 72%),
     radial-gradient(ellipse 30% 45% at 48% 72%, rgba(124, 156, 245, 0.2), transparent 72%);
 }
-/* reader（极简）主题下隐藏辉光氛围：违背极简约定，与朴素风格冲突。
-   用 :global 提升特异性，确保覆盖上方 scoped 的 .gradient-blob 规则 */
-:global([data-theme='reader']) .gradient-blob {
-  display: none;
-}
 </style>

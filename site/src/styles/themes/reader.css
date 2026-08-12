@@ -1173,3 +1173,9 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* GradientBlob 辉光氛围仅 normal 主题显示；reader（极简）隐藏。
+   放外部 reader.css 而非组件 scoped，避免 :global 破坏 scoped 编译导致布局塌陷 */
+[data-theme='reader'] .gradient-blob {
+  display: none;
+}
