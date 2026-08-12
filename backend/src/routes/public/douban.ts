@@ -19,9 +19,45 @@ export interface DoubanMovie {
 const TTL = 30 * 60 * 1000; // 豆瓣无官方 API，收藏页分页抓取 + 30 分钟缓存
 // 共享缓存：公开接口与后台同步共用；测试通过 resetDoubanCache 隔离
 const cache = new Map<string, { time: number; data: DoubanMovie[] }>();
+// 后台刷新单飞集合：同 uid 同时只有一个同步在跑，避免并发请求重复抓取
+const refreshing = new Set<string>();
+// 在途刷新 Promise 表：测试用 flushDoubanRefresh 等待完成，避免未完成同步污染后续用例
+const pending = new Map<string, Promise<void>>();
 
 export function resetDoubanCache(): void {
   cache.clear();
+  refreshing.clear();
+  pending.clear();
+}
+
+/**
+ * 后台刷新（stale-while-revalidate 的 revalidate 半场）：
+ * 公开接口永不阻塞在外部同步上——有旧数据立即返回旧数据，无数据立即返回空，
+ * 同步在后台进行，成功后由 syncDoubanMovies 覆写缓存；失败保留旧缓存。
+ */
+function refreshDouban(uid: string, tmdbKey: string): void {
+  if (refreshing.has(uid)) return;
+  refreshing.add(uid);
+  const p = syncDoubanMovies(uid, tmdbKey)
+    .catch(() => {
+      // 刷新失败：保留旧缓存（syncDoubanMovies 只在成功时 cache.set）
+    })
+    .finally(() => {
+      refreshing.delete(uid);
+      pending.delete(uid);
+    });
+  pending.set(uid, p);
+}
+
+/** 仅测试用：等待所有后台刷新完成（避免未完成同步污染后续用例 / 触发真实网络） */
+export async function flushDoubanRefresh(): Promise<void> {
+  await Promise.all([...pending.values()]);
+}
+
+/** 仅测试用：把指定 uid 的缓存拨到已过期，模拟 TTL 失效 */
+export function expireDoubanCache(uid: string): void {
+  const hit = cache.get(uid);
+  if (hit) hit.time -= TTL + 1;
 }
 
 const COLLECT_PAGE_SIZE = 15;
@@ -209,18 +245,20 @@ export function doubanRoutes(ctx: Db) {
       return c.json({ data: { enabled: false, movies: [] } });
     }
     const hit = cache.get(uid);
-    if (hit && Date.now() - hit.time < TTL) {
-      return c.json({ data: { enabled: true, uid, movies: hit.data } });
+    const stale = !hit || Date.now() - hit.time >= TTL;
+    if (stale) {
+      // 永不阻塞：后台刷新（单飞），立即返回已有数据（无则空）
+      refreshDouban(uid, getSetting(ctx, 'tmdb_api_key').trim());
     }
-    try {
-      const movies = await syncDoubanMovies(uid, getSetting(ctx, 'tmdb_api_key').trim());
-      return c.json({ data: { enabled: true, uid, movies } });
-    } catch {
-      if (hit) {
-        return c.json({ data: { enabled: true, uid, movies: hit.data, stale: true } });
-      }
-      return c.json({ data: { enabled: true, uid, movies: [], error: '豆瓣数据拉取失败，请稍后重试' } });
-    }
+    return c.json({
+      data: {
+        enabled: true,
+        uid,
+        movies: hit?.data ?? [],
+        ...(stale ? { stale: true } : {}),
+        ...(hit ? {} : { syncing: true }),
+      },
+    });
   });
 
   return app;

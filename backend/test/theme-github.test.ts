@@ -88,17 +88,25 @@ describe('GitHub 项目接口 /api/projects', () => {
     expect(body.data.enabled).toBe(false);
   });
 
-  it('拉取仓库：过滤 fork、按星数降序', async () => {
+  it('冷启动快速返回空列表并在后台同步，完成后返回过滤排序结果', async () => {
     const { app } = makeTestApp();
     await enableGitHub(app);
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => reposFixture() });
     vi.stubGlobal('fetch', fetchMock);
     try {
-      const res = await app.request('/api/projects');
-      const body = (await res.json()) as { data: { enabled: boolean; projects: { name: string; stars: number }[] } };
-      expect(body.data.enabled).toBe(true);
-      expect(body.data.projects.map((p) => p.name)).toEqual(['a', 'b']);
+      // 冷启动：立即返回空列表 + syncing（不阻塞外部拉取）
+      const res1 = await app.request('/api/projects');
+      const body1 = (await res1.json()) as { data: { enabled: boolean; projects: unknown[]; syncing?: boolean } };
+      expect(body1.data.enabled).toBe(true);
+      expect(body1.data.projects).toEqual([]);
+      expect(body1.data.syncing).toBe(true);
+      // 等后台拉取完成（mock 立即 resolve）
+      await new Promise((r) => setTimeout(r, 0));
       expect(fetchMock).toHaveBeenCalledTimes(1);
+      // 缓存已写入：过滤 fork + 按星数降序
+      const res2 = await app.request('/api/projects');
+      const body2 = (await res2.json()) as { data: { projects: { name: string; stars: number }[] } };
+      expect(body2.data.projects.map((p) => p.name)).toEqual(['a', 'b']);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -111,6 +119,8 @@ describe('GitHub 项目接口 /api/projects', () => {
     vi.stubGlobal('fetch', fetchMock);
     try {
       await app.request('/api/projects');
+      await new Promise((r) => setTimeout(r, 0)); // 等后台完成写入缓存
+      await app.request('/api/projects');
       await app.request('/api/projects');
       expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
@@ -118,16 +128,45 @@ describe('GitHub 项目接口 /api/projects', () => {
     }
   });
 
-  it('拉取失败返回 error 提示', async () => {
+  it('缓存过期后立即返回 stale 数据并后台刷新（不阻塞请求）', async () => {
+    const { app } = makeTestApp();
+    await enableGitHub(app);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => reposFixture() });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      // 冷启动同步填充缓存
+      await app.request('/api/projects');
+      await new Promise((r) => setTimeout(r, 0));
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      // 推进 31 分钟使缓存过期（fake timers 同时推进 Date.now）
+      vi.useFakeTimers();
+      await vi.advanceTimersByTimeAsync(31 * 60 * 1000);
+      // 过期请求：立即返回旧数据 stale:true，不等待后台刷新
+      const res = await app.request('/api/projects');
+      const body = (await res.json()) as { data: { projects: unknown[]; stale?: boolean } };
+      expect(body.data.stale).toBe(true);
+      expect(body.data.projects).toHaveLength(2);
+      // 后台刷新已触发
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+      vi.useRealTimers();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('冷启动拉取失败时快速返回空列表（不阻塞，无 error 字段）', async () => {
     const { app } = makeTestApp();
     await enableGitHub(app);
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({}) });
     vi.stubGlobal('fetch', fetchMock);
     try {
       const res = await app.request('/api/projects');
-      const body = (await res.json()) as { data: { error: string; projects: unknown[] } };
-      expect(body.data.error).toBeTruthy();
+      const body = (await res.json()) as { data: { projects: unknown[]; stale?: boolean } };
       expect(body.data.projects).toEqual([]);
+      expect(body.data.stale).toBe(true);
+      await new Promise((r) => setTimeout(r, 0)); // 后台失败已吞掉
+      expect(fetchMock).toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
     }

@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { makeTestApp, loginAsAdmin, authHeaders } from './helpers';
 import { fetchDoubanMovies } from '../src/routes/public/douban';
 import { syncDoubanMovies } from '../src/routes/public/douban';
+import { flushDoubanRefresh } from '../src/routes/public/douban';
+import { expireDoubanCache } from '../src/routes/public/douban';
 
 // 豆瓣「看过」收藏页 HTML 样例（<div class="item comment-item"> 为单条记录）
 const SAMPLE_COLLECT = `<div class="grid-view">
@@ -83,7 +85,7 @@ describe('豆瓣接口 /api/douban', () => {
     expect(body.data.enabled).toBe(false);
   });
 
-  it('拉取成功返回电影列表，TTL 内缓存不重复请求', async () => {
+  it('冷启动快速返回空列表并在后台同步，完成后缓存生效', async () => {
     const { app } = makeTestApp();
     await enableDouban(app);
     const fetchMock = vi.fn()
@@ -91,27 +93,66 @@ describe('豆瓣接口 /api/douban', () => {
       .mockResolvedValue({ ok: true, text: async () => EMPTY_COLLECT });
     vi.stubGlobal('fetch', fetchMock);
     try {
+      // 冷启动：立即返回（不阻塞外部同步），后台开始抓取
       const res1 = await app.request('/api/douban');
-      const body1 = (await res1.json()) as { data: { enabled: boolean; movies: { title: string }[] } };
+      const body1 = (await res1.json()) as { data: { enabled: boolean; movies: unknown[]; syncing?: boolean } };
       expect(body1.data.enabled).toBe(true);
-      expect(body1.data.movies.map((m) => m.title)).toEqual(['辛德勒的名单', '星际穿越']);
+      expect(body1.data.movies).toEqual([]);
+      expect(body1.data.syncing).toBe(true);
+      // 等后台同步完成（mock fetch 立即 resolve，无分页延迟）
+      await flushDoubanRefresh();
+      expect(fetchMock).toHaveBeenCalledTimes(2); // 第 1 页 + 空页终止
+      // 缓存已写入：二次请求命中，不再请求
+      const res2 = await app.request('/api/douban');
+      const body2 = (await res2.json()) as { data: { movies: { title: string }[]; syncing?: boolean } };
+      expect(body2.data.movies.map((m) => m.title)).toEqual(['辛德勒的名单', '星际穿越']);
+      expect(body2.data.syncing).toBeUndefined();
       await app.request('/api/douban');
-      expect(fetchMock).toHaveBeenCalledTimes(2); // 第 1 页 + 空页终止；第二次请求命中缓存
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     } finally {
       vi.unstubAllGlobals();
     }
   });
 
-  it('拉取失败返回 error 提示', async () => {
+  it('缓存过期后立即返回 stale 数据并后台刷新（不阻塞请求）', async () => {
+    const { app } = makeTestApp();
+    await enableDouban(app);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, text: async () => SAMPLE_COLLECT })
+      .mockResolvedValue({ ok: true, text: async () => EMPTY_COLLECT });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      // 冷启动同步填充缓存
+      await app.request('/api/douban');
+      await flushDoubanRefresh();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      // 拨过期缓存（TTL 30min）
+      expireDoubanCache('1017197');
+      // 过期请求：立即返回旧数据 stale:true，不等待后台刷新
+      const res = await app.request('/api/douban');
+      const body = (await res.json()) as { data: { movies: unknown[]; stale?: boolean } };
+      expect(body.data.stale).toBe(true);
+      expect(body.data.movies).toHaveLength(2);
+      // 后台刷新已触发；等其完成避免污染后续用例
+      await flushDoubanRefresh();
+      expect(fetchMock.mock.calls.length).toBeGreaterThan(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('冷启动同步失败时快速返回空列表（不阻塞，无 error 字段）', async () => {
     const { app } = makeTestApp();
     await enableDouban(app);
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 403, text: async () => '' });
     vi.stubGlobal('fetch', fetchMock);
     try {
       const res = await app.request('/api/douban');
-      const body = (await res.json()) as { data: { error: string; movies: unknown[] } };
-      expect(body.data.error).toBeTruthy();
+      const body = (await res.json()) as { data: { movies: unknown[]; stale?: boolean } };
       expect(body.data.movies).toEqual([]);
+      expect(body.data.stale).toBe(true); // 无缓存可回退，按过期处理并后台重试
+      await flushDoubanRefresh(); // 后台失败已吞掉
+      expect(fetchMock).toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
     }

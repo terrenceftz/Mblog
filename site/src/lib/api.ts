@@ -54,7 +54,11 @@ export interface ProjectsData {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}/api${path}`, { headers: { Accept: 'application/json' } });
+  // 12s 超时兜底：外部接口（豆瓣/GitHub 等）异常慢时 SSR 不挂死，区块走调用方 .catch 优雅降级
+  const res = await fetch(`${API_BASE}/api${path}`, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(12000),
+  });
   if (!res.ok) throw new Error(`API ${path} -> ${res.status}`);
   const body = (await res.json()) as { data: T };
   return body.data;

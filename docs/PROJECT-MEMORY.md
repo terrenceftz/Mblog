@@ -112,6 +112,7 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 9. **关于页后台化**（b76756e + 0ef6f8f）：about_content 后台编辑 + eonova 名片式分段（空行分段 + 段首 emoji 自动识别标签）
 10. **双主题菜单**（b76756e）：settings 拆 nav_menu_normal/reader + 前台双套 + 后台主题设置编辑（随布局模式联动）；站点设置移除导航卡
 11. **GitHub 推送**（0ef6f8f）：README 完整重写 + 创建远程仓库 **terrenceftz/Mblog（Public）** + push main
+12. **首页偶发极慢修复**（7adfa38 + 本会话）：根因=首页 SSR 同步等待 `/api/douban`（豆瓣分页+TMDB 逐部）与 `/api/projects`（GitHub 无超时），30min 缓存过期即阻塞（nginx 60s 超时实证）。修复：公开接口 **stale-while-revalidate 永不阻塞**（有旧数据立即返回 stale，无则空+syncing，后台单飞刷新），GitHub fetch 补 10s 超时，site fetch 补 12s 兜底。测试 83→85。
 
 **当前提交链**：`0ef6f8f`（docs README + 名片式 + 后台修复）→ `b76756e`（相册 + 关于后台 + 双主题菜单）→ `33df582`（reader prev/next）→ `b1fca22`（reader 空白修复）→ `796aa1e`（首页视觉 + 文章页 + reader 回归）→ `e6e4514`（normal 全面优化）→ `319a081`（上一版记忆）
 
@@ -171,6 +172,7 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
   - `/api/` → `localhost:3003`；`/uploads/` → `localhost:3003`；`/` → `localhost:4322`
 - **进程**：PM2 跑 backend（:3003，mblog-api）和 site（:4322，mblog-site）；代码在 `/root/.openclaw/workspace/agent-e7b30f31/mblog`（**非 git 仓库**，agent 拷贝部署）
 - **缓存策略（2026-08-12 修复）**：`map $uri $mblog_cache_control` → `/admin/assets/`、`/_astro/` immutable 1 年；`/uploads/` 86400；其余（HTML/API）no-cache。仓库内 `deploy/nginx/sites-available/cs-mboker-cn.conf` 即线上实际配置，`deploy/nginx/nginx.conf` 是 docker 等价版
+- **外部数据接口（豆瓣/GitHub）永不阻塞**：`/api/douban`（豆瓣抓取+TMDB 逐部，300 部级耗时分钟）、`/api/projects`（GitHub 10s 超时）都是 30min 内存缓存 + stale-while-revalidate——过期/冷启动立即返回旧数据或空（`stale:true`/`syncing:true`），后台单飞刷新；首页 SSR 靠它们兜底不再卡死
 - **部署步骤**：改宿主配置 → `sudo cp <conf> /etc/nginx/sites-available/cs-mboker-cn && sudo nginx -t && sudo systemctl reload nginx`；admin 发版 = 本地 `admin` 构建 → 产物拷到 `/var/www/cs.mboker.cn/admin/`
 - **坑**：Nginx `try_files` 按 root+$uri 拼路径、与 alias 冲突；`alias`+正则 location 无捕获组会 301 加尾斜杠——admin 资源拆分缓存不要用正则+alias，用 map 按 $uri 分发
 
