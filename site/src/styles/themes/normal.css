@@ -119,6 +119,8 @@
 [data-theme='normal'] .nh-hero {
   position: relative;
   overflow: hidden;
+  /* 独立层叠上下文：确保 ::after 渐变遮罩一定压在 WebGL 流体 canvas 之上 */
+  isolation: isolate;
   min-height: 82svh;
   margin-top: -57px;
   display: flex;
@@ -181,18 +183,21 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  /* 过渡渐变跟随 --color-bg（后台改主题 bg 时同步生效，避免硬编码 rgba 与自定义底色错位） */
+  /* 流体 → 黑底过渡遮罩：跟随 --color-bg，底段渐黑让流体平滑融入页面底色（而非硬边） */
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-bg) 15%, transparent) 0%,
-    color-mix(in srgb, var(--color-bg) 45%, transparent) 55%,
+    color-mix(in srgb, var(--color-bg) 10%, transparent) 0%,
+    color-mix(in srgb, var(--color-bg) 35%, transparent) 45%,
+    color-mix(in srgb, var(--color-bg) 70%, transparent) 75%,
     var(--color-bg) 100%
   );
 }
-/* island 铺满 Hero（覆盖 Astro 的 display:contents），触发 client:visible 水合 */
+/* island 铺满 Hero（覆盖 Astro 的 display:contents），触发 client:visible 水合；
+   显式 z-index:0，让流体 canvas 明确压在 ::after 渐变遮罩之下 */
 [data-theme='normal'] .nh-hero astro-island {
   position: absolute;
   inset: 0;
+  z-index: 0;
   display: block;
 }
 /* 统计气泡 island 内联化：抵消上方 .nh-hero astro-island 的 absolute 铺满规则，
