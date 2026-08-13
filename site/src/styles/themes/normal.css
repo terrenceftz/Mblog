@@ -181,7 +181,13 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(to bottom, rgba(9, 9, 11, 0.15) 0%, rgba(9, 9, 11, 0.45) 55%, var(--color-bg) 100%);
+  /* 过渡渐变跟随 --color-bg（后台改主题 bg 时同步生效，避免硬编码 rgba 与自定义底色错位） */
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-bg) 15%, transparent) 0%,
+    color-mix(in srgb, var(--color-bg) 45%, transparent) 55%,
+    var(--color-bg) 100%
+  );
 }
 /* island 铺满 Hero（覆盖 Astro 的 display:contents），触发 client:visible 水合 */
 [data-theme='normal'] .nh-hero astro-island {
