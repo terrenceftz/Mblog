@@ -2269,6 +2269,147 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   transform: scale(0.94);
 }
 
+/* ---------- 分类页（features-01-luma 暗色适配：透视网格 + 玻璃发光卡片） ---------- */
+[data-theme='normal'] .cat-luma-wrap {
+  position: relative;
+}
+/* Luma 透视网格背景：暗色低透明度白线 + 上下渐隐（pointer-events 穿透） */
+[data-theme='normal'] .cat-grid-bg {
+  position: absolute;
+  inset: -60px 0 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+  transform: perspective(1100px) rotateX(62deg) translateY(-30px) scale(2.2);
+  transform-origin: top;
+  mask-image: linear-gradient(to bottom, transparent, black 35%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 35%, transparent);
+}
+/* Luma 卡片网格：1 列 → 2 列 → 4 列（auto-fill），紧凑 12px 间距 */
+[data-theme='normal'] .cat-luma {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
+[data-theme='normal'] .cat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 4 / 3;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.4s ease, box-shadow 0.4s ease;
+}
+[data-theme='normal'] .cat-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  box-shadow: 0 16px 40px -14px rgba(0, 0, 0, 0.6);
+}
+/* hover 背景图（分类特色图，Luma 原版）：浮现 + 微缩放 + 底部暗化保证文字可读 */
+[data-theme='normal'] .cat-card .cat-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+[data-theme='normal'] .cat-card .cat-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scale(1.02);
+  transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-theme='normal'] .cat-card:hover .cat-bg {
+  opacity: 1;
+}
+[data-theme='normal'] .cat-card:hover .cat-bg img {
+  transform: scale(1.08);
+}
+[data-theme='normal'] .cat-card .cat-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(9, 9, 11, 0.82) 0%, rgba(9, 9, 11, 0.35) 55%, rgba(9, 9, 11, 0.12) 100%);
+}
+/* hover 光晕：琥珀径向光从右上浮现（无特色图时单独承担视觉，有图时叠加如 Luma 色调覆盖） */
+[data-theme='normal'] .cat-card .cat-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  background:
+    radial-gradient(ellipse 70% 60% at 80% 0%, color-mix(in srgb, var(--color-primary) 22%, transparent), transparent 65%),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-primary) 6%, transparent), transparent 55%);
+}
+[data-theme='normal'] .cat-card:hover .cat-glow {
+  opacity: 1;
+}
+/* 左上 icon + 左下 名称/计数（Luma 结构）；hover 时随背景图转白字 */
+[data-theme='normal'] .cat-card-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  color: var(--color-text-muted);
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+[data-theme='normal'] .cat-card:hover .cat-card-icon {
+  color: var(--color-on-image);
+  transform: translateY(-2px);
+}
+[data-theme='normal'] .cat-card-foot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+[data-theme='normal'] .cat-card-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text-heading);
+  transition: color 0.3s ease;
+}
+[data-theme='normal'] .cat-card:hover .cat-card-name {
+  color: var(--color-on-image);
+}
+[data-theme='normal'] .cat-card-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+[data-theme='normal'] .cat-card:hover .cat-card-count {
+  color: var(--color-on-image-muted);
+}
+@media (min-width: 768px) {
+  [data-theme='normal'] .cat-luma {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+  [data-theme='normal'] .cat-card {
+    aspect-ratio: 1.1 / 1;
+    padding: 22px;
+  }
+}
+
 /* ---------- 关于我页（normal 暗色卡片） ---------- */
 [data-theme='normal'] .about-card {
   display: flex;

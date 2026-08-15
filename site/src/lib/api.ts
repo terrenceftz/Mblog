@@ -42,7 +42,7 @@ export interface PublicSettings {
   doubanUid: string;
   turnstileSiteKey: string;
 }
-export interface Category { id: number; name: string; slug: string; postCount: number }
+export interface Category { id: number; name: string; slug: string; postCount: number; cover: string }
 export interface Tag { id: number; name: string; slug: string; postCount: number }
 export interface ArchiveGroup { month: string; items: { createdAt: number; title: string; slug: string }[] }
 export interface Talk { id: number; content: string; createdAt: number }

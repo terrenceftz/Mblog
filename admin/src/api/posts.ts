@@ -12,7 +12,7 @@ export interface PostDetail extends PostListItem {
 export interface Page<T> { list: T[]; total: number }
 
 /* ============ 后端真实契约类型（Gemini API 适配层使用） ============ */
-export interface CategoryRow { id: number; name: string; slug: string; sortOrder: number; postCount: number }
+export interface CategoryRow { id: number; name: string; slug: string; sortOrder: number; postCount: number; cover: string }
 export interface TagRow { id: number; name: string; slug: string; postCount: number }
 export interface CommentRow {
   id: number; postId: number; author: string; email: string; content: string;

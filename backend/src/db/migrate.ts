@@ -27,6 +27,14 @@ export function ensureMigrated(ctx: Db): void {
     ctx.sqlite.exec(`ALTER TABLE posts ADD COLUMN like_count integer NOT NULL DEFAULT 0`);
   }
 
+  // 增量列迁移：分类特色图（后台可配，前台分类页卡片背景）
+  const hasCatCover = (ctx.sqlite.prepare('PRAGMA table_info(categories)').all() as { name: string }[]).some(
+    (c) => c.name === 'cover',
+  );
+  if (!hasCatCover) {
+    ctx.sqlite.exec(`ALTER TABLE categories ADD COLUMN cover text NOT NULL DEFAULT ''`);
+  }
+
   // 说说表（访客留言/短动态）
   ctx.sqlite.exec(`
     CREATE TABLE IF NOT EXISTS talks (

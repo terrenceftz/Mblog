@@ -38,6 +38,7 @@ export interface Category {
   slug: string;
   description: string;
   postCount: number;
+  cover: string;
 }
 
 export interface Tag {
@@ -317,7 +318,8 @@ export const api = {
       name: c.name,
       slug: c.slug,
       description: '',
-      postCount: c.postCount
+      postCount: c.postCount,
+      cover: c.cover || ''
     }));
   },
 
@@ -325,21 +327,22 @@ export const api = {
     if (cat.id) {
       await request<{ id: number }>(`/admin/categories/${cat.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ name: cat.name })
+        body: JSON.stringify({ name: cat.name, slug: cat.slug, cover: cat.cover })
       });
       return {
         id: cat.id,
         name: cat.name || '',
         slug: cat.slug || '',
         description: '',
-        postCount: cat.postCount || 0
+        postCount: cat.postCount || 0,
+        cover: cat.cover || ''
       };
     }
     const row = await request<CategoryRow>('/admin/categories', {
       method: 'POST',
-      body: JSON.stringify({ name: cat.name, slug: cat.slug })
+      body: JSON.stringify({ name: cat.name, slug: cat.slug, cover: cat.cover })
     });
-    return { id: row.id, name: row.name, slug: row.slug, description: '', postCount: row.postCount };
+    return { id: row.id, name: row.name, slug: row.slug, description: '', postCount: row.postCount, cover: row.cover || '' };
   },
 
   async deleteCategory(id: number): Promise<boolean> {

@@ -12,6 +12,7 @@ export const categories = sqliteTable('categories', {
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
   sortOrder: integer('sort_order').notNull().default(0),
+  cover: text('cover').notNull().default(''),
 });
 
 export const tags = sqliteTable('tags', {

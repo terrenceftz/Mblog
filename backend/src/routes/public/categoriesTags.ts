@@ -7,11 +7,12 @@ export function categoriesTagsRoutes(ctx: Db) {
   const app = new Hono();
 
   app.get('/categories', (c) => {
-    // postCount 只统计已发布文章
+    // postCount 只统计已发布文章；cover 为分类特色图（前台分类页卡片背景）
     const rows = ctx.db.select({
       id: categories.id,
       name: categories.name,
       slug: categories.slug,
+      cover: categories.cover,
       postCount: count(posts.id),
     }).from(categories)
       .leftJoin(posts, and(eq(posts.categoryId, categories.id), eq(posts.status, 'published')))

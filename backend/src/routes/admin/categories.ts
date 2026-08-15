@@ -14,6 +14,7 @@ export function categoriesAdminRoutes(ctx: Db) {
       name: categories.name,
       slug: categories.slug,
       sortOrder: categories.sortOrder,
+      cover: categories.cover,
       postCount: count(posts.id),
     }).from(categories)
       .leftJoin(posts, eq(posts.categoryId, categories.id))
@@ -29,9 +30,10 @@ export function categoriesAdminRoutes(ctx: Db) {
     if (!name) return c.json({ error: { code: 'INVALID', message: '分类名不能为空' } }, 400);
     const slug = typeof body?.slug === 'string' && body.slug.trim() ? body.slug.trim() : makeSlug(name);
     const sortOrder = typeof body?.sortOrder === 'number' ? body.sortOrder : 0;
+    const cover = typeof body?.cover === 'string' ? body.cover.trim().slice(0, 500) : '';
     const existing = ctx.db.select({ id: categories.id }).from(categories).where(eq(categories.slug, slug)).get();
     if (existing) return c.json({ error: { code: 'CONFLICT', message: 'slug 已存在' } }, 409);
-    const row = ctx.db.insert(categories).values({ name, slug, sortOrder }).returning().get();
+    const row = ctx.db.insert(categories).values({ name, slug, sortOrder, cover }).returning().get();
     return c.json({ data: row }, 201);
   });
 
@@ -43,9 +45,11 @@ export function categoriesAdminRoutes(ctx: Db) {
     const name = typeof body?.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 50) : row.name;
     const slug = typeof body?.slug === 'string' && body.slug.trim() ? body.slug.trim() : row.slug;
     const sortOrder = typeof body?.sortOrder === 'number' ? body.sortOrder : row.sortOrder;
+    // cover 显式传 null 视为清空；不传保留原值
+    const cover = typeof body?.cover === 'string' ? body.cover.trim().slice(0, 500) : row.cover;
     const dup = ctx.db.select({ id: categories.id }).from(categories).where(eq(categories.slug, slug)).get();
     if (dup && dup.id !== id) return c.json({ error: { code: 'CONFLICT', message: 'slug 已存在' } }, 409);
-    ctx.db.update(categories).set({ name, slug, sortOrder }).where(eq(categories.id, id)).run();
+    ctx.db.update(categories).set({ name, slug, sortOrder, cover }).where(eq(categories.id, id)).run();
     return c.json({ data: { id } });
   });
 

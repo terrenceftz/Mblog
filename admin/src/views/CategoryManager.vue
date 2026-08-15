@@ -5,12 +5,14 @@ import { toast } from '../lib/toast';
 
 const categories = ref<Category[]>([]);
 const loading = ref(false);
+const uploadingCover = ref(false);
 
 // New Category Form
 const newCat = ref({
   name: '',
   slug: '',
   description: '',
+  cover: '',
 });
 
 // Inline Edit State
@@ -19,12 +21,52 @@ const editForm = ref({
   name: '',
   slug: '',
   description: '',
+  cover: '',
 });
 
 async function loadCategories() {
   loading.value = true;
   categories.value = await api.getCategories();
   loading.value = false;
+}
+
+// 特色图上传：canvas 压缩至 1280px JPEG 0.82 再传（与相册 PhotoManager 同款，减少卡顿）
+async function compressImage(file: File): Promise<Blob> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = reject;
+    el.src = URL.createObjectURL(file);
+  });
+  const max = 1280;
+  const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.round(img.naturalWidth * scale);
+  const h = Math.round(img.naturalHeight * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+  URL.revokeObjectURL(img.src);
+  return new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b as Blob), 'image/jpeg', 0.82));
+}
+
+async function handleCoverUpload(e: Event, target: 'new' | 'edit') {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  uploadingCover.value = true;
+  try {
+    const blob = await compressImage(file);
+    const base = file.name.replace(/\.[^.]+$/, '');
+    const url = await api.uploadPhoto(blob, `${base}-cover.jpg`);
+    if (target === 'new') newCat.value.cover = url;
+    else editForm.value.cover = url;
+    toast.success('特色图已上传');
+  } catch {
+    toast.error('特色图上传失败');
+  } finally {
+    uploadingCover.value = false;
+    (e.target as HTMLInputElement).value = '';
+  }
 }
 
 async function handleAddCategory() {
@@ -37,10 +79,11 @@ async function handleAddCategory() {
     name: newCat.value.name.trim(),
     slug: newCat.value.slug.trim() || newCat.value.name.trim().toLowerCase().replace(/\s+/g, '-'),
     description: newCat.value.description.trim(),
+    cover: newCat.value.cover.trim(),
   });
 
   toast.success(`分类 "${created.name}" 已成功创建`);
-  newCat.value = { name: '', slug: '', description: '' };
+  newCat.value = { name: '', slug: '', description: '', cover: '' };
   loadCategories();
 }
 
@@ -50,6 +93,7 @@ function startEdit(cat: Category) {
     name: cat.name,
     slug: cat.slug,
     description: cat.description,
+    cover: cat.cover,
   };
 }
 
@@ -68,6 +112,7 @@ async function saveEdit(id: number) {
     name: editForm.value.name.trim(),
     slug: editForm.value.slug.trim(),
     description: editForm.value.description.trim(),
+    cover: editForm.value.cover.trim(),
   });
 
   toast.success('分类已更新');
@@ -112,7 +157,7 @@ onMounted(() => {
               placeholder="如：技术心得"
             />
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
             <label class="form-label small fw-medium">别名 (Slug)</label>
             <input
               type="text"
@@ -121,7 +166,7 @@ onMounted(() => {
               placeholder="如：tech"
             />
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label small fw-medium">描述</label>
             <input
               type="text"
@@ -130,10 +175,26 @@ onMounted(() => {
               placeholder="简短分类描述..."
             />
           </div>
-          <div class="col-md-2">
+          <div class="col-md-4">
+            <label class="form-label small fw-medium">特色图 URL（可选，分类页卡片背景）</label>
+            <div class="d-flex gap-2">
+              <input
+                type="text"
+                v-model="newCat.cover"
+                class="form-control"
+                placeholder="https:// 或 /uploads/..."
+              />
+              <label class="btn btn-ghost-primary mb-0 text-nowrap" :class="{ disabled: uploadingCover }">
+                <span v-if="uploadingCover">上传中…</span>
+                <span v-else>上传</span>
+                <input type="file" accept="image/*" class="d-none" @change="handleCoverUpload($event, 'new')" />
+              </label>
+            </div>
+          </div>
+          <div class="col-md-1">
             <button @click="handleAddCategory" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-1">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span>添加分类</span>
+              <span>添加</span>
             </button>
           </div>
         </div>
@@ -146,9 +207,10 @@ onMounted(() => {
         <table class="table table-vcenter card-table">
           <thead>
             <tr>
-              <th style="width: 25%">分类名称</th>
-              <th style="width: 25%">别名 (Slug)</th>
-              <th style="width: 30%">描述</th>
+              <th style="width: 20%">分类名称</th>
+              <th style="width: 18%">别名 (Slug)</th>
+              <th style="width: 22%">描述</th>
+              <th style="width: 20%">特色图</th>
               <th class="text-center">文章数</th>
               <th class="text-end">操作</th>
             </tr>
@@ -160,6 +222,10 @@ onMounted(() => {
                 <td class="fw-bold text-main">{{ cat.name }}</td>
                 <td><code class="text-primary">{{ cat.slug }}</code></td>
                 <td class="text-muted small">{{ cat.description || '暂无描述' }}</td>
+                <td>
+                  <img v-if="cat.cover" :src="cat.cover" class="rounded" style="width: 72px; height: 40px; object-fit: cover;" alt="分类特色图" />
+                  <span v-else class="text-muted small">未设置</span>
+                </td>
                 <td class="text-center">
                   <span class="badge badge-soft-primary">{{ cat.postCount || 0 }} 篇</span>
                 </td>
@@ -181,6 +247,22 @@ onMounted(() => {
                 </td>
                 <td>
                   <input type="text" v-model="editForm.description" class="form-control form-control-sm" />
+                </td>
+                <td>
+                  <div class="d-flex gap-2 align-items-center">
+                    <img v-if="editForm.cover" :src="editForm.cover" class="rounded flex-shrink-0" style="width: 72px; height: 40px; object-fit: cover;" alt="预览" />
+                    <div class="d-flex flex-column gap-1 flex-grow-1" style="min-width: 0">
+                      <input type="text" v-model="editForm.cover" class="form-control form-control-sm" placeholder="/uploads/... 或 https://..." />
+                      <div class="btn-list">
+                        <label class="btn btn-sm btn-ghost-primary mb-0" :class="{ disabled: uploadingCover }">
+                          <span v-if="uploadingCover">上传中…</span>
+                          <span v-else>上传</span>
+                          <input type="file" accept="image/*" class="d-none" @change="handleCoverUpload($event, 'edit')" />
+                        </label>
+                        <button v-if="editForm.cover" @click="editForm.cover = ''" class="btn btn-sm btn-ghost-danger">清除</button>
+                      </div>
+                    </div>
+                  </div>
                 </td>
                 <td class="text-center">
                   <span class="badge badge-soft-primary">{{ cat.postCount || 0 }} 篇</span>
