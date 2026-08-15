@@ -216,10 +216,12 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - **宿主 Nginx**（80/443，Let's Encrypt）：`/etc/nginx/sites-available/cs-mboker-cn`（sites-enabled 软链）
   - `/admin/` → **alias** `/var/www/cs.mboker.cn/admin/`（Vite 构建产物拷贝部署，不是容器！）
   - `/api/` → `localhost:3003`；`/uploads/` → `localhost:3003`；`/` → `localhost:4322`
-- **进程**：PM2 跑 backend（:3003，mblog-api）和 site（:4322，mblog-site）；代码在 `/root/.openclaw/workspace/agent-e7b30f31/mblog`（**非 git 仓库**，agent 拷贝部署）
+- **进程**：PM2 跑 backend（:3003，mblog-api）和 site（:4322，mblog-site）；代码在 `/root/.openclaw/workspace/agent-e7b30f31/mblog`（**非 git 仓库**，agent 拷贝部署）。site 用 `API_BASE=http://localhost:3003` 启动（服务器内网地址）
 - **缓存策略（2026-08-12 修复）**：`map $uri $mblog_cache_control` → `/admin/assets/`、`/_astro/` immutable 1 年；`/uploads/` 86400；其余（HTML/API）no-cache。仓库内 `deploy/nginx/sites-available/cs-mboker-cn.conf` 即线上实际配置，`deploy/nginx/nginx.conf` 是 docker 等价版
-- **外部数据接口（豆瓣/GitHub）永不阻塞**：`/api/douban`（豆瓣抓取+TMDB 逐部，300 部级耗时分钟）、`/api/projects`（GitHub 10s 超时）都是 30min 内存缓存 + stale-while-revalidate——过期/冷启动立即返回旧数据或空（`stale:true`/`syncing:true`），后台单飞刷新；首页 SSR 靠它们兜底不再卡死
-- **部署步骤**：改宿主配置 → `sudo cp <conf> /etc/nginx/sites-available/cs-mboker-cn && sudo nginx -t && sudo systemctl reload nginx`；admin 发版 = 本地 `admin` 构建 → 产物拷到 `/var/www/cs.mboker.cn/admin/`
+- **外部数据接口（豆瓣/GitHub）永不阻塞**：`/api/douban`（豆瓣抓取+TMDB 逐部，300 部级耗时分钟）、`/api/projects`（GitHub 10s 超时）都是 30min 内存缓存 + stale-while-revalidate——过期/冷启动立即返回旧数据或空（`stale:true`/`syncing:true`），后台单飞刷新；首页 SSR 靠它们兜底不再卡死。**冷启动后 douban 抓取需 1~2 分钟才同步完，期间首页豆瓣为空属正常**
+- **部署步骤（2026-08-15 实操验证）**：本地 `site` 构建 → `tar -cf /tmp/site-dist.tar -C dist .` → `scp` 到服务器 `/tmp/` → `sudo mv site/dist site/dist.bak && sudo mkdir site/dist && sudo tar -xf`；backend 源码改动（如 stats.ts）直接 `scp` 覆盖对应文件 → `sudo export PATH=/root/.nvm/versions/node/v22.22.2/bin:$PATH && pm2 restart mblog-site mblog-api --update-env` → 验证
+- **⚠️ PM2 重启必须带 v22 PATH**（2026-08-15 事故）：`pm2 restart --update-env` 会刷新进程 env，若在默认 PATH 下执行，node 解析成系统 v18.19.1 → backend 的 better-sqlite3（NODE_MODULE_VERSION 127）ABI 不匹配 `ERR_DLOPEN_FAILED` → 502。**重启前必须 `export PATH=/root/.nvm/versions/node/v22.22.2/bin:$PATH`**（线上 node 实际是 v22.22.2，pm2 二进制也在同目录）。pm2 命令：`/root/.nvm/versions/node/v22.22.2/bin/pm2`
+- **媒体 URL 架构**：`API_BASE`（服务器内网 localhost:3003）只用于 SSR 内部 fetch，**绝不能拼进 HTML 给浏览器**（用户会请求自己机器）。渲染给浏览器的相对路径 `/api`、`/uploads` 走 nginx 同域反代；本地直跑 dist 需另设 `PUBLIC_API_BASE=http://localhost:3000`（index/post/gallery 的 absUrl 逻辑）
 - **坑**：Nginx `try_files` 按 root+$uri 拼路径、与 alias 冲突；`alias`+正则 location 无捕获组会 301 加尾斜杠——admin 资源拆分缓存不要用正则+alias，用 map 按 $uri 分发
 
 ## 10. 参考
