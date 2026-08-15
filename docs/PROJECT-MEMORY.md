@@ -157,6 +157,12 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - `backend npm test` **85/85**；`site npm run check` **0 errors**；构建通过。本地验证：dist 直跑 + API_BASE=http://localhost:3000，首页/文章/归档/关于/相册全 200，8 张豆瓣图 URL 全 200。
 - **本地服务启动**：backend `npm run dev`(:3000)、site 用**构建产物** `API_BASE=http://localhost:3000 node dist/server/entry.mjs`(:4321)、admin `npm run dev`(:5173)。
 
+### 分类页 + 分类特色图（2026-08-15 上线）
+- **分类总览页 `/category`**（`site/src/pages/category/index.astro`）：features-01-luma 风格暗色适配——透视网格背景（rotateX 62° 白线 + mask 渐隐）+ 卡片网格（桌面一排 3 个，中屏 2 列，移动 1 列）+ 卡片=左上 icon（12 种 SVG 按分类名关键词映射）+ 左下名称/计数 + hover 特色图浮现（scale 1.08 + 底部暗化）+ 琥珀光晕叠加 + 白字。
+- **分类特色图**：backend `categories` 表加 `cover` 列（migrate.ts 幂等 ALTER）；admin/public categories API 均返回 cover；admin PUT 传 `cover`（显式清空传空串）；admin CategoryManager 支持 canvas 压缩上传（1280px JPEG 0.82，复用 `api.uploadPhoto`）+ URL 输入 + 行内预览/清除。
+- 导航入口需后台「主题配置→导航菜单」手动加 `/category`。
+- **已上线**（2026-08-15）：backend 4 文件 + site dist + admin dist 全量部署，PM2 v22 PATH 重启，线上 cover 迁移成功。
+
 ## 6. 待办 / 下一步
 
 - **线上部署验证**（2026-08-15 已部署，复查 cs.mboker.cn 三页 + 豆瓣图 + PM2 日志）
