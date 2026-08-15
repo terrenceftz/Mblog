@@ -4,6 +4,7 @@ import HeroBackground from '../components/HeroBackground.vue';
 import BlurText from '../components/BlurText.vue';
 import BorderGlow from '../components/BorderGlow.vue';
 import StatBubbles from '../components/StatBubbles.vue';
+import EyeIcon from '../components/EyeIcon.astro';
 import {
   getPosts, getPublicSettings, getCategories, getTags, getStats, getDouban, getProjects,
   type PostListItem, type Category, type Tag,
@@ -14,7 +15,8 @@ const settings = Astro.locals.settings ?? (await getPublicSettings());
 const siteName = settings.author || settings.siteName || '我的博客';
 // 首页文章数：默认主题配置决定（双主题架构下 SSR 以默认主题为准）
 const defaultTheme = settings.theme === 'reader' ? settings.themeReader : settings.themeNormal;
-const pageSize = defaultTheme.homePageSize ?? 10;
+// normal 首屏为「1 特写 + 4 常规」共 5 篇，按需取数；reader 时间线用主题配置的文章数
+const pageSize = settings.theme === 'reader' ? (defaultTheme.homePageSize ?? 10) : 5;
 const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
 const data = await getPosts({ page, pageSize }).catch(() => ({ list: [] as PostListItem[], total: 0 }));
 const total = data.total;
@@ -52,8 +54,42 @@ const catName = (id: number | null) => categories.find((c) => c.id === id)?.name
 const themeNormal = settings.themeNormal ?? {};
 const avatarUrl = settings.avatar || themeNormal.avatar || '/avatar.jpg';
 const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博主';
+
+// 封面/头像等媒体相对路径拼成绝对 URL（与 gallery 页 /uploads 处理一致）。
+// dev 有 Vite /api 代理可省略，但构建产物/直跑 node 服务没有 /api 反代，相对路径会 404
+const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
+const absUrl = (u: string) => (u.startsWith('/') ? `${API_BASE}${u}` : u);
+
+// 首页结构化数据：WebSite（含站内搜索）+ Person（博主档案），文章页另有 BlogPosting
+const baseUrl = (settings.siteUrl || 'http://localhost').replace(/\/$/, '');
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      name: settings.siteName || '我的博客',
+      description: settings.siteDesc,
+      url: `${baseUrl}/`,
+      inLanguage: 'zh-CN',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: { '@type': 'EntryPoint', urlTemplate: `${baseUrl}/search?q={search_term_string}` },
+        'query-input': 'required name=search_term_string',
+      },
+    },
+    {
+      '@type': 'Person',
+      name: siteName,
+      url: `${baseUrl}/about`,
+      description: introText,
+      image: new URL(avatarUrl, baseUrl).href,
+      ...(settings.githubUsername ? { sameAs: [`https://github.com/${settings.githubUsername}`] } : {}),
+    },
+  ],
+});
 ---
 <BaseLayout description={settings.siteDesc}>
+  <script slot="head" type="application/ld+json" set:html={jsonLd} is:inline />
 
   <!-- ======== 极简主题首页：干支时间线（normal 主题隐藏） ======== -->
   <div class="reader-home">
@@ -69,7 +105,7 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
                   <a class="item-title" href={`/post/${post.slug}`}>{post.title}</a>
                 </div>
                 {post.summary && <p class="item-summary">{post.summary}</p>}
-                <span class="item-views" aria-label={`${post.viewCount} 次浏览`}><span aria-hidden="true">👁</span> {post.viewCount}</span>
+                <span class="item-views"><EyeIcon count={post.viewCount} /></span>
               </li>
             ))}
           </ul>
@@ -94,9 +130,17 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
       <div class="nh-hero-content nh-hero-split">
         <div class="nh-intro">
           <p class="nh-eyebrow"><BlurText client:load text="NOVA EON · BLOG" start-delay={0} delay={60} /></p>
-          <h1 class="nh-title"><BlurText client:load text={`你好，我是${siteName}`} start-delay={220} delay={80} /></h1>
-          <BlurText client:load class="nh-witty" text={introText} start-delay={520} delay={120} />
-          {settings.siteDesc && <p class="nh-desc"><BlurText client:load text={settings.siteDesc} start-delay={900} delay={80} /></p>}
+          <h1 class="nh-title">
+            <span class="nh-title-lead">你好，我是</span><BlurText
+              client:load
+              class="nh-title-name"
+              text={siteName}
+              start-delay={380}
+              delay={70}
+              stepDuration={0.3}
+            />
+          </h1>
+          <BlurText client:load class="nh-witty" text={introText} start-delay={1000} delay={110} />
         </div>
         <div class="nh-avatar-wrap">
           <div class="nh-avatar"><img src={avatarUrl} alt={siteName} /></div>
@@ -114,80 +158,95 @@ const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博�
     <div class="nh-container">
     {/* 卡片辉光控制器：事件委托跟踪所有 border-glow-card 的光标位置 */}
     <BorderGlow client:load />
-    <!-- 最新文章（首屏底部露出，引导下滑） -->
+    <!-- 最新文章（编辑式索引列表：序号 + 日期 + 大标题；hover 封面浮动浮现） -->
     <section class="nh-section">
-      <div class="nh-section-head nh-latest-head" data-reveal>
-        <p class="nh-eyebrow">LATEST POSTS</p>
-        <h2>最新文章</h2>
-        <a class="nh-more" href="/posts">查看全部文章 →</a>
+      <div class="nh-section-head" data-reveal>
+        <h2>最新文章<span class="nh-head-en">Writing</span></h2>
+        <span class="nh-head-rule" aria-hidden="true" />
+        <a class="nh-more" href="/posts">全部文章 →</a>
       </div>
       {data.list.length > 0 ? (
-        <div class="nh-post-grid">
-          {data.list.slice(0, 9).map((p, i) => (
-            <a class="nh-post-card border-glow-card" data-reveal style={`--reveal-delay: ${i * 70}ms`} href={`/post/${p.slug}`}>
-              <span class="edge-light" aria-hidden="true" />
-              <div class="border-glow-inner">
-                <div class="nh-post-cover">
-                  {p.cover ? (
-                    <img src={p.cover} alt="" loading="lazy" />
-                  ) : (
-                    <span class="nh-post-cover-fallback">{p.title.slice(0, 1)}</span>
-                  )}
-                </div>
-                <div class="nh-post-body">
-                  <h3 class="nh-post-title">{p.title}</h3>
-                  {p.summary && <p class="nh-post-summary">{p.summary}</p>}
-                  <div class="nh-post-meta">
-                    <span>{fmtMonthDay(p.createdAt)}</span>
-                    <span aria-label={`${p.viewCount} 次浏览`}><span aria-hidden="true">👁</span> {p.viewCount}</span>
-                    {catName(p.categoryId) && <span>{catName(p.categoryId)}</span>}
-                  </div>
-                </div>
-              </div>
-            </a>
+        <ol class="nh-post-index">
+          {data.list.slice(0, 5).map((p, i) => (
+            <li class="nh-index-row" data-reveal style={`--reveal-delay: ${i * 60}ms`}>
+              <a class="nh-index-link" href={`/post/${p.slug}`}>
+                <span class="nh-index-num">{String(i + 1).padStart(2, '0')}</span>
+                <span class="nh-index-date">{fmtMonthDay(p.createdAt)}</span>
+                <span class="nh-index-main">
+                  <span class="nh-index-title">{p.title}</span>
+                  {p.summary && <span class="nh-index-summary">{p.summary}</span>}
+                </span>
+                {catName(p.categoryId) && <span class="nh-index-cat">{catName(p.categoryId)}</span>}
+                <span class="nh-index-arrow" aria-hidden="true">→</span>
+                {p.cover && (
+                  <span class="nh-index-preview" aria-hidden="true">
+                    <img src={absUrl(p.cover)} alt="" loading="lazy" />
+                  </span>
+                )}
+              </a>
+            </li>
           ))}
-        </div>
+        </ol>
       ) : (
         <p class="post-empty">暂无文章</p>
       )}
     </section>
 
-    <!-- 分类与标签 -->
-    <section class="nh-section">
-      <div class="nh-section-head" data-reveal><p class="nh-eyebrow">EXPLORE</p><h2>分类与标签</h2></div>
-      <div class="nh-cats" data-reveal>
-        {categories.map((c: Category) => (
-          <a class="nh-cat" href={`/category/${c.slug}`}>{c.name}<span class="nh-cat-count">{c.postCount}</span></a>
-        ))}
-      </div>
-      <div class="nh-tags" data-reveal style="--reveal-delay: 100ms">
-        {tags.map((t: Tag) => (
-          <a class="nh-tag" href={`/tag/${t.slug}`}>#{t.name}</a>
-        ))}
-      </div>
-    </section>
+    <!-- 分类与标签（目录式引导行 + mono 标签流） -->
+    {(categories.length > 0 || tags.length > 0) && (
+      <section class="nh-section">
+        <div class="nh-section-head" data-reveal>
+          <h2>分类与标签<span class="nh-head-en">Index</span></h2>
+          <span class="nh-head-rule" aria-hidden="true" />
+        </div>
+        {categories.length > 0 && (
+          <div class="nh-cats" data-reveal>
+            {categories.map((c: Category) => (
+              <a class="nh-cat" href={`/category/${c.slug}`}>
+                <span class="nh-cat-name">{c.name}</span>
+                <span class="nh-cat-leader" aria-hidden="true" />
+                <span class="nh-cat-count">{c.postCount}</span>
+              </a>
+            ))}
+          </div>
+        )}
+        {tags.length > 0 && (
+          <div class="nh-tags" data-reveal style="--reveal-delay: 80ms">
+            {tags.map((t: Tag) => (
+              <a class="nh-tag" href={`/tag/${t.slug}`}>#{t.name}</a>
+            ))}
+          </div>
+        )}
+      </section>
+    )}
 
     <!-- 影音与项目 -->
     <section class="nh-section">
       <div class="nh-sub" data-reveal>
-        <div class="nh-section-head nh-sub-head">
-          <div><p class="nh-eyebrow">MOVIES</p><h2>最近观影</h2></div>
-          <a class="nh-more" href="/douban">查看全部 →</a>
+        <div class="nh-section-head">
+          <h2>最近观影<span class="nh-head-en">Screening</span></h2>
+          <span class="nh-head-rule" aria-hidden="true" />
+          <a class="nh-more" href="/douban">全部影音 →</a>
         </div>
         {doubanData.movies.length > 0 && (
           <div class="nh-douban">
             {doubanData.movies.slice(0, 8).map((m) => (
               <a class="nh-douban-item" href={m.url} target="_blank" rel="noopener noreferrer" title={m.title}>
-                {m.cover ? <img src={m.cover} alt={m.title} loading="lazy" /> : <span class="nh-douban-fallback">{m.title.slice(0, 1)}</span>}
+                {m.cover ? <img src={absUrl(m.cover)} alt={m.title} loading="lazy" /> : <span class="nh-douban-fallback">{m.title.slice(0, 1)}</span>}
+                <span class="nh-douban-info">
+                  <span class="nh-douban-title">{m.title}</span>
+                  {m.rating > 0 && <span class="nh-douban-rating">★ {m.rating.toFixed(1)}</span>}
+                </span>
               </a>
             ))}
           </div>
         )}
       </div>
       <div class="nh-sub" data-reveal>
-        <div class="nh-section-head nh-sub-head">
-          <div><p class="nh-eyebrow">PROJECTS</p><h2>精选项目</h2></div>
-          <a class="nh-more" href="/projects">查看全部 →</a>
+        <div class="nh-section-head">
+          <h2>精选项目<span class="nh-head-en">Work</span></h2>
+          <span class="nh-head-rule" aria-hidden="true" />
+          <a class="nh-more" href="/projects">全部项目 →</a>
         </div>
         {projectsData.projects.length > 0 && (
           <div class="nh-projects">

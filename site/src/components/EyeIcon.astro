@@ -1,0 +1,24 @@
+---
+// 浏览量眼睛图标：替代 👁 emoji（emoji 会被屏幕阅读器读出且各平台渲染不一致）
+interface Props {
+  count: number;
+}
+const { count } = Astro.props;
+---
+<span aria-label={`${count} 次浏览`}>
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+    style="vertical-align: -2px; margin-right: 3px;"
+  >
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+    <circle cx="12" cy="12" r="3"></circle>
+  </svg>{count}
+</span>

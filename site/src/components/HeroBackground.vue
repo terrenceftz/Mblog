@@ -2,8 +2,10 @@
 // 首屏背景包装：桌面端（fancy）渲染 LiquidEther WebGL 流体；
 // 低端设备 / 触屏 / 开启「减少动态」时降级为静态多层径向渐变（视觉接近、零 WebGL 开销）。
 // SSR 默认渲染静态层（不依赖 window），hydration 后桌面端再切到流体（短暂过渡，可接受）。
-import { ref, onMounted } from 'vue';
-import LiquidEther from './LiquidEther.vue';
+import { ref, onMounted, defineAsyncComponent } from 'vue';
+// 异步加载 LiquidEther：three.js 只在桌面端（fancy）真正渲染流体时才下载，
+// 低端/触屏/减少动态设备降级为静态渐变，不再背负整块 WebGL 代码
+const LiquidEther = defineAsyncComponent(() => import('./LiquidEther.vue'));
 import { detectCapabilities } from '../lib/capabilities';
 
 const fancy = ref(false);

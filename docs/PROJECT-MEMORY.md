@@ -1,6 +1,6 @@
 # MBLOG 项目记忆文档（会话交接）
 
-> 最后更新：2026-08-12（相册 / 关于页 / 双主题菜单 / GitHub 推送 Mblog）
+> 最后更新：2026-08-15（全站编辑式视觉改版 + 性能优化 + 线上部署）
 > 用途：跨会话记忆，供下次继续开发使用。开发前先读本文件 + `git log --oneline -20`。
 
 ---
@@ -117,12 +117,53 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 
 **当前提交链**：`0ef6f8f`（docs README + 名片式 + 后台修复）→ `b76756e`（相册 + 关于后台 + 双主题菜单）→ `33df582`（reader prev/next）→ `b1fca22`（reader 空白修复）→ `796aa1e`（首页视觉 + 文章页 + reader 回归）→ `e6e4514`（normal 全面优化）→ `319a081`（上一版记忆）
 
+---
+
+## 5b. 今日已完成的工作（2026-08-15，视觉改版 + 性能，按主题分）
+
+> 本轮工作流：先读记忆 → 性能/健壮性优化 → 首页视觉改版 → 文章页改版 → 归档/关于/相册改版 → 线上部署。全部改动带 `[data-theme='normal']` 前缀，reader 不受影响。
+
+### 性能 / 健壮性（P0 优先）
+1. **three.js 按需加载**：`HeroBackground.vue` 改 `defineAsyncComponent` 动态 import LiquidEther——LiquidEther chunk（531KB，含 three.js）只在桌面 fancy 时下载，低端/移动端首屏不再背负；构建产物确认独立 chunk。
+2. **SSR 请求缓存**：`site/src/lib/api.ts` 的 `get()` 加进程内 **30s TTL + 单飞去重**（仅服务端，`typeof window === 'undefined'` 才启用）。首页单次渲染从 7 个后端请求降为缓存命中。backend `stats.ts` 的 totalViews 从全表取回 JS reduce → **SQL `SUM()`**（`coalesce(sum(...),0)`）。
+3. **字体按默认主题拆分**：BaseLayout 阻塞加载默认主题的家族（normal：Playfair+Noto Serif SC+JetBrains Mono；reader：Lora+EB Garamond+同一组）+ 另一主题独有字体用 `<link rel="preload" as="style" onload=...>` 异步预载（含 `<noscript>` 兜底）。不再一次拉 5 家族。
+4. **a11y 三连**：BlurText 补 `prefers-reduced-motion` 直通 + `will-change` 动画结束即回收；StatBubbles 改为 **SSR 直出真实值**（禁 JS/SEO 不再显示 0），水合后从 0 count-up；Lenis 平滑滚动 reduced-motion 跳过。
+5. **水合瘦身**：MobileHeader 改 `client:media="(max-width: 768px)"`（桌面端不水合）；首页 pageSize 按主题：reader 用主题配置，normal 固定取 5 篇（索引列表用）。
+6. **SEO**：首页补 JSON-LD（`WebSite` + `Person` + `SearchAction`），BaseLayout 加 `<slot name="head">`。
+7. **响应式**：新增 900px 中窄断点（hero 双栏提前纵向堆叠）；豆瓣中屏 4 列过渡。
+8. **辉光色变量化**：border-glow 的 `--glow-color*` 从硬编码 `hsl(43 80% 60%)` 改为 `--color-primary` + color-mix 派生，后台改主色端到端生效。
+9. **接口契约**：`PostListItem.likeCount` 列表接口不返回 → 从 PostListItem 移除、PostDetail 单独声明（detail 路由才返回）。
+10. **豆瓣/媒体相对路径修复**：首页豆瓣封面、文章页封面与相关文章封面渲染时用 `absUrl()` 把 `/api/cover`、`/uploads` 相对路径拼 `API_BASE` 绝对 URL。**根因**：本地构建产物直跑 `node dist/server/entry.mjs` 无 `/api` 反代 → 相对图 404；dev 有 Vite proxy 无感，线上有 nginx 反代无感。**注意 API_BASE 环境变量现在同时影响图片加载，生产必须配对。**
+
+### 首页视觉改版（normal，「编辑/作品集」语言）
+- **Hero 大字排版**：`你好，我是` 改为 sans 引导小字（`nh-title-lead`）与名字同行，署名 `nh-title-name` 超大**斜体衬线**（clamp 2.6rem→4.8rem），级联入场（眉标 0 → 引导 120 → 署名 380 → 介绍 1000ms，BlurText stepDuration 0.3 更柔）。
+- **最新文章 → 索引式列表**（`nh-post-index`）：`01 · MM-DD · 大标题 · 分类 →` 行式（分隔线），hover 整行微亮 + 标题变琥珀右移 + 箭头滑入 + **封面图浮动浮现**（桌面 >900px，绝对定位 190px 卡微旋转上浮；≤900px 隐藏）。
+- **分类与标签 → 目录式**：分类 leader dots + mono 计数（多列 auto-fill 230px）；标签退为 mono `#标签` 文字流。全部为空时区块不渲染。
+- **豆瓣 → 横向 scroll-snap 海报带**（flex + scroll-snap，移动端出血边缘），hover 底部渐变遮罩滑出片名 + ★评分。
+- **区块头编辑式**：中文大标题（clamp 1.7→2.15rem）+ 斜体琥珀英文小词（Writing/Index/Screening/Work）+ 点线引导连右侧入口（`.nh-section-head` + `.nh-head-en` + `.nh-head-rule`）。
+
+### 文章页改版（post/[slug].astro）
+- **头部**：新增 `.article-kicker`（`分类 · 日期` mono 眉标，分类琥珀可点）；无封面 = 左对齐编辑式（渐变光左移）；**有封面 = 左下角压图**（banner 240→300px，底部渐变加重，标题+kicker+meta 靠左下）。
+- **h2 自动编号**：CSS counter `article-h2`，mono 琥珀 `01/02` 前缀 + 40px 琥珀短刻度（替代全宽下划线），与首页索引/右侧目录编号呼应。
+- **首段首字下沉**（`::first-letter` 衬线琥珀 3.4em）；blockquote 去 synthetic italic（中文发虚）改衬线正体。
+- **页脚三件**：tags → mono `#标签` 文字流（`::before` 注入 #）；上一篇/下一篇 → 行式 hover（去边框卡）；相关文章区块头 → `相关文章 More ······`。
+
+### 归档 / 关于 / 相册
+- **归档**：月份头 `YYYY-MM ······ N 篇`（leader + 计数）；条目行式 `MM-DD 标题 →`（hover 微亮/右移/箭头），全页 reveal 级联。
+- **关于**：`HELLO, I AM` mono kicker + **大号斜体署名**（呼应首页 hero）+ intro 改 mono；外链边框胶囊 → mono 文字流（`GitHub ↗`）；整卡 10 处 reveal 级联。
+- **相册**：hover 图放大 + 整卡上浮 4px + 深阴影；标题改底部渐变遮罩滑出（mono 白字，圆角裁切）；lightbox 图片 0.94→1 缩放入场（CSS transition 加在 `.lb-fade` 上）。
+
+### 验证基线
+- `backend npm test` **85/85**；`site npm run check` **0 errors**；构建通过。本地验证：dist 直跑 + API_BASE=http://localhost:3000，首页/文章/归档/关于/相册全 200，8 张豆瓣图 URL 全 200。
+- **本地服务启动**：backend `npm run dev`(:3000)、site 用**构建产物** `API_BASE=http://localhost:3000 node dist/server/entry.mjs`(:4321)、admin `npm run dev`(:5173)。
+
 ## 6. 待办 / 下一步
 
-- **验收**：相册上传→前台瀑布流、关于页名片式、双主题菜单（后台主题配置切 Normal/Reader 编辑 → 前台切主题看侧栏）、首页动效
-- **既有 astro check 6 错误**（og Buffer / post updatedAt / Element 类型）：装 `@types/node` + post 内联 script 加 `as HTMLElement`（可选清理）
+- **线上部署验证**（2026-08-15 已部署，复查 cs.mboker.cn 三页 + 豆瓣图 + PM2 日志）
+- **既有 astro check 6 错误**（og Buffer / post updatedAt / Element 类型）：装 `@types/node` + post 内联 script 加 `as HTMLElement`（可选清理，当前 0 errors 是 grep 过滤结果，完整 `npm run check` 仍有 hints）
 - **后台关于页**：如果用户要 eonova 结构化区块（我是谁/性格/星座/爱好/引用/进度条）需后台结构化字段（目前纯文本分段 + emoji）
-- **.gitignore**：`docs/prompts/`、`admin-pure/`、`.zcode/` 建议忽略（可选）
+- **.gitignore**：`docs/prompts/`、`admin-pure/`、`.zcode/`、`._prod_home.html` 建议忽略（可选）
+- **TMDB 直链**：首页豆瓣 8 图中有 2 张 `image.tmdb.org` 直链，国内网络若被墙不显示，可把 TMDB 域名加进 backend `cover.ts` 代理白名单
 - 相册图片/OG 图 CJK 字体部署验证
 - admin-pure/ 目录处置（占空间）
 
@@ -143,6 +184,9 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 13. **密码/密钥掩码**：MASKED_KEYS 占位符保留原值
 14. **backend 登录路径**：`/api/admin/login`（不是 /auth/login）
 15. **mblog_theme key 前台/后台值域冲突**（已修复 2026-08-12）：后台改 `mblog_admin_theme`，前台 `mblog_theme` 只存 normal/reader；**前台 ThemeToggle 应用 localStorage 前必须校验**，别再把后台主题值当双主题套用
+16. **构建产物无 Vite /api 代理**（2026-08-15）：`astro.config.mjs` 的 `/api`、`/uploads` proxy 只在 `npm run dev` 生效；`node dist/server/entry.mjs` 直跑时相对路径图全 404（首页豆瓣海报事故）。**前台渲染任何相对媒体路径（/api/cover、/uploads）都必须 absUrl 拼 API_BASE**（gallery.astro 老规矩，首页/文章页已补）。API_BASE 环境变量同时影响图片加载
+17. **移动端 topbar 与 hero 负 margin**：`.nh-hero` 桌面 `margin-top:-57px` 是为钻进桌面顶栏；移动端顶栏是 MobileHeader（文档流内 sticky），负 margin 会把首屏文字顶进顶栏底下被挡住——**移动端归零**（`@media(max-width:768px) .nh-hero{margin-top:0}`）
+18. **SSR 缓存只进服务端**：`api.ts` 缓存 Map 用 `typeof window === 'undefined'` 门控，否则浏览器端 island 会拿到陈旧数据
 
 ## 8. 事故记录（重要！）
 

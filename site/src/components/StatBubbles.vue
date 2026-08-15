@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// 统计气泡：首屏入场时数字从 0 滚到目标值（easeOutCubic）。
-// SSR 渲染 0（避免 hydration mismatch），客户端 count-up；reduced-motion 直接落定。
+// 统计气泡：SSR 直出真实数值（禁 JS / SEO 也拿到真数据），水合后从 0 count-up（easeOutCubic）。
+// reduced-motion 直接保持目标值不做动画。
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 const props = defineProps<{
@@ -17,11 +17,12 @@ const items = [
   { key: 'friendLinkCount', label: '友链', cls: 'b4' },
 ] as const;
 
+// 初始值 = 目标值：SSR HTML 与客户端首帧一致（无 hydration mismatch），mounted 后再归零滚动
 const displayed = ref<Record<string, number>>({
-  postTotal: 0,
-  commentTotal: 0,
-  totalViews: 0,
-  friendLinkCount: 0,
+  postTotal: props.postTotal,
+  commentTotal: props.commentTotal,
+  totalViews: props.totalViews,
+  friendLinkCount: props.friendLinkCount,
 });
 let raf = 0;
 

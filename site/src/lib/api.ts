@@ -3,12 +3,14 @@ const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
 
 export interface PostListItem {
   id: number; title: string; slug: string; summary: string; cover: string;
-  viewCount: number; likeCount: number; categoryId: number | null; createdAt: number;
+  viewCount: number; categoryId: number | null; createdAt: number;
   tags: { name: string; slug: string }[];
 }
 export interface PostDetail extends PostListItem {
   contentHtml: string;
   updatedAt: number;
+  /** 仅详情接口返回（列表接口无此字段） */
+  likeCount: number;
   category: { id: number; name: string; slug: string } | null;
   prev: { title: string; slug: string } | null;
   next: { title: string; slug: string } | null;
@@ -54,15 +56,38 @@ export interface ProjectsData {
   enabled: boolean; username?: string; projects: Project[]; error?: string; stale?: boolean;
 }
 
+// SSR 层短 TTL 缓存 + 单飞去重：首页一次渲染要打 7 个公开接口，且 middleware/页面/同进程
+// 多页面会重复拉取同一批数据。仅服务端启用（浏览器端走 island 的即时请求，不缓存以免陈旧）。
+const SSR_CACHE_TTL = 30_000;
+const ssrCache: Map<string, { at: number; data: unknown }> | null =
+  typeof window === 'undefined' ? new Map() : null;
+const inflight: Map<string, Promise<unknown>> | null =
+  typeof window === 'undefined' ? new Map() : null;
+
 async function get<T>(path: string): Promise<T> {
+  if (ssrCache && inflight) {
+    const hit = ssrCache.get(path);
+    if (hit && Date.now() - hit.at < SSR_CACHE_TTL) return hit.data as T;
+    const flying = inflight.get(path);
+    if (flying) return flying as Promise<T>;
+  }
   // 12s 超时兜底：外部接口（豆瓣/GitHub 等）异常慢时 SSR 不挂死，区块走调用方 .catch 优雅降级
-  const res = await fetch(`${API_BASE}/api${path}`, {
-    headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!res.ok) throw new Error(`API ${path} -> ${res.status}`);
-  const body = (await res.json()) as { data: T };
-  return body.data;
+  const p = (async () => {
+    const res = await fetch(`${API_BASE}/api${path}`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) throw new Error(`API ${path} -> ${res.status}`);
+    const body = (await res.json()) as { data: T };
+    if (ssrCache) ssrCache.set(path, { at: Date.now(), data: body.data });
+    return body.data;
+  })();
+  if (ssrCache && inflight) {
+    inflight.set(path, p);
+    // 失败/成功后清理单飞记录（失败不缓存，下次重试）
+    p.catch(() => {}).then(() => inflight!.delete(path));
+  }
+  return p;
 }
 
 export function getPublicSettings(): Promise<PublicSettings> {

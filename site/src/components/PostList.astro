@@ -1,5 +1,6 @@
 ---
 import { fmtDate } from '../lib/date';
+import EyeIcon from './EyeIcon.astro';
 interface PostRow {
   title: string;
   slug: string;
@@ -23,8 +24,8 @@ const { posts } = Astro.props;
           {post.summary && <p class="post-summary">{post.summary}</p>}
           <div class="post-meta">
             <time datetime={new Date(post.createdAt).toISOString()}>{fmtDate(post.createdAt)}</time>
-            <span class="post-views" aria-label={`${post.viewCount} 次浏览`}>
-              <span aria-hidden="true">👁</span> {post.viewCount}
+            <span class="post-views">
+              <EyeIcon count={post.viewCount} />
             </span>
           </div>
         </article>

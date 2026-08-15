@@ -47,6 +47,18 @@ function themeStyleBlock(theme: 'normal' | 'reader', cfg: ThemeConfig): string {
 }
 const themeStyle = [themeStyleBlock('normal', settings.themeNormal), themeStyleBlock('reader', settings.themeReader)].join('');
 
+// 字体按默认主题拆分：默认主题用到的家族阻塞加载（渲染必需）；
+// 另一主题独有的家族异步预载（onload 转 stylesheet），切换主题时字体已就绪又不拖慢首屏
+const GF = 'https://fonts.googleapis.com/css2';
+const NOTO_MONO = 'family=Noto+Serif+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap';
+const normalFonts = `${GF}?family=Playfair+Display:ital,wght@0,400..800;1,400..700&${NOTO_MONO}`;
+const normalOnlyFonts = `${GF}?family=Lora:ital,wght@0,400..700;1,400..700&family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap`;
+const readerFonts = `${GF}?family=Lora:ital,wght@0,400..700;1,400..700&family=EB+Garamond:ital,wght@0,400..700;1,400..700&${NOTO_MONO}`;
+const readerOnlyFonts = `${GF}?family=Playfair+Display:ital,wght@0,400..800;1,400..700&display=swap`;
+const isReaderDefault = defaultTheme === 'reader';
+const blockingFonts = isReaderDefault ? readerFonts : normalFonts;
+const lazyFonts = isReaderDefault ? readerOnlyFonts : normalOnlyFonts;
+
 // SEO：canonical / og / twitter 标签统一注入（相对 URL 解析为绝对，便于搜索引擎与社交分享抓取）
 const ogTitle = title ? `${title} · ${siteName}` : siteName;
 const baseUrl = settings.siteUrl || 'http://localhost';
@@ -95,15 +107,17 @@ const pageImage = new URL(image || '/banner.png', baseUrl).href;
         }
       })();
     </script>
-    <!-- 思源宋体（中文书卷气）+ Lora/EB Garamond（西文标题/正文）：对齐参考站字体组合 -->
+    <!-- 字体：默认主题家族（Playfair/Noto Serif SC 思源宋体/Lora/EB Garamond + JetBrains Mono）按需加载 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=Noto+Serif+SC:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400..800;1,400..700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href={blockingFonts} rel="stylesheet" />
+    <!-- 另一主题独有字体：异步预载（不阻塞首屏渲染），切换主题时已就绪 -->
+    <link rel="preload" as="style" href={lazyFonts} onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href={lazyFonts} /></noscript>
     <!-- 后台主题配置：覆盖主题 CSS 变量 -->
     <Fragment set:html={themeStyle} />
+    <!-- 页面级 SEO 补充（如首页 JSON-LD） -->
+    <slot name="head" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">跳到主内容</a>
@@ -117,8 +131,8 @@ const pageImage = new URL(image || '/banner.png', baseUrl).href;
       </div>
     </header>
 
-    <!-- 移动端导航：≤768px 显示（双主题通用），替代桌面导航 -->
-    <MobileHeader client:load normalItems={navItemsNormal} readerItems={navItemsReader} siteName={siteName} initialTheme={settings.theme} />
+    <!-- 移动端导航：≤768px 显示（双主题通用），替代桌面导航；媒体条件水合，桌面端零 JS 开销 -->
+    <MobileHeader client:media="(max-width: 768px)" normalItems={navItemsNormal} readerItems={navItemsReader} siteName={siteName} initialTheme={settings.theme} />
 
     {layout === 'article' ? (
       <!-- 文章页：窄列竖排品牌 + 右侧目录 -->

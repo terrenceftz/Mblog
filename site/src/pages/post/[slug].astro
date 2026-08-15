@@ -6,8 +6,12 @@ import MobileToc from '../../components/MobileToc.vue';
 import GradientBlob from '../../components/GradientBlob.vue';
 import { getPost, getPosts, getPublicSettings, type PostDetail } from '../../lib/api';
 import { withTocIds } from '../../lib/toc';
+import { fmtDate } from '../../lib/date';
 
 const { slug } = Astro.params;
+// 封面等媒体相对路径拼绝对 URL（构建产物无 /api、/uploads 反代，相对路径会 404）
+const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
+const absUrl = (u: string) => (u.startsWith('/') ? `${API_BASE}${u}` : u);
 // 文章不存在：返回真 404 状态码（便于搜索引擎剔除已删除文章），就地渲染提示页
 const post: PostDetail | null = await getPost(slug!).catch(() => null);
 if (post === null) Astro.response.status = 404;
@@ -62,29 +66,41 @@ const related = post?.category
       ],
     })}
   />
-  {/* 文章头部：有封面时标题压在 banner 图内居中；无封面时居中标题 + 渐变光装饰 */}
+  {/* 文章头部：kicker（分类 · 日期）→ 大标题 → meta。有封面时压图左下角，无封面时左对齐编辑式 */}
   <div class={`article-head ${post.cover ? 'has-cover' : ''}`}>
     <GradientBlob />
     {post.cover ? (
       <div class="article-hero">
-        <img src={post.cover} alt={post.title} />
+        <img src={absUrl(post.cover)} alt={post.title} />
         <header class="article-header">
+          {post.category && (
+            <p class="article-kicker">
+              <a href={`/category/${post.category.slug}`}>{post.category.name}</a>
+              <span class="kicker-sep" aria-hidden="true">·</span>
+              <time datetime={new Date(post.createdAt).toISOString()}>{fmtDate(post.createdAt)}</time>
+            </p>
+          )}
           <h1 class="article-title">{post.title}</h1>
           <div class="article-meta">
-            {post.category && <a href={`/category/${post.category.slug}`}>{post.category.name}</a>}
-            <time datetime={new Date(post.createdAt).toISOString()}>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</time>
             <span>{post.viewCount} 次阅读</span>
+            <span class="meta-sep" aria-hidden="true">·</span>
             <LikeButton client:load slug={post.slug} initialCount={post.likeCount} />
           </div>
         </header>
       </div>
     ) : (
       <header class="article-header">
+        <p class="article-kicker">
+          {post.category && (
+            <a href={`/category/${post.category.slug}`}>{post.category.name}</a>
+          )}
+          {post.category && <span class="kicker-sep" aria-hidden="true">·</span>}
+          <time datetime={new Date(post.createdAt).toISOString()}>{fmtDate(post.createdAt)}</time>
+        </p>
         <h1 class="article-title">{post.title}</h1>
         <div class="article-meta">
-          {post.category && <a href={`/category/${post.category.slug}`}>{post.category.name}</a>}
-          <time datetime={new Date(post.createdAt).toISOString()}>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</time>
           <span>{post.viewCount} 次阅读</span>
+          <span class="meta-sep" aria-hidden="true">·</span>
           <LikeButton client:load slug={post.slug} initialCount={post.likeCount} />
         </div>
       </header>
@@ -125,12 +141,15 @@ const related = post?.category
     )}
     {related.length > 0 && (
       <section class="related-posts" data-reveal>
-        <h2 class="related-title">相关文章</h2>
+        <div class="nh-section-head related-head">
+          <h2>相关文章<span class="nh-head-en">More</span></h2>
+          <span class="nh-head-rule" aria-hidden="true" />
+        </div>
         <div class="related-grid">
           {related.map((r) => (
             <a class="related-card" href={`/post/${r.slug}`}>
               <div class="related-cover">
-                {r.cover ? <img src={r.cover} alt="" loading="lazy" /> : <span class="related-cover-fallback">{r.title.slice(0, 1)}</span>}
+                {r.cover ? <img src={absUrl(r.cover)} alt="" loading="lazy" /> : <span class="related-cover-fallback">{r.title.slice(0, 1)}</span>}
               </div>
               <div class="related-body">
                 <h3 class="related-name">{r.title}</h3>

@@ -33,10 +33,14 @@ const el = ref<HTMLElement | null>(null);
 onMounted(() => {
   const root = el.value;
   if (!root) return;
+  // 「减少动态」用户：SSR HTML 本就可见，直接跳过逐词入场（对齐项目智能降级约定）
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const nodes = [...root.querySelectorAll<HTMLElement>('.blur-text-word')];
   const fromY = props.direction === 'top' ? -50 : 50;
   nodes.forEach((w, i) => {
-    w.animate(
+    // will-change 仅动画期间生效，结束即回收（常驻会白占合成层内存）
+    w.style.willChange = 'transform, filter, opacity';
+    const anim = w.animate(
       [
         { filter: 'blur(10px)', opacity: 0, transform: `translateY(${fromY}px)` },
         { filter: 'blur(5px)', opacity: 0.5, transform: `translateY(${fromY === -50 ? 5 : -5}px)` },
@@ -49,6 +53,9 @@ onMounted(() => {
         fill: 'both',
       },
     );
+    anim.onfinish = () => {
+      w.style.willChange = '';
+    };
   });
 });
 </script>
