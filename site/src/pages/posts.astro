@@ -14,10 +14,10 @@ const categories: Category[] = await getCategories().catch(() => []);
 const catOf = (id: number | null) => categories.find((c) => c.id === id);
 ---
 <BaseLayout title="全部文章" description="长文、技术笔记与深度思考。">
-  <PageHeader title="全部文章" subtitle="长文、技术笔记与深度思考。" count={`共 ${total} 篇`}>
+  <PageHeader title="全部文章" subtitle="长文、技术笔记与深度思考。" count={`共 ${total} 篇`} class="blog-posts-page">
     <ul class="posts-list">
-      {posts.map((p) => (
-        <li class="posts-item">
+      {posts.map((p, i) => (
+        <li class="posts-item" data-reveal style={`--reveal-delay: ${Math.min(i * 60, 480)}ms`}>
           <div class="posts-meta">
             {catOf(p.categoryId) && (
               <a class="posts-cat" href={`/category/${catOf(p.categoryId)!.slug}`}>{catOf(p.categoryId)!.name}</a>
