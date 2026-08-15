@@ -2592,158 +2592,186 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   }
 }
 
-/* ---------- 关于我页（normal 暗色卡片） ---------- */
-[data-theme='normal'] .about-card {
+/* ---------- 关于我页：全页动态视频背景（沉浸式，无卡片） ---------- */
+[data-theme='normal'] .about-cinema {
+  position: relative;
+}
+/* 背景视频：fixed 铺满全屏，object-fit cover（滚动时内容在其上移动） */
+[data-theme='normal'] .about-video {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--color-bg); /* 视频未加载/加载失败时的暗色兜底 */
+}
+/* 暗化遮罩：顶部轻暗保证署名可读，底部加深承接下方信息流 */
+[data-theme='normal'] .about-video-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(9, 9, 11, 0.55) 0%,
+    rgba(9, 9, 11, 0.28) 38%,
+    rgba(9, 9, 11, 0.34) 55%,
+    rgba(9, 9, 11, 0.78) 100%
+  );
+}
+[data-theme='normal'] .about-cinema-body {
+  position: relative;
+  z-index: 2;
+}
+/* 首屏署名 hero：占满视口，垂直居中 */
+[data-theme='normal'] .about-hero {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 48px 32px;
-  box-shadow: var(--shadow);
+  padding: 24px 20px;
 }
 [data-theme='normal'] .about-avatar {
-  width: 96px;
-  height: 96px;
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
-  box-shadow: 0 0 40px color-mix(in srgb, var(--color-primary) 25%, transparent);
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 60px color-mix(in srgb, var(--color-primary) 55%, transparent), 0 14px 44px rgba(0, 0, 0, 0.55);
+  margin-bottom: 26px;
 }
-[data-theme='normal'] .about-card:hover .about-avatar {
-  transform: scale(1.05) rotate(-2deg);
-}
-/* mono kicker + 大斜体署名（与首页 hero 署名同语言） */
 [data-theme='normal'] .about-kicker {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.25em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--color-primary);
-  margin: 22px 0 4px;
+  margin: 0 0 10px;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.75);
 }
 [data-theme='normal'] .about-name {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-size: clamp(3rem, 9vw, 6.2rem);
   font-style: italic;
   font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--color-text-heading);
-  margin: 0 0 8px;
-  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0 0 14px;
+  line-height: 1.1;
+  text-shadow: 0 4px 44px rgba(0, 0, 0, 0.85);
 }
 [data-theme='normal'] .about-intro {
   font-family: var(--font-mono);
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  color: var(--color-text);
-  margin: 0 0 8px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0 0 10px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
 }
 [data-theme='normal'] .about-desc {
-  color: var(--color-text-muted);
-  font-size: 14px;
   max-width: 560px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+  line-height: 1.8;
   margin: 0;
-  line-height: 1.7;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
 }
+/* 名片流：视频上信息分段（白字 + 细分隔线，无卡片容器） */
+[data-theme='normal'] .about-blocks {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px 0;
+}
+[data-theme='normal'] .about-block {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 22px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+[data-theme='normal'] .about-block-emoji {
+  font-size: 22px;
+  line-height: 1.8;
+  flex-shrink: 0;
+}
+[data-theme='normal'] .about-block-text {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.94);
+  white-space: pre-wrap;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+}
+/* 统计：mono 琥珀数字 + 白 label */
 [data-theme='normal'] .about-stats {
   display: flex;
-  gap: 32px;
-  margin: 32px 0;
+  gap: clamp(28px, 6vw, 60px);
+  justify-content: center;
+  margin: 56px 0 0;
+  padding: 0 20px;
 }
 [data-theme='normal'] .about-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 [data-theme='normal'] .about-stat span {
   font-family: var(--font-mono);
-  font-size: 24px;
+  font-size: clamp(26px, 4vw, 32px);
   font-weight: 700;
   color: var(--color-primary);
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.85);
 }
 [data-theme='normal'] .about-stat em {
   font-style: normal;
   font-size: 12px;
-  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
 }
+/* 链接：白字 + 琥珀下划线（视频上可读） */
 [data-theme='normal'] .about-links {
   display: flex;
-  gap: 8px 26px;
+  gap: 8px 30px;
   flex-wrap: wrap;
   justify-content: center;
   align-items: baseline;
+  margin-top: 46px;
+  padding: 0 20px;
 }
-/* 链接：mono 文字流（与首页标签流同语言，↗ 已在文案中） */
 [data-theme='normal'] .about-links a {
   font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--color-text-muted);
-  text-decoration: none;
-  border: none;
-  border-radius: 0;
-  padding: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  text-underline-offset: 4px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
   transition: color 0.2s ease;
 }
 [data-theme='normal'] .about-links a:hover {
   color: var(--color-primary);
 }
 [data-theme='normal'] .about-copyright {
-  margin: 32px 0 0;
+  margin: 42px 0 0;
+  padding: 0 20px 56px;
+  text-align: center;
   font-size: 12px;
-  color: var(--color-text-muted);
-  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
 }
-/* 关于页内容（后台可编辑，段落式） */
-[data-theme='normal'] .about-content {
-  margin: 24px 0 0;
-  text-align: left;
-  width: 100%;
-  max-width: 640px;
-  color: var(--color-text-secondary);
-  font-size: 14.5px;
-  line-height: 1.9;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-[data-theme='normal'] .about-content::before {
-  content: '';
-  display: block;
-  border-top: 1px solid var(--color-border);
-  margin-bottom: 24px;
-}
-/* eonova 名片式：分段名片块（段首 emoji 标签 + 短横线分隔） */
-[data-theme='normal'] .about-blocks {
-  margin-top: 28px;
-  width: 100%;
-  max-width: 640px;
-  text-align: left;
-}
-[data-theme='normal'] .about-block {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  padding: 18px 0;
-  border-top: 1px dashed var(--color-border);
-}
-[data-theme='normal'] .about-block:last-child {
-  padding-bottom: 0;
-}
-[data-theme='normal'] .about-block-emoji {
-  font-size: 22px;
-  line-height: 1.7;
-  flex-shrink: 0;
-}
-[data-theme='normal'] .about-block-text {
-  margin: 0;
-  font-size: 14.5px;
-  line-height: 1.9;
-  color: var(--color-text-secondary);
-  white-space: pre-wrap;
+/* 降级：减少动态时停视频改暗色底（内容照常可读） */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='normal'] .about-video {
+    display: none;
+  }
+  [data-theme='normal'] .about-video-shade {
+    background: linear-gradient(to bottom, rgba(9, 9, 11, 0.6), rgba(9, 9, 11, 0.88));
+  }
 }
