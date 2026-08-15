@@ -36,6 +36,12 @@ const syncingDouban = ref(false);
 const playlists = ref<{ id: number; name: string; cover: string; count: number }[]>([]);
 const loadingPlaylists = ref(false);
 
+// 网易云验证码登录
+const smsPhone = ref('');
+const smsCode = ref('');
+const smsSending = ref(false);
+const smsLogging = ref(false);
+
 // 修改密码
 const oldPassword = ref('');
 const newPassword = ref('');
@@ -79,9 +85,47 @@ async function handleLoadPlaylists() {
     playlists.value = list;
     toast.success(`已加载 ${list.length} 个收藏歌单`);
   } catch (err: any) {
-    toast.error(err?.message || '加载歌单失败，请先保存网易云 Cookie');
+    toast.error(err?.message || '加载歌单失败，请先登录网易云');
   } finally {
     loadingPlaylists.value = false;
+  }
+}
+
+async function handleSendSms() {
+  if (!/^\d{11}$/.test(smsPhone.value)) {
+    toast.warning('请输入 11 位手机号');
+    return;
+  }
+  smsSending.value = true;
+  try {
+    await api.neteaseSendCode(smsPhone.value);
+    toast.success('验证码已发送，请查收短信');
+  } catch (err: any) {
+    toast.error(err?.message || '验证码发送失败');
+  } finally {
+    smsSending.value = false;
+  }
+}
+
+async function handleNeteaseLogin() {
+  if (!/^\d{11}$/.test(smsPhone.value)) {
+    toast.warning('请输入 11 位手机号');
+    return;
+  }
+  if (!/^\d{4,6}$/.test(smsCode.value)) {
+    toast.warning('请输入 4-6 位验证码');
+    return;
+  }
+  smsLogging.value = true;
+  try {
+    const r = await api.neteaseLogin(smsPhone.value, smsCode.value);
+    settings.value.neteaseCookie = '********';
+    toast.success(r.message || '登录成功');
+    smsCode.value = '';
+  } catch (err: any) {
+    toast.error(err?.message || '登录失败');
+  } finally {
+    smsLogging.value = false;
   }
 }
 
@@ -332,9 +376,27 @@ onMounted(() => {
             <label class="form-label small fw-medium">网易云 Cookie（账号登录态）</label>
             <input type="password" v-model="settings.neteaseCookie" class="form-control font-monospace" placeholder="粘贴 music.163.com 登录 Cookie" />
             <div class="text-muted micro-text mt-1">
-              获取方式：登录 <code>music.163.com</code> → F12 → Network 任取一个请求复制 Cookie 头。
+              获取方式：登录 <code>music.163.com</code> → F12 → Application → Cookies → 复制含 <code>MUSIC_U</code> 的 Cookie。
               仅用于获取你账号有权限的音乐播放源，不会下发到前台。已配置时显示 ****，留空保持不变。
             </div>
+          </div>
+          <div class="mb-3">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="fw-semibold small">没有 Cookie？用短信验证码一键登录</span>
+            </div>
+            <div class="d-flex gap-2">
+              <input type="tel" v-model="smsPhone" class="form-control" maxlength="11" placeholder="11 位手机号" />
+              <button @click="handleSendSms" class="btn btn-outline-secondary text-nowrap" :disabled="smsSending">
+                <span v-if="smsSending" class="spinner-border spinner-border-sm me-1"></span>
+                <span>发送验证码</span>
+              </button>
+              <input type="text" v-model="smsCode" class="form-control" maxlength="6" placeholder="验证码" style="max-width: 130px" />
+              <button @click="handleNeteaseLogin" class="btn btn-primary text-nowrap" :disabled="smsLogging">
+                <span v-if="smsLogging" class="spinner-border spinner-border-sm me-1"></span>
+                <span>登录</span>
+              </button>
+            </div>
+            <div class="text-muted micro-text mt-1">验证码将发送到你绑定的手机；登录成功后自动保存 Cookie（显示 ****）。</div>
           </div>
           <div class="mb-2">
             <label class="form-label small fw-medium">当前电台歌单</label>

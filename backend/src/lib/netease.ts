@@ -103,6 +103,47 @@ async function getUid(cookie: string): Promise<NeteaseResp<number>> {
   return { ok: true, data: uid };
 }
 
+/** 发送短信验证码（验证码登录第一步） */
+export async function sendSmsCode(cookie: string, phone: string): Promise<NeteaseResp<boolean>> {
+  const r = await weapiPost<{ code: number; msg?: string }>(cookie, 'sms/sendcode', { ctcode: 86, cellphone: phone });
+  if (!r.ok) return r;
+  if (r.data.code !== 200) {
+    return { ok: false, status: r.data.code, message: r.data.msg || '验证码发送失败（可能发送过于频繁）' };
+  }
+  return { ok: true, data: true };
+}
+
+/** 手机号 + 验证码登录，返回完整登录 Cookie（含 httpOnly 的 MUSIC_U） */
+export async function loginByPhone(phone: string, code: string): Promise<NeteaseResp<string>> {
+  const body = weapiBody({ ctcode: 86, cellphone: phone, captcha: code, rememberLogin: 'true', csrf_token: '' });
+  let res: Response;
+  try {
+    res = await fetch('https://music.163.com/weapi/login/cellphone', {
+      method: 'POST',
+      headers: {
+        'User-Agent': UA,
+        Referer: 'https://music.163.com/',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+      signal: AbortSignal.timeout(12000),
+    });
+  } catch {
+    return { ok: false, status: 0, message: '登录接口请求失败（网络/超时）' };
+  }
+  const json = (await res.json().catch(() => null)) as { code?: number; msg?: string } | null;
+  if (!json || json.code !== 200) {
+    const msg = json?.msg || (json?.code ? `网易云错误码 ${json.code}` : '登录响应异常');
+    return { ok: false, status: json?.code ?? 0, message: msg };
+  }
+  // 合并 set-cookie（含 MUSIC_U 等登录态）
+  const setCookies = (res.headers.getSetCookie?.() ?? []).map((c) => c.split(';')[0].trim()).filter(Boolean);
+  if (!setCookies.some((c) => c.startsWith('MUSIC_U='))) {
+    return { ok: false, status: 0, message: '登录成功但未返回登录态 Cookie，请稍后重试' };
+  }
+  return { ok: true, data: setCookies.join('; ') };
+}
+
 /** 用户收藏歌单列表（含自己创建的） */
 export async function getUserPlaylists(cookie: string): Promise<NeteaseResp<NeteasePlaylist[]>> {
   const uid = await getUid(cookie);

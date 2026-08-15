@@ -359,6 +359,22 @@ export const api = {
     const r = await request<{ playlists: { id: number; name: string; cover: string; count: number }[] }>('/admin/netease/playlists');
     return r.playlists || [];
   },
+  /** 发送网易云短信验证码 */
+  async neteaseSendCode(phone: string): Promise<boolean> {
+    await request<{ ok: true }>('/admin/netease/sendcode', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
+    return true;
+  },
+  /** 手机号 + 验证码登录网易云（自动保存 Cookie 到后端） */
+  async neteaseLogin(phone: string, code: string): Promise<{ message: string }> {
+    const r = await request<{ ok: true; message: string }>('/admin/netease/login', {
+      method: 'POST',
+      body: JSON.stringify({ phone, code }),
+    });
+    return { message: r.message || '登录成功' };
+  },
 
   // ---------- 标签 ----------
   async getTags(): Promise<Tag[]> {
