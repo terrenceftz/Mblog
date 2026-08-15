@@ -384,13 +384,13 @@ onMounted(() => {
             <div class="d-flex align-items-center gap-2 mb-1">
               <span class="fw-semibold small">没有 Cookie？用短信验证码一键登录</span>
             </div>
-            <div class="d-flex gap-2">
-              <input type="tel" v-model="smsPhone" class="form-control" maxlength="11" placeholder="11 位手机号" />
+            <div class="d-flex flex-wrap gap-2">
+              <input type="tel" v-model="smsPhone" class="form-control" maxlength="11" placeholder="11 位手机号" style="flex: 1 1 150px; min-width: 0" />
               <button @click="handleSendSms" class="btn btn-outline-secondary text-nowrap" :disabled="smsSending">
                 <span v-if="smsSending" class="spinner-border spinner-border-sm me-1"></span>
                 <span>发送验证码</span>
               </button>
-              <input type="text" v-model="smsCode" class="form-control" maxlength="6" placeholder="验证码" style="max-width: 130px" />
+              <input type="text" v-model="smsCode" class="form-control" maxlength="6" placeholder="验证码" style="flex: 0 0 110px" />
               <button @click="handleNeteaseLogin" class="btn btn-primary text-nowrap" :disabled="smsLogging">
                 <span v-if="smsLogging" class="spinner-border spinner-border-sm me-1"></span>
                 <span>登录</span>
