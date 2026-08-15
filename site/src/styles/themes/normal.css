@@ -2289,13 +2289,23 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   mask-image: linear-gradient(to bottom, transparent, black 35%, transparent);
   -webkit-mask-image: linear-gradient(to bottom, transparent, black 35%, transparent);
 }
-/* Luma 卡片网格：1 列 → 2 列 → 4 列（auto-fill），紧凑 12px 间距 */
+/* Luma 卡片网格：移动 1 列 → 中屏 2 列 → 桌面一排 3 个（12px 紧凑间距） */
 [data-theme='normal'] .cat-luma {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(1, minmax(0, 1fr));
   gap: 12px;
+}
+@media (min-width: 640px) {
+  [data-theme='normal'] .cat-luma {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  [data-theme='normal'] .cat-luma {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 [data-theme='normal'] .cat-card {
   position: relative;
@@ -2401,9 +2411,6 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   color: var(--color-on-image-muted);
 }
 @media (min-width: 768px) {
-  [data-theme='normal'] .cat-luma {
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  }
   [data-theme='normal'] .cat-card {
     aspect-ratio: 1.1 / 1;
     padding: 22px;
