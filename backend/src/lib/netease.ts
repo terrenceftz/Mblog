@@ -55,6 +55,13 @@ function csrfOf(cookie: string): string {
   return m ? m[1] : '';
 }
 
+/** 网易云需要 NMTID 匿名设备标识（网页版自动生成；缺失时验证码/部分接口 404） */
+function withNmtid(cookie: string): string {
+  if (/NMTID=/.test(cookie)) return cookie;
+  const nmtid = [...randomBytes(16)].map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join('');
+  return cookie ? `${cookie}; NMTID=${nmtid}` : `NMTID=${nmtid}`;
+}
+
 async function weapiPost<T>(cookie: string, path: string, payload: Record<string, unknown>): Promise<NeteaseResp<T>> {
   const body = weapiBody({ ...payload, csrf_token: csrfOf(cookie) });
   let res: Response;
@@ -65,7 +72,7 @@ async function weapiPost<T>(cookie: string, path: string, payload: Record<string
         'User-Agent': UA,
         Referer: 'https://music.163.com/',
         'Content-Type': 'application/x-www-form-urlencoded',
-        Cookie: cookie,
+        Cookie: withNmtid(cookie),
       },
       body,
       signal: AbortSignal.timeout(12000),
@@ -103,9 +110,13 @@ async function getUid(cookie: string): Promise<NeteaseResp<number>> {
   return { ok: true, data: uid };
 }
 
-/** 发送短信验证码（验证码登录第一步） */
+/** 发送短信验证码（网易云现行接口 /sms/captcha/sent，旧 /sms/sendcode 已废弃返回 404） */
 export async function sendSmsCode(cookie: string, phone: string): Promise<NeteaseResp<boolean>> {
-  const r = await weapiPost<{ code: number; msg?: string }>(cookie, 'sms/sendcode', { ctcode: 86, cellphone: phone });
+  const r = await weapiPost<{ code: number; msg?: string }>(cookie, 'sms/captcha/sent', {
+    ctcode: '86',
+    secrete: 'music_middleuser_pclogin',
+    cellphone: phone,
+  });
   if (!r.ok) return r;
   if (r.data.code !== 200) {
     return { ok: false, status: r.data.code, message: r.data.msg || '验证码发送失败（可能发送过于频繁）' };
@@ -115,10 +126,18 @@ export async function sendSmsCode(cookie: string, phone: string): Promise<Neteas
 
 /** 手机号 + 验证码登录，返回完整登录 Cookie（含 httpOnly 的 MUSIC_U） */
 export async function loginByPhone(phone: string, code: string): Promise<NeteaseResp<string>> {
-  const body = weapiBody({ ctcode: 86, cellphone: phone, captcha: code, rememberLogin: 'true', csrf_token: '' });
+  const body = weapiBody({
+    type: '1',
+    https: 'true',
+    phone,
+    countrycode: '86',
+    captcha: code,
+    remember: 'true',
+    csrf_token: '',
+  });
   let res: Response;
   try {
-    res = await fetch('https://music.163.com/weapi/login/cellphone', {
+    res = await fetch('https://music.163.com/weapi/w/login/cellphone', {
       method: 'POST',
       headers: {
         'User-Agent': UA,
