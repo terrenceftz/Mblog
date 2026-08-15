@@ -27,10 +27,14 @@ const settings = ref<SiteSettings>({
   storageProvider: 'local',
   cosBucket: '',
   cosRegion: '',
+  neteaseCookie: '',
+  neteasePlaylistId: '',
 });
 
 const saving = ref(false);
 const syncingDouban = ref(false);
+const playlists = ref<{ id: number; name: string; cover: string; count: number }[]>([]);
+const loadingPlaylists = ref(false);
 
 // 修改密码
 const oldPassword = ref('');
@@ -65,6 +69,19 @@ async function handleSyncDouban() {
     toast.error('同步失败，请检查豆瓣 User ID');
   } finally {
     syncingDouban.value = false;
+  }
+}
+
+async function handleLoadPlaylists() {
+  loadingPlaylists.value = true;
+  try {
+    const list = await api.getNeteasePlaylists();
+    playlists.value = list;
+    toast.success(`已加载 ${list.length} 个收藏歌单`);
+  } catch (err: any) {
+    toast.error(err?.message || '加载歌单失败，请先保存网易云 Cookie');
+  } finally {
+    loadingPlaylists.value = false;
   }
 }
 
@@ -302,6 +319,37 @@ onMounted(() => {
             </button>
           </div>
           <div class="text-muted micro-text mt-2">同步使用已保存设置——先「保存所有设置」再同步。拉取「看过」并预热 TMDB 海报缓存（超时 30 秒）。</div>
+        </div>
+      </div>
+
+      <!-- 电台（网易云音乐） -->
+      <div class="card">
+        <div class="card-header py-3">
+          <h3 class="card-title fw-bold m-0">电台 · 网易云音乐</h3>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label small fw-medium">网易云 Cookie（账号登录态）</label>
+            <input type="password" v-model="settings.neteaseCookie" class="form-control font-monospace" placeholder="粘贴 music.163.com 登录 Cookie" />
+            <div class="text-muted micro-text mt-1">
+              获取方式：登录 <code>music.163.com</code> → F12 → Network 任取一个请求复制 Cookie 头。
+              仅用于获取你账号有权限的音乐播放源，不会下发到前台。已配置时显示 ****，留空保持不变。
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-medium">当前电台歌单</label>
+            <div class="d-flex gap-2">
+              <select v-model="settings.neteasePlaylistId" class="form-select" :disabled="playlists.length === 0">
+                <option value="">未选择</option>
+                <option v-for="p in playlists" :key="p.id" :value="String(p.id)">{{ p.name }}（{{ p.count }} 首）</option>
+              </select>
+              <button @click="handleLoadPlaylists" class="btn btn-outline-primary text-nowrap" :disabled="loadingPlaylists">
+                <span v-if="loadingPlaylists" class="spinner-border spinner-border-sm me-1"></span>
+                <span>刷新收藏歌单</span>
+              </button>
+            </div>
+            <div class="text-muted micro-text mt-1">先保存 Cookie 再「刷新收藏歌单」。修改后记得「保存所有设置」。</div>
+          </div>
         </div>
       </div>
     </div>

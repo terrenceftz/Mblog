@@ -123,6 +123,9 @@ export interface SiteSettings {
   storageProvider: string;
   cosBucket: string;
   cosRegion: string;
+  /** 电台（网易云） */
+  neteaseCookie: string;
+  neteasePlaylistId: string;
 }
 
 export interface ThemeColors {
@@ -348,6 +351,13 @@ export const api = {
   async deleteCategory(id: number): Promise<boolean> {
     await request<{ ok: true }>(`/admin/categories/${id}`, { method: 'DELETE' });
     return true;
+  },
+
+  // ---------- 电台（网易云） ----------
+  /** 拉取账号收藏歌单（供后台选择当前电台歌单） */
+  async getNeteasePlaylists(): Promise<{ id: number; name: string; cover: string; count: number }[]> {
+    const r = await request<{ playlists: { id: number; name: string; cover: string; count: number }[] }>('/admin/netease/playlists');
+    return r.playlists || [];
   },
 
   // ---------- 标签 ----------
@@ -576,7 +586,9 @@ export const api = {
       aboutContent: s.about_content || '',
       storageProvider: s.storage_provider || 'local',
       cosBucket: s.cos_bucket || '',
-      cosRegion: s.cos_region || ''
+      cosRegion: s.cos_region || '',
+      neteaseCookie: s.netease_cookie || '',
+      neteasePlaylistId: s.netease_playlist_id || ''
     };
   },
 
@@ -605,11 +617,13 @@ export const api = {
       about_content: settings.aboutContent ?? current.about_content,
       douban_uid: settings.doubanUserId ?? current.douban_uid,
       douban_enabled: boolStr(settings.doubanSyncEnabled, current.douban_enabled),
-      douban_last_sync: settings.lastDoubanSync ?? current.douban_last_sync
+      douban_last_sync: settings.lastDoubanSync ?? current.douban_last_sync,
+      netease_cookie: settings.neteaseCookie ?? current.netease_cookie,
+      netease_playlist_id: settings.neteasePlaylistId ?? current.netease_playlist_id
     };
     // 掩码占位：'********' 或留空 = 保持已存密钥不变
-    for (const key of ['cos_secret_key', 'tmdb_api_key', 'turnstile_secret_key'] as const) {
-      const v = settings[key === 'cos_secret_key' ? 'apiSecret' : key === 'tmdb_api_key' ? 'doubanApiKey' : 'turnstileSecretKey'];
+    for (const key of ['cos_secret_key', 'tmdb_api_key', 'turnstile_secret_key', 'netease_cookie'] as const) {
+      const v = settings[key === 'cos_secret_key' ? 'apiSecret' : key === 'tmdb_api_key' ? 'doubanApiKey' : key === 'turnstile_secret_key' ? 'turnstileSecretKey' : 'neteaseCookie'];
       if (v === undefined) continue;
       if (!v || v === '********') delete payload[key];
       else payload[key] = v;

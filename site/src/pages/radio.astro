@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import RadioPlayer from '../components/RadioPlayer.vue';
+import { getPublicSettings } from '../lib/api';
+
+const settings = Astro.locals.settings ?? (await getPublicSettings());
+const playlistId = settings.neteasePlaylistId ?? '';
+// 媒体/API 公共根：本地直跑 dist 无反代时设 PUBLIC_API_BASE；生产空 = 走 nginx 同域 /api
+const PUBLIC_API_BASE = process.env.PUBLIC_API_BASE ?? '';
+---
+<BaseLayout title="电台" description="随心情循环我的歌单。">
+  <PageHeader title="电台" subtitle="随心情循环我的歌单。" count={playlistId ? undefined : '未配置歌单'} class="radio-page">
+    <RadioPlayer client:load playlistId={playlistId} apiBase={PUBLIC_API_BASE} />
+  </PageHeader>
+</BaseLayout>

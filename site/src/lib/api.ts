@@ -41,6 +41,8 @@ export interface PublicSettings {
   doubanEnabled: boolean;
   doubanUid: string;
   turnstileSiteKey: string;
+  /** 电台歌单 ID（网易云，cookie 不下发仅后端持有） */
+  neteasePlaylistId: string;
 }
 export interface Category { id: number; name: string; slug: string; postCount: number; cover: string }
 export interface Tag { id: number; name: string; slug: string; postCount: number }
@@ -94,7 +96,7 @@ export function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
     siteName: '我的博客', author: '', avatar: '', siteDesc: '', siteUrl: 'http://localhost', theme: 'normal', friendLinkEnabled: true,
     themeNormal: {}, themeReader: {}, githubEnabled: false, githubUsername: '',
-    doubanEnabled: false, doubanUid: '', turnstileSiteKey: '', aboutContent: '',
+    doubanEnabled: false, doubanUid: '', turnstileSiteKey: '', aboutContent: '', neteasePlaylistId: '',
     navMenuNormal: [
       { label: '首页', url: '/' },
       { label: '归档', url: '/archive' },

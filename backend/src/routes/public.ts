@@ -10,6 +10,7 @@ import { doubanRoutes } from './public/douban';
 import { coverRoutes } from './public/cover';
 import { talksRoutes } from './public/talks';
 import { photosRoutes } from './public/photos';
+import { neteaseRoutes } from './public/netease';
 import type { Db } from '../db';
 
 export function publicRoutes(ctx: Db) {
@@ -25,5 +26,6 @@ export function publicRoutes(ctx: Db) {
   app.route('/', coverRoutes());
   app.route('/', talksRoutes(ctx));
   app.route('/', photosRoutes(ctx));
+  app.route('/', neteaseRoutes(ctx));
   return app;
 }

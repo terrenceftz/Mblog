@@ -52,6 +52,9 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // 评论云验证：Cloudflare Turnstile（未配置时回落数学验证码）
   turnstile_site_key: '',
   turnstile_secret_key: '',
+  // 电台（网易云）：cookie 为账号登录态（掩码存储，永不下发前端），playlist_id 为当前电台歌单
+  netease_cookie: '',
+  netease_playlist_id: '',
 };
 
 export function getSetting(ctx: Db, key: string): string {

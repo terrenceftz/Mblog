@@ -83,11 +83,13 @@ ${items}
       douban_enabled: doubanEnabled, douban_uid: doubanUid,
       turnstile_site_key: turnstileSiteKey,
       author, avatar, about_content: aboutContent,
+      netease_playlist_id: neteasePlaylistId,
     } = getSettings(ctx, [
       'site_name', 'site_description', 'site_url', 'default_theme', 'friend_link_enabled',
       'nav_menu_normal', 'nav_menu_reader',
       'theme_normal', 'theme_reader', 'github_enabled', 'github_username',
       'douban_enabled', 'douban_uid', 'turnstile_site_key', 'author', 'avatar', 'about_content',
+      'netease_playlist_id',
     ]);
 
     // 解析导航菜单 JSON；非法/空则回退空
@@ -120,6 +122,7 @@ ${items}
         turnstileSiteKey,
         author,
         avatar,
+        neteasePlaylistId,
       },
     });
   });

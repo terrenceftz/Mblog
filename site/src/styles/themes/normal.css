@@ -2592,6 +2592,283 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   }
 }
 
+/* ---------- 电台页（网易云歌单播放器，编辑式布局） ---------- */
+[data-theme='normal'] .radio-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+}
+[data-theme='normal'] .radio-player {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  padding: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+[data-theme='normal'] .radio-cover {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: linear-gradient(135deg, var(--color-surface-2), #2a2a33);
+}
+[data-theme='normal'] .radio-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+[data-theme='normal'] .radio-cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: color-mix(in srgb, var(--color-primary) 60%, transparent);
+}
+/* 播放中声波动效（三根竖条） */
+[data-theme='normal'] .radio-eq {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(9, 9, 11, 0.7);
+}
+[data-theme='normal'] .radio-eq span {
+  width: 3px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+[data-theme='normal'] .radio-eq.on span {
+  animation: radioEq 0.9s ease-in-out infinite;
+}
+[data-theme='normal'] .radio-eq.on span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+[data-theme='normal'] .radio-eq.on span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes radioEq {
+  0%, 100% { height: 6px; }
+  50% { height: 18px; }
+}
+[data-theme='normal'] .radio-body {
+  min-width: 0;
+}
+[data-theme='normal'] .radio-kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  color: var(--color-primary);
+  margin: 0 0 6px;
+}
+[data-theme='normal'] .radio-title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='normal'] .radio-artist {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0 0 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='normal'] .radio-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+[data-theme='normal'] .radio-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+[data-theme='normal'] .radio-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+[data-theme='normal'] .radio-btn:active {
+  transform: scale(0.94);
+}
+[data-theme='normal'] .radio-btn-main {
+  width: 52px;
+  height: 52px;
+  font-size: 18px;
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-2));
+  border-color: color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+}
+[data-theme='normal'] .radio-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-theme='normal'] .radio-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme='normal'] .radio-range {
+  flex: 1;
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border-strong);
+  outline: none;
+  cursor: pointer;
+}
+[data-theme='normal'] .radio-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: none;
+  cursor: pointer;
+}
+[data-theme='normal'] .radio-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: none;
+  cursor: pointer;
+}
+[data-theme='normal'] .radio-vol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+[data-theme='normal'] .radio-vol-icon {
+  font-size: 12px;
+}
+[data-theme='normal'] .radio-vol-range {
+  max-width: 120px;
+}
+[data-theme='normal'] .radio-play-err {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--color-error);
+}
+/* 歌单列表：行式 hover，播放中琥珀高亮 + 左侧指示条 */
+[data-theme='normal'] .radio-list {
+  margin-top: 28px;
+}
+[data-theme='normal'] .radio-list-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 8px;
+}
+[data-theme='normal'] .radio-tracks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+}
+[data-theme='normal'] .radio-track {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 16px;
+  padding: 14px 12px;
+  margin-inline: -12px;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+[data-theme='normal'] .radio-track:hover {
+  background: color-mix(in srgb, var(--color-primary) 4%, transparent);
+}
+[data-theme='normal'] .radio-track.active {
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+[data-theme='normal'] .radio-track-idx {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme='normal'] .radio-track.active .radio-track-idx {
+  color: var(--color-primary);
+}
+[data-theme='normal'] .radio-track-main {
+  min-width: 0;
+}
+[data-theme='normal'] .radio-track-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--color-text-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='normal'] .radio-track.active .radio-track-name {
+  color: var(--color-primary);
+}
+[data-theme='normal'] .radio-track-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='normal'] .radio-track-dur {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme='normal'] .radio-error {
+  text-align: center;
+}
+@media (max-width: 640px) {
+  [data-theme='normal'] .radio-player {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  [data-theme='normal'] .radio-cover {
+    max-width: 200px;
+  }
+}
+
 /* ---------- 关于我页：全页动态视频背景（沉浸式，无卡片） ---------- */
 [data-theme='normal'] .about-cinema {
   position: relative;
