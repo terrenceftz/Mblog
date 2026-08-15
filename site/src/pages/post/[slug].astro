@@ -286,3 +286,30 @@ const related = post?.category
   // 代码块增强：语言标签 + 一键复制（仅文章页正文）
   import '../../scripts/code-enhance.ts';
 </script>
+
+<script>
+  // 正文图片 lightbox：点击放大 / Esc 或点击遮罩关闭（reader 主题无此样式，仅 normal 生效）
+  const content = document.querySelector('.article-content');
+  if (content) {
+    let lb: HTMLElement | null = null;
+    content.addEventListener('click', (e) => {
+      if (document.documentElement.getAttribute('data-theme') !== 'normal') return;
+      const img = (e.target as HTMLElement).closest('img');
+      if (!img) return;
+      if (!lb) {
+        lb = document.createElement('div');
+        lb.className = 'article-lightbox';
+        const big = document.createElement('img');
+        big.alt = img.alt || '';
+        lb.appendChild(big);
+        lb.addEventListener('click', () => lb!.classList.remove('open'));
+        window.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Escape') lb!.classList.remove('open');
+        });
+        document.body.appendChild(lb);
+      }
+      (lb.querySelector('img') as HTMLImageElement).src = img.currentSrc || img.src;
+      lb.classList.add('open');
+    });
+  }
+</script>
