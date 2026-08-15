@@ -55,10 +55,12 @@ const themeNormal = settings.themeNormal ?? {};
 const avatarUrl = settings.avatar || themeNormal.avatar || '/avatar.jpg';
 const introText = themeNormal.intro || '一个喜欢折腾代码和生活的博主';
 
-// 封面/头像等媒体相对路径拼成绝对 URL（与 gallery 页 /uploads 处理一致）。
-// dev 有 Vite /api 代理可省略，但构建产物/直跑 node 服务没有 /api 反代，相对路径会 404
-const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
-const absUrl = (u: string) => (u.startsWith('/') ? `${API_BASE}${u}` : u);
+// 封面/头像等媒体相对路径 → 公共绝对 URL。PUBLIC_API_BASE 是浏览器可访问的 API 根：
+// 生产靠 nginx 同域 /api、/uploads 反代（不设即保持相对路径）；本地直跑无反代时
+// 设 PUBLIC_API_BASE=http://localhost:3000 让图片直连后端。注意 API_BASE 是服务器内网地址
+// （如 localhost:3003），绝不能直接拼进 HTML 给浏览器。
+const PUBLIC_API_BASE = process.env.PUBLIC_API_BASE ?? '';
+const absUrl = (u: string) => (u.startsWith('/') && PUBLIC_API_BASE ? `${PUBLIC_API_BASE}${u}` : u);
 
 // 首页结构化数据：WebSite（含站内搜索）+ Person（博主档案），文章页另有 BlogPosting
 const baseUrl = (settings.siteUrl || 'http://localhost').replace(/\/$/, '');

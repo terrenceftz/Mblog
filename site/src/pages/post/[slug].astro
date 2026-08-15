@@ -9,9 +9,10 @@ import { withTocIds } from '../../lib/toc';
 import { fmtDate } from '../../lib/date';
 
 const { slug } = Astro.params;
-// 封面等媒体相对路径拼绝对 URL（构建产物无 /api、/uploads 反代，相对路径会 404）
-const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
-const absUrl = (u: string) => (u.startsWith('/') ? `${API_BASE}${u}` : u);
+// 封面等媒体相对路径 → 公共绝对 URL（见 index.astro absUrl 说明：生产走同域反代保持相对，
+// 本地直跑设 PUBLIC_API_BASE=http://localhost:3000）
+const PUBLIC_API_BASE = process.env.PUBLIC_API_BASE ?? '';
+const absUrl = (u: string) => (u.startsWith('/') && PUBLIC_API_BASE ? `${PUBLIC_API_BASE}${u}` : u);
 // 文章不存在：返回真 404 状态码（便于搜索引擎剔除已删除文章），就地渲染提示页
 const post: PostDetail | null = await getPost(slug!).catch(() => null);
 if (post === null) Astro.response.status = 404;

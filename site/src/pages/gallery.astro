@@ -5,11 +5,13 @@ import PhotoGallery from '../components/PhotoGallery.vue';
 import { getPhotos } from '../lib/api';
 
 const photos = await getPhotos().catch(() => []);
-// 后端返回的上传地址是相对路径（/uploads/...），拼成后端绝对 URL 才能被浏览器加载
-const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
+// 后端返回的上传地址是相对路径（/uploads/...）。生产靠 nginx 同域 /uploads 反代（保持相对）；
+// 本地直跑无反代时设 PUBLIC_API_BASE=http://localhost:3000 拼成浏览器可访问的绝对 URL
+// （注意不能用 API_BASE——它是服务器内网地址如 localhost:3003，拼进 HTML 浏览器打不开）
+const PUBLIC_API_BASE = process.env.PUBLIC_API_BASE ?? '';
 const photoItems = photos.map((p) => ({
   ...p,
-  url: p.url.startsWith('/') ? `${API_BASE}${p.url}` : p.url,
+  url: p.url.startsWith('/') && PUBLIC_API_BASE ? `${PUBLIC_API_BASE}${p.url}` : p.url,
 }));
 ---
 <BaseLayout title="相册" description="生活碎片与光影记录。">
