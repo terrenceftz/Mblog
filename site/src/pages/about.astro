@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPublicSettings, getStats } from '../lib/api';
+import StatBubbles from '../components/StatBubbles.vue';
+import { getPublicSettings, getStats, type AboutBlock } from '../lib/api';
 
 const settings = Astro.locals.settings ?? (await getPublicSettings());
 const siteName = settings.author || settings.siteName || '我的博客';
@@ -12,11 +13,41 @@ const year = new Date().getFullYear();
 // 头像相对路径 → 公共绝对 URL（生产走 nginx 同域 /uploads，本地直跑设 PUBLIC_API_BASE）
 const PUBLIC_API_BASE = process.env.PUBLIC_API_BASE ?? '';
 const absUrl = (u: string) => (u.startsWith('/') && PUBLIC_API_BASE ? `${PUBLIC_API_BASE}${u}` : u);
-// eonova 名片式：关于内容按空行分段，每段一个信息流块（段首 emoji 作为区块标签）
-const aboutBlocks = (settings.aboutContent || '')
-  .split(/\n\s*\n/)
-  .map((s) => s.trim())
-  .filter(Boolean);
+
+// 结构化块字段校验：后端只过滤 type，缺必要字段的块这里跳过
+function isValidBlock(b: AboutBlock | undefined): boolean {
+  if (!b) return false;
+  switch (b.type) {
+    case 'text':
+    case 'quote':
+    case 'marquee':
+      return typeof b.text === 'string' && b.text.trim() !== '';
+    case 'kv':
+      return typeof b.label === 'string' && b.label.trim() !== '' && typeof b.value === 'string';
+    case 'progress':
+      return typeof b.title === 'string' && b.title.trim() !== '' && !!b.start && !!b.end;
+    default:
+      return false;
+  }
+}
+const aboutBlocks = (settings.aboutBlocks ?? []).filter(isValidBlock);
+
+// 旧内容回退：结构化块为空时按空行分段（段首 emoji 作标签），兼容存量站点
+const legacyBlocks = aboutBlocks.length === 0
+  ? (settings.aboutContent || '').split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean)
+  : [];
+// 段首 emoji 检测正则必须定义在 frontmatter：@astrojs/compiler 会误判模板表达式内
+// 含 \u{...} 码点转义（大括号）的 regex 字面量的边界，生成缺失 `}` 的渲染代码
+const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2700}-\u{27BF}]/u;
+
+// 进度百分比：日期区间自动算（与后台预览同公式），非法区间 0%
+function progressPercent(b: Extract<AboutBlock, { type: 'progress' }>): number {
+  const s = Date.parse(b.start);
+  const e = Date.parse(b.end);
+  if (Number.isNaN(s) || Number.isNaN(e) || e <= s) return 0;
+  return Math.max(0, Math.min(100, Math.round(((Date.now() - s) / (e - s)) * 100)));
+}
+const revealDelay = (i: number) => `--reveal-delay:${(i % 5) * 60}ms`;
 ---
 <BaseLayout title="关于" description="关于这个博客与博主。">
   <!-- 全页动态视频背景（webm 循环静音；fixed 铺满，内容滚动其上） -->
@@ -34,19 +65,76 @@ const aboutBlocks = (settings.aboutContent || '')
         <h1 class="about-name">{siteName}</h1>
         <p class="about-intro">{introText}</p>
         {settings.siteDesc && <p class="about-desc">{settings.siteDesc}</p>}
+        <div class="about-scroll-cue" aria-hidden="true">
+          <span>SCROLL</span>
+          <i class="about-scroll-line" />
+        </div>
       </div>
 
-      <!-- 名片流：视频上的信息分段（分隔线 + 白字，无卡片） -->
+      <!-- 结构化名片流：text / kv / quote / progress / marquee -->
       {aboutBlocks.length > 0 && (
         <div class="about-blocks">
-          {aboutBlocks.map((block) => {
+          {aboutBlocks.map((b, i) => (
+            <Fragment>
+              {b.type === 'text' && (
+                <p class="about-text" data-reveal style={revealDelay(i)}>{b.text}</p>
+              )}
+              {b.type === 'kv' && (
+                <div class="about-kv" data-reveal style={revealDelay(i)}>
+                  <span class="about-kv-label">{b.label}</span>
+                  <span class="about-kv-leader" aria-hidden="true" />
+                  {b.link && /^https?:\/\//.test(b.link) ? (
+                    <a class="about-kv-value is-link" href={b.link} target="_blank" rel="noopener noreferrer">{b.value} ↗</a>
+                  ) : (
+                    <span class="about-kv-value">{b.value}</span>
+                  )}
+                </div>
+              )}
+              {b.type === 'quote' && (
+                <blockquote class="about-quote" data-reveal style={revealDelay(i)}>
+                  <p class="about-quote-text">{b.text}</p>
+                  {b.author && <cite class="about-quote-author">— {b.author}</cite>}
+                </blockquote>
+              )}
+              {b.type === 'progress' && (
+                <div class="about-progress" data-reveal style={revealDelay(i)}>
+                  <div class="about-progress-head">
+                    <span class="about-progress-title">{b.title}</span>
+                    <span class="about-progress-num">{progressPercent(b)}%</span>
+                  </div>
+                  <div class="about-progress-track">
+                    <div class="about-progress-fill" style={`width:${progressPercent(b)}%`} />
+                  </div>
+                  <div class="about-progress-dates">
+                    <span>{b.start}</span>
+                    <span>{b.end}</span>
+                  </div>
+                </div>
+              )}
+              {b.type === 'marquee' && (
+                <div class="about-marquee" data-reveal aria-label={b.text}>
+                  <div class="about-marquee-track" aria-hidden="true">
+                    {Array.from({ length: 8 }).map(() => (
+                      <span class="about-marquee-item">{b.text}&nbsp;·&nbsp;</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Fragment>
+          ))}
+        </div>
+      )}
+
+      <!-- 旧版回退：空行分段 + 段首 emoji 标签（aboutBlocks 为空时） -->
+      {legacyBlocks.length > 0 && (
+        <div class="about-blocks">
+          {legacyBlocks.map((block) => {
             const chars = [...block];
             const first = chars[0];
-            // 段首 emoji 检测：命中则作为名片块标签放大显示
-            const hasEmoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2700}-\u{27BF}]/u.test(first || '');
+            const hasEmoji = EMOJI_RE.test(first || '');
             const text = hasEmoji ? block.slice(chars[0].length).trim() : block;
             return (
-              <div class="about-block">
+              <div class="about-block" data-reveal>
                 {hasEmoji && <span class="about-block-emoji" aria-hidden="true">{first}</span>}
                 <p class="about-block-text">{text}</p>
               </div>
@@ -55,14 +143,18 @@ const aboutBlocks = (settings.aboutContent || '')
         </div>
       )}
 
-      <div class="about-stats">
-        <div class="about-stat"><span>{stats.postTotal}</span><em>文章</em></div>
-        <div class="about-stat"><span>{stats.commentTotal}</span><em>评论</em></div>
-        <div class="about-stat"><span>{stats.totalViews}</span><em>浏览</em></div>
-        <div class="about-stat"><span>{stats.friendLinkCount}</span><em>友链</em></div>
+      <div class="about-stats-wrap" data-reveal>
+        <StatBubbles
+          client:visible
+          variant="plain"
+          postTotal={stats.postTotal}
+          commentTotal={stats.commentTotal}
+          totalViews={stats.totalViews}
+          friendLinkCount={stats.friendLinkCount}
+        />
       </div>
 
-      <div class="about-links">
+      <div class="about-links" data-reveal>
         {settings.githubUsername && (
           <a href={`https://github.com/${settings.githubUsername}`} target="_blank" rel="noopener noreferrer">GitHub ↗</a>
         )}
@@ -84,7 +176,7 @@ const aboutBlocks = (settings.aboutContent || '')
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
       v.pause();
     } else {
-      v.play().catch(() => { /* 浏览器限制自动播放时静音后重试 */ });
+      v.play().catch(() => { /* 浏览器限制自动播放时静默后重试 */ });
     }
   }
 </script>
