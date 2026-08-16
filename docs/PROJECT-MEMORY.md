@@ -174,6 +174,12 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - 验证：backend 87/87、admin typecheck 0、site check 0 errors、双主题 dev 实测（reader 视频隐藏/normal fixed 播放、27% 进度与公式一致、javascript: 链接被拦）。本地 dev 库 `about_blocks` 已留 8 条演示块（text×1/kv×4/quote/progress/marquee），后台「站点设置→关于页内容」可改。
 - 提交链：`6969db3`（backend）→ `08459f4`+`51f8353`（admin）→ `89e6951`/`057b1a0`/`707fa7c`/`e8f6037`/`dbaa145`（site 五连）→ `37a699f`（审查修复）。**线上未部署**（下次部署记得 site dist + backend settings.ts/misc.ts + admin dist）。
 
+### hero 视频渐隐融合迭代（同日，用户反馈"整页视频与全站气质割裂、导航区黑块"）
+- **结构**：视频从 fixed 整页改为 `.about-hero` 内 absolute（随滚动离场）；去 `.about-cinema` 容器；下方内容包 `.about-body`（relative + 720 版心 + `<GradientBlob />`，与 posts/archive 同款辉光）。
+- **主题融合**：视频 filter 暖调琥珀（sepia .32/hue-rotate -12deg/brightness .62）；遮罩**顶+底**都渐隐到 `var(--color-bg)`（顶边保证滚动时透明 sticky 顶栏下与其它页观感一致——修复「导航区黑块」）；下方 kv/quote/progress/marquee/stats/links 白 rgba 全换 `--color-text*`/`--color-border`。
+- **黑块根因**：IAB/标签页隐藏时浏览器自动暂停视频且无人恢复 → syncVideo 增加 `visibilitychange` 监听（重新可见+normal+非 reduced 时恢复播放）。主题切换联动不变。
+- 坑：normal 顶栏 `.site-header` 是 **transparent sticky**（z100），内容永远从其下穿过——整页异色媒体会在 pill 胶囊两侧形成色带；hero 文字需 `position:relative; z-index:2` 压过 absolute 视频/遮罩。`.theme-toggle` 按钮全站有 2 个（PillNav + 隐藏 MobileHeader），role 定位点击可能 flaky。
+
 ## 6. 待办 / 下一步
 
 - **线上部署验证**（2026-08-15 已部署，复查 cs.mboker.cn 三页 + 豆瓣图 + PM2 日志）
