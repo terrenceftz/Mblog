@@ -24,6 +24,7 @@ const settings = ref<SiteSettings>({
   navMenuNormal: '[]',
   navMenuReader: '[]',
   aboutContent: '',
+  aboutBlocks: '[]',
   storageProvider: 'local',
   cosBucket: '',
   cosRegion: '',

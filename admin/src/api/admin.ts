@@ -119,6 +119,7 @@ export interface SiteSettings {
   navMenuReader: string;
   /** 关于页内容（纯文本段落） */
   aboutContent: string;
+  aboutBlocks: string;
   /** 存储方式 local/cos */
   storageProvider: string;
   cosBucket: string;
@@ -600,6 +601,7 @@ export const api = {
       navMenuNormal: s.nav_menu_normal || '[]',
       navMenuReader: s.nav_menu_reader || '[]',
       aboutContent: s.about_content || '',
+      aboutBlocks: s.about_blocks || '[]',
       storageProvider: s.storage_provider || 'local',
       cosBucket: s.cos_bucket || '',
       cosRegion: s.cos_region || '',
@@ -631,6 +633,7 @@ export const api = {
       nav_menu_normal: settings.navMenuNormal ?? current.nav_menu_normal,
       nav_menu_reader: settings.navMenuReader ?? current.nav_menu_reader,
       about_content: settings.aboutContent ?? current.about_content,
+      about_blocks: settings.aboutBlocks ?? current.about_blocks,
       douban_uid: settings.doubanUserId ?? current.douban_uid,
       douban_enabled: boolStr(settings.doubanSyncEnabled, current.douban_enabled),
       douban_last_sync: settings.lastDoubanSync ?? current.douban_last_sync,
