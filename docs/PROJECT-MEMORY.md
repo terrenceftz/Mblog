@@ -183,6 +183,11 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - 根因：reader.css 归档有两套样式——旧模板类名（`.month`/`.date`/`.posts-title-sm`，新 archive.astro 已无此结构=死代码）+ 新适配只覆盖部分类 → `.archive-month` 是 block（label/rule/count 三 span 内联挤排，rule 宽 0）、`.archive-row` 是 inline（date/title/arrow 混排，日期衬线非 mono）、残留旧 `.archive-group ul` 竖线与 li::before 圆点。
 - 修复：reader 归档段重写——`.archive-month` flex + `.archive-month-rule` dotted leader + count；`.posts-list`/`.posts-item` 清 border-left/position/::before；`.archive-row` grid 三列（date mono / title display / arrow hover 滑入）；normal 主题零改动。**教训：normal/reader 双主题样式必须同步适配模板改版，类名级死代码容易残留。**
 
+### reader 电台页极简适配（同日，已部署 `d067d0d`）
+- 根因：RadioPlayer.vue 完整播放器只有 `[data-theme='normal']` 样式，reader.css 里 radio 相关 **0 条** → reader 下播放器/歌单完全无样式。
+- 修复：reader.css 追加电台极简套——无卡播放器（grid 140px 封面 + 1fr，透明底）、EQ 动效 `readerRadioEq`（白底小条）、圆形细边按钮 + 赭红主按钮（`--color-primary` 实心白字）、细线歌单行式（active 9% 琥珀 + inset 指示条）、移动端 ≤640px 单列；**reader tokens 补 `--color-error: #a03a2a`**（之前缺失，`radio-play-err` 会失效）。线上验证：歌单 10 首正常加载、播放器样式全命中。
+- 教训：新功能（如电台）上线时若不双主题适配，reader 会留下无样式页面——功能开发时就把双主题样式一起做。
+
 ### hero 视频渐隐融合迭代（同日，用户反馈"整页视频与全站气质割裂、导航区黑块"）
 - **结构**：视频从 fixed 整页改为 `.about-hero` 内 absolute（随滚动离场）；去 `.about-cinema` 容器；下方内容包 `.about-body`（relative + 720 版心 + `<GradientBlob />`，与 posts/archive 同款辉光）。
 - **主题融合**：视频 filter 暖调琥珀（sepia .32/hue-rotate -12deg/brightness .62）；遮罩**顶+底**都渐隐到 `var(--color-bg)`（顶边保证滚动时透明 sticky 顶栏下与其它页观感一致——修复「导航区黑块」）；下方 kv/quote/progress/marquee/stats/links 白 rgba 全换 `--color-text*`/`--color-border`。
