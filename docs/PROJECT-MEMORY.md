@@ -1,6 +1,6 @@
 # MBLOG 项目记忆文档（会话交接）
 
-> 最后更新：2026-08-15（全站编辑式视觉改版 + 性能优化 + 线上部署）
+> 最后更新：2026-08-16（About 页结构化名片块 + reader 视频修复）
 > 用途：跨会话记忆，供下次继续开发使用。开发前先读本文件 + `git log --oneline -20`。
 
 ---
@@ -162,6 +162,17 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - **分类特色图**：backend `categories` 表加 `cover` 列（migrate.ts 幂等 ALTER）；admin/public categories API 均返回 cover；admin PUT 传 `cover`（显式清空传空串）；admin CategoryManager 支持 canvas 压缩上传（1280px JPEG 0.82，复用 `api.uploadPhoto`）+ URL 输入 + 行内预览/清除。
 - 导航入口需后台「主题配置→导航菜单」手动加 `/category`。
 - **已上线**（2026-08-15）：backend 4 文件 + site dist + admin dist 全量部署，PM2 v22 PATH 重启，线上 cover 迁移成功。
+
+## 5c. 2026-08-16：About 页结构化名片块（spec/plan 见 docs/superpowers/）
+
+- **backend**：settings 新增 `about_blocks`（JSON 数组，DEFAULT_SETTINGS 白名单，navMenu 同模式）；`/settings/public` 返回解析后 `aboutBlocks`（type 白名单 text/kv/quote/progress/marquee 过滤，字段校验留给前台）；测试 85→87。
+- **admin**：SettingsPage 关于 textarea → 块编辑器（5 类型徽章+摘要+↑↓删、按类型表单、progress 实时百分比预览与前台同公式）；旧 `aboutContent` 不再展示但适配层透传保留（存量内容不丢）。
+- **site**：about.astro 按 aboutBlocks 结构化渲染——kv=`label ······ value` leader dots 行式（link 仅 http/https 白名单，其它协议回退纯文本）、quote=斜体衬线+琥珀引号+mono 作者、progress=mono 大百分比+辉光细条+起止日期（日期区间自动算，`blockPercents` 预计算单次）、marquee=`role="marquee"`+8 份内容 translateX(-50%) 无缝滚动+两端 mask 渐隐；**空数组回退旧 aboutContent 空行分段**；全块 data-reveal 级联；统计换 StatBubbles `variant="plain"`（SSR 真值+水合 count-up，类名复用 .about-stats 旧样式）；hero 加 SCROLL 呼吸提示。
+- **reader 修复**：视频/遮罩/SCROLL 提示在 reader.css 外部规则 display:none（GradientBlob 先例）；结构化块极简样式（细线 kv/琥珀引号/细进度条/marquee 26s）；reduced-motion 下 marquee 只静态显示一份（nth-child(n+2) 隐藏）。
+- **视频主题联动**（非降级）：`syncVideo()` 监听 `mblog-theme-change`，reader 暂停 / normal 恢复播放；reduced-motion 照旧暂停。**视频背景按用户决定不做能力降级**。
+- **坑新增**：@astrojs/compiler 对模板表达式内含 `\u{...}` 码点转义的 regex 字面量会误判表达式边界（map 收尾丢 `}`，check 报 ts(1005) 且产物非法）——**含 `\u{...}` 的 regex 必须放 frontmatter 常量**再在模板调用（about.astro EMOJI_RE 先例，勿改回内联）。
+- 验证：backend 87/87、admin typecheck 0、site check 0 errors、双主题 dev 实测（reader 视频隐藏/normal fixed 播放、27% 进度与公式一致、javascript: 链接被拦）。本地 dev 库 `about_blocks` 已留 8 条演示块（text×1/kv×4/quote/progress/marquee），后台「站点设置→关于页内容」可改。
+- 提交链：`6969db3`（backend）→ `08459f4`+`51f8353`（admin）→ `89e6951`/`057b1a0`/`707fa7c`/`e8f6037`/`dbaa145`（site 五连）→ `37a699f`（审查修复）。**线上未部署**（下次部署记得 site dist + backend settings.ts/misc.ts + admin dist）。
 
 ## 6. 待办 / 下一步
 
