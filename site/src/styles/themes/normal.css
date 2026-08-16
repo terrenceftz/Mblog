@@ -3043,6 +3043,176 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   color: rgba(255, 255, 255, 0.55);
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
 }
+/* hero 滚动提示（底部居中，呼吸竖线） */
+[data-theme='normal'] .about-scroll-cue {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.72);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+[data-theme='normal'] .about-scroll-line {
+  width: 1px;
+  height: 44px;
+  background: linear-gradient(to bottom, var(--color-primary), transparent);
+  transform-origin: top;
+  animation: about-cue-breathe 2.2s ease-in-out infinite;
+}
+@keyframes about-cue-breathe {
+  0%, 100% { transform: scaleY(0.55); opacity: 0.45; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+/* hero 需要为绝对定位的滚动提示提供定位上下文 */
+[data-theme='normal'] .about-hero { position: relative; }
+
+/* 结构化名片块（normal：视频上白字 + 细线分隔 + 琥珀点缀） */
+[data-theme='normal'] .about-text {
+  margin: 0 0 18px;
+  font-size: 15.5px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.94);
+  white-space: pre-wrap;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+}
+/* 键值行：mono 标签 + 点线引导 + 值（呼应首页分类/归档 leader dots） */
+[data-theme='normal'] .about-kv {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 13px 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+[data-theme='normal'] .about-kv-label {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.66);
+  flex-shrink: 0;
+}
+[data-theme='normal'] .about-kv-leader {
+  flex: 1;
+  min-width: 32px;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.32);
+  transform: translateY(-4px);
+}
+[data-theme='normal'] .about-kv-value {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+}
+[data-theme='normal'] a.about-kv-value {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  text-underline-offset: 4px;
+  transition: color 0.2s ease;
+}
+[data-theme='normal'] a.about-kv-value:hover { color: #fff; }
+/* 引用块：大号斜体衬线 + 琥珀引号 */
+[data-theme='normal'] .about-quote {
+  margin: 8px 0;
+  padding: 34px 8px 28px;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+[data-theme='normal'] .about-quote-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  line-height: 1.55;
+  color: #fff;
+  margin: 0 0 12px;
+  text-shadow: 0 3px 24px rgba(0, 0, 0, 0.8);
+}
+[data-theme='normal'] .about-quote-text::before { content: '\201C'; color: var(--color-primary); margin-right: 0.06em; }
+[data-theme='normal'] .about-quote-text::after { content: '\201D'; color: var(--color-primary); margin-left: 0.06em; }
+[data-theme='normal'] .about-quote-author {
+  display: block;
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.6);
+}
+/* 进度块：mono 大百分比 + 琥珀细进度条（辉光）+ 起止日期 */
+[data-theme='normal'] .about-progress {
+  padding: 26px 4px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+[data-theme='normal'] .about-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+[data-theme='normal'] .about-progress-title { font-size: 15px; color: rgba(255, 255, 255, 0.92); }
+[data-theme='normal'] .about-progress-num {
+  font-family: var(--font-mono);
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 700;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.85);
+}
+[data-theme='normal'] .about-progress-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
+  overflow: hidden;
+}
+[data-theme='normal'] .about-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-primary) 80%, transparent);
+  border-radius: 2px;
+}
+[data-theme='normal'] .about-progress-dates {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.55);
+}
+/* 跑马灯横幅：mono 大写无限滚动，两端渐隐 */
+[data-theme='normal'] .about-marquee {
+  overflow: hidden;
+  margin: 30px 0 6px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+[data-theme='normal'] .about-marquee-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: about-marquee-scroll 22s linear infinite;
+  will-change: transform;
+}
+[data-theme='normal'] .about-marquee-item {
+  font-family: var(--font-mono);
+  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.75);
+  padding-right: 0.6em;
+}
+@keyframes about-marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
 /* 降级：减少动态时停视频改暗色底（内容照常可读） */
 @media (prefers-reduced-motion: reduce) {
   [data-theme='normal'] .about-video {
@@ -3051,4 +3221,6 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   [data-theme='normal'] .about-video-shade {
     background: linear-gradient(to bottom, rgba(9, 9, 11, 0.6), rgba(9, 9, 11, 0.88));
   }
+  [data-theme='normal'] .about-marquee-track { animation: none; }
+  [data-theme='normal'] .about-scroll-line { animation: none; }
 }
