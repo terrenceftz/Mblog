@@ -1527,4 +1527,5 @@
 }
 @media (prefers-reduced-motion: reduce) {
   [data-theme='reader'] .about-marquee-track { animation: none; }
+  [data-theme='reader'] .about-marquee-item:nth-child(n+2) { display: none; }
 }

@@ -47,6 +47,8 @@ function progressPercent(b: Extract<AboutBlock, { type: 'progress' }>): number {
   if (Number.isNaN(s) || Number.isNaN(e) || e <= s) return 0;
   return Math.max(0, Math.min(100, Math.round(((Date.now() - s) / (e - s)) * 100)));
 }
+// 预计算各块的进度百分比（progress 块的 num 与 fill width 共用，每块只算一次）
+const blockPercents = aboutBlocks.map((b) => (b.type === 'progress' ? progressPercent(b) : 0));
 const revealDelay = (i: number) => `--reveal-delay:${(i % 5) * 60}ms`;
 ---
 <BaseLayout title="关于" description="关于这个博客与博主。">
@@ -84,7 +86,7 @@ const revealDelay = (i: number) => `--reveal-delay:${(i % 5) * 60}ms`;
                   <span class="about-kv-label">{b.label}</span>
                   <span class="about-kv-leader" aria-hidden="true" />
                   {b.link && /^https?:\/\//.test(b.link) ? (
-                    <a class="about-kv-value is-link" href={b.link} target="_blank" rel="noopener noreferrer">{b.value} ↗</a>
+                    <a class="about-kv-value" href={b.link} target="_blank" rel="noopener noreferrer">{b.value} ↗</a>
                   ) : (
                     <span class="about-kv-value">{b.value}</span>
                   )}
@@ -100,10 +102,10 @@ const revealDelay = (i: number) => `--reveal-delay:${(i % 5) * 60}ms`;
                 <div class="about-progress" data-reveal style={revealDelay(i)}>
                   <div class="about-progress-head">
                     <span class="about-progress-title">{b.title}</span>
-                    <span class="about-progress-num">{progressPercent(b)}%</span>
+                    <span class="about-progress-num">{blockPercents[i]}%</span>
                   </div>
                   <div class="about-progress-track">
-                    <div class="about-progress-fill" style={`width:${progressPercent(b)}%`} />
+                    <div class="about-progress-fill" style={`width:${blockPercents[i]}%`} />
                   </div>
                   <div class="about-progress-dates">
                     <span>{b.start}</span>
@@ -112,7 +114,7 @@ const revealDelay = (i: number) => `--reveal-delay:${(i % 5) * 60}ms`;
                 </div>
               )}
               {b.type === 'marquee' && (
-                <div class="about-marquee" data-reveal aria-label={b.text}>
+                <div class="about-marquee" data-reveal role="marquee" aria-label={b.text}>
                   <div class="about-marquee-track" aria-hidden="true">
                     {Array.from({ length: 8 }).map(() => (
                       <span class="about-marquee-item">{b.text}&nbsp;·&nbsp;</span>
@@ -170,13 +172,19 @@ const revealDelay = (i: number) => `--reveal-delay:${(i % 5) * 60}ms`;
 </BaseLayout>
 
 <script>
-  // 背景视频：autoplay 兜底 + 「减少动态」时暂停（对齐智能降级约定）
+  // 背景视频为 normal 专属氛围：「减少动态」或 reader 主题时暂停；
+  // 切主题（mblog-theme-change，data-theme 已先行写入 html）时联动，不动 capabilities
   const v = document.querySelector<HTMLVideoElement>('.about-video');
   if (v) {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      v.pause();
-    } else {
-      v.play().catch(() => { /* 浏览器限制自动播放时静默后重试 */ });
-    }
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const syncVideo = () => {
+      if (reduced || document.documentElement.dataset.theme === 'reader') {
+        v.pause();
+      } else {
+        v.play().catch(() => { /* 浏览器限制自动播放时静默后重试 */ });
+      }
+    };
+    syncVideo();
+    window.addEventListener('mblog-theme-change', syncVideo);
   }
 </script>
