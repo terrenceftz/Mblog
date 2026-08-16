@@ -82,13 +82,13 @@ ${items}
       github_enabled: githubEnabled, github_username: githubUsername,
       douban_enabled: doubanEnabled, douban_uid: doubanUid,
       turnstile_site_key: turnstileSiteKey,
-      author, avatar, about_content: aboutContent,
+      author, avatar, about_content: aboutContent, about_blocks: aboutBlocksRaw,
       netease_playlist_id: neteasePlaylistId,
     } = getSettings(ctx, [
       'site_name', 'site_description', 'site_url', 'default_theme', 'friend_link_enabled',
       'nav_menu_normal', 'nav_menu_reader',
       'theme_normal', 'theme_reader', 'github_enabled', 'github_username',
-      'douban_enabled', 'douban_uid', 'turnstile_site_key', 'author', 'avatar', 'about_content',
+      'douban_enabled', 'douban_uid', 'turnstile_site_key', 'author', 'avatar', 'about_content', 'about_blocks',
       'netease_playlist_id',
     ]);
 
@@ -109,10 +109,25 @@ ${items}
     const navMenuNormal = parseMenu(navMenuNormalRaw);
     const navMenuReader = parseMenu(navMenuReaderRaw);
 
+    // 解析关于页结构化块 JSON；只按 type 白名单过滤，字段校验由前台渲染时兜底
+    const parseAboutBlocks = (raw: string): unknown[] => {
+      const TYPES = new Set(['text', 'kv', 'quote', 'progress', 'marquee']);
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((b) => b && typeof b === 'object' && typeof (b as any).type === 'string' && TYPES.has((b as any).type));
+        }
+      } catch {
+        /* ignore */
+      }
+      return [];
+    };
+    const aboutBlocks = parseAboutBlocks(aboutBlocksRaw);
+
     return c.json({
       data: {
         siteName, siteDesc, siteUrl, theme, friendLinkEnabled: friendLinkEnabled === '1',
-        navMenuNormal, navMenuReader, aboutContent,
+        navMenuNormal, navMenuReader, aboutContent, aboutBlocks,
         themeNormal: parseThemeConfig(themeNormalRaw),
         themeReader: parseThemeConfig(themeReaderRaw),
         githubEnabled: githubEnabled === '1',

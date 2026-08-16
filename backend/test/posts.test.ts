@@ -112,6 +112,13 @@ describe('public posts', () => {
     expect(body.data.navMenuReader.length).toBe(8);
   });
 
+  it('公开设置返回解析后的 aboutBlocks（默认空数组）', async () => {
+    const res = await app.request('/api/settings/public');
+    const body = await res.json();
+    expect(Array.isArray(body.data.aboutBlocks)).toBe(true);
+    expect(body.data.aboutBlocks.length).toBe(0);
+  });
+
   it('归档按月份分组', async () => {
     ctx.db.insert(posts).values([
       { title: '旧文', slug: 'old', status: 'published', contentMd: '', contentHtml: '', createdAt: Date.parse('2025-01-15') },

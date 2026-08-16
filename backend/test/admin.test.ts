@@ -560,4 +560,28 @@ describe('admin settings', () => {
     const getBody = await get.json();
     expect(getBody.data.turnstile_secret_key).toBe('********');
   });
+
+  it('about_blocks 白名单往返：PUT 保存后公开设置返回解析数组（非法 type 过滤）', async () => {
+    const headers = authHeaders(token);
+    const blocks = [
+      { type: 'text', text: '你好，我是博主' },
+      { type: 'kv', label: '性格', value: 'ENFP', link: 'https://www.16personalities.com/ch/enfp-人格' },
+      { type: 'quote', text: '人生是旷野，不是轨道。', author: '梭罗' },
+      { type: 'progress', title: '六年之约', start: '2024-12-31', end: '2030-12-31' },
+      { type: 'marquee', text: 'KEEP GOING' },
+      { type: 'hacker', payload: 'x' }, // 非法 type 应被过滤
+    ];
+    const put = await app.request('/api/admin/settings', {
+      method: 'PUT',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ about_blocks: JSON.stringify(blocks) }),
+    });
+    expect(put.status).toBe(200);
+    const pub = await app.request('/api/settings/public');
+    const pubBody = await pub.json();
+    expect(pubBody.data.aboutBlocks.length).toBe(5);
+    expect(pubBody.data.aboutBlocks[1]).toEqual({
+      type: 'kv', label: '性格', value: 'ENFP', link: 'https://www.16personalities.com/ch/enfp-人格',
+    });
+  });
 });

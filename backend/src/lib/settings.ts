@@ -39,6 +39,9 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   ]),
   // 关于页内容（纯文本段落，后台站点设置可编辑）
   about_content: '',
+  // 关于页结构化名片块：JSON 数组 [{type:'text'|'kv'|'quote'|'progress'|'marquee', ...}]，
+  // 空数组 = 前台回退 about_content 纯文本分段（兼容存量内容）
+  about_blocks: '[]',
   // 主题配置（JSON，空串 = 使用 CSS 内置默认）
   theme_normal: '',
   theme_reader: '',
