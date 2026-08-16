@@ -8,6 +8,8 @@ const props = defineProps<{
   commentTotal: number;
   totalViews: number;
   friendLinkCount: number;
+  /** plain = about 页行式统计（复用 .about-stats 样式），默认 bubbles = 首页气泡 */
+  variant?: 'bubbles' | 'plain';
 }>();
 
 const items = [
@@ -54,7 +56,14 @@ onBeforeUnmount(() => cancelAnimationFrame(raf));
 </script>
 
 <template>
-  <div class="nh-stats-bubbles">
+  <!-- plain：about 页行式统计（类名与 about.astro 原 SSR 标记一致，直接复用既有样式） -->
+  <div v-if="variant === 'plain'" class="about-stats">
+    <div v-for="b in items" :key="b.key" class="about-stat">
+      <span>{{ fmt(displayed[b.key]) }}</span>
+      <em>{{ b.label }}</em>
+    </div>
+  </div>
+  <div v-else class="nh-stats-bubbles">
     <div v-for="b in items" :key="b.key" :class="['nh-bubble', b.cls]">
       <span class="num">{{ fmt(displayed[b.key]) }}</span>
       <span class="label">{{ b.label }}</span>
