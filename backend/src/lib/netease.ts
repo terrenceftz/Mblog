@@ -211,3 +211,16 @@ export async function getSongUrl(cookie: string, id: number): Promise<NeteaseRes
   }
   return { ok: true, data: d.url };
 }
+
+/** 获取单曲 LRC 歌词（翻译/罗马音关闭；无歌词返回空串） */
+export async function getSongLyric(cookie: string, id: number): Promise<NeteaseResp<string>> {
+  const r = await weapiPost<{ lrc?: { lyric?: string } | null }>(cookie, 'song/lyric', {
+    id,
+    lv: -1,
+    kv: -1,
+    tv: -1,
+    os: 'pc',
+  });
+  if (!r.ok) return r;
+  return { ok: true, data: r.data.lrc?.lyric ?? '' };
+}

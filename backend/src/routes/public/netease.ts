@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { getSetting } from '../../lib/settings';
-import { getUserPlaylists, getPlaylistDetail, getSongUrl } from '../../lib/netease';
+import { getUserPlaylists, getPlaylistDetail, getSongUrl, getSongLyric } from '../../lib/netease';
 import type { Db } from '../../db';
 
 // 电台（网易云）公开接口：cookie 从后台 settings 读取，永不下发前端。
@@ -38,6 +38,17 @@ export function neteaseRoutes(ctx: Db) {
     const r = await getSongUrl(cookie, id);
     if (!r.ok) return c.json({ error: { code: 'NETEASE', message: r.message } }, r.status === 401 ? 401 : 502);
     return c.json({ data: { url: r.data } });
+  });
+
+  // 单曲歌词（LRC 纯文本；无歌词返回空串，前端显示占位）
+  app.get('/netease/lyric', async (c) => {
+    const id = Number(c.req.query('id'));
+    if (!Number.isInteger(id) || id <= 0) return c.json({ error: { code: 'INVALID', message: '歌曲 id 无效' } }, 400);
+    const cookie = getSetting(ctx, 'netease_cookie');
+    if (!cookie) return c.json({ error: { code: 'NOT_CONFIGURED', message: '网易云 Cookie 未配置，请到后台配置' } }, 400);
+    const r = await getSongLyric(cookie, id);
+    if (!r.ok) return c.json({ error: { code: 'NETEASE', message: r.message } }, r.status === 401 ? 401 : 502);
+    return c.json({ data: { lrc: r.data } });
   });
 
   return app;
