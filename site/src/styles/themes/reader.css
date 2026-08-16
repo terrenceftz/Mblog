@@ -1608,7 +1608,7 @@
   max-width: 760px;
   margin: 0 auto;
 }
-[data-theme='reader'] .radio-player {
+[data-theme='reader'] .radio-top {
   display: grid;
   grid-template-columns: 140px minmax(0, 1fr);
   gap: 24px;
@@ -1670,7 +1670,7 @@
   0%, 100% { height: 5px; }
   50% { height: 16px; }
 }
-[data-theme='reader'] .radio-body {
+[data-theme='reader'] .radio-info {
   min-width: 0;
 }
 [data-theme='reader'] .radio-kicker {
@@ -1700,11 +1700,23 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-[data-theme='reader'] .radio-controls {
+/* 控制区（reader 还原为纵向：按钮组 / 进度 / 音量依次堆叠，同旧版布局） */
+[data-theme='reader'] .radio-controls-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  border-top: none;
+  padding-top: 0;
+}
+[data-theme='reader'] .radio-btns {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
+}
+[data-theme='reader'] .radio-progress {
+  width: 100%;
 }
 [data-theme='reader'] .radio-btn {
   width: 36px;
@@ -1782,7 +1794,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 0; /* 纵向间距由 .radio-controls-bar 的 gap 提供 */
 }
 [data-theme='reader'] .radio-vol-icon {
   font-size: 0.75rem;
@@ -1873,8 +1885,12 @@
 [data-theme='reader'] .radio-error {
   text-align: center;
 }
+/* 歌词区为 normal 专属：reader 保持原版式（隐藏歌词屏） */
+[data-theme='reader'] .radio-lyrics {
+  display: none;
+}
 @media (max-width: 640px) {
-  [data-theme='reader'] .radio-player {
+  [data-theme='reader'] .radio-top {
     grid-template-columns: 1fr;
     gap: 18px;
     padding-top: 4px;
