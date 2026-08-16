@@ -16,6 +16,7 @@
   --color-text-secondary: #888580;
   --color-text-heading: #2c2b29;
   --color-border-strong: #c8c3ba;
+  --color-error: #a03a2a;            /* 错误红（赭红系，与主色一致） */
   /* 正文主色别名（跟随后台配置的 --color-text） */
   --color-text-primary: var(--color-text);
   --radius: 2px;
@@ -1600,4 +1601,285 @@
 @media (prefers-reduced-motion: reduce) {
   [data-theme='reader'] .about-marquee-track { animation: none; }
   [data-theme='reader'] .about-marquee-item:nth-child(n+2) { display: none; }
+}
+
+/* ---------- 电台页（极简：无卡播放器 + 细线歌单，配色跟随 reader 主题变量） ---------- */
+[data-theme='reader'] .radio-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+[data-theme='reader'] .radio-player {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 8px 0 24px;
+}
+[data-theme='reader'] .radio-cover {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+[data-theme='reader'] .radio-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+[data-theme='reader'] .radio-cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  color: var(--color-primary);
+}
+/* 播放中声波动效（极简：无底色，三根琥珀细条） */
+[data-theme='reader'] .radio-eq {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--color-border);
+}
+[data-theme='reader'] .radio-eq span {
+  width: 3px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+[data-theme='reader'] .radio-eq.on span {
+  animation: readerRadioEq 0.9s ease-in-out infinite;
+}
+[data-theme='reader'] .radio-eq.on span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+[data-theme='reader'] .radio-eq.on span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes readerRadioEq {
+  0%, 100% { height: 5px; }
+  50% { height: 16px; }
+}
+[data-theme='reader'] .radio-body {
+  min-width: 0;
+}
+[data-theme='reader'] .radio-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--color-primary);
+  margin: 0 0 6px;
+}
+[data-theme='reader'] .radio-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='reader'] .radio-artist {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0 0 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='reader'] .radio-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+[data-theme='reader'] .radio-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+[data-theme='reader'] .radio-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+[data-theme='reader'] .radio-btn:active {
+  transform: scale(0.94);
+}
+[data-theme='reader'] .radio-btn-main {
+  width: 50px;
+  height: 50px;
+  font-size: 17px;
+  color: var(--color-primary-contrast);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+[data-theme='reader'] .radio-btn-main:hover {
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+[data-theme='reader'] .radio-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-theme='reader'] .radio-time {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme='reader'] .radio-range {
+  flex: 1;
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-border-strong);
+  outline: none;
+  cursor: pointer;
+}
+[data-theme='reader'] .radio-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: none;
+  cursor: pointer;
+}
+[data-theme='reader'] .radio-range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: none;
+  cursor: pointer;
+}
+[data-theme='reader'] .radio-vol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+[data-theme='reader'] .radio-vol-icon {
+  font-size: 0.75rem;
+}
+[data-theme='reader'] .radio-vol-range {
+  max-width: 120px;
+}
+[data-theme='reader'] .radio-play-err {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-error);
+}
+/* 歌单列表：细线分隔行式，播放中琥珀高亮 + 左侧指示条 */
+[data-theme='reader'] .radio-list {
+  margin-top: 8px;
+}
+[data-theme='reader'] .radio-list-title {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 6px;
+}
+[data-theme='reader'] .radio-tracks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+}
+[data-theme='reader'] .radio-track {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 16px;
+  padding: 13px 8px;
+  margin-inline: -8px;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+[data-theme='reader'] .radio-track:hover {
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+[data-theme='reader'] .radio-track.active {
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+[data-theme='reader'] .radio-track-idx {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme='reader'] .radio-track.active .radio-track-idx {
+  color: var(--color-primary);
+}
+[data-theme='reader'] .radio-track-main {
+  min-width: 0;
+}
+[data-theme='reader'] .radio-track-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='reader'] .radio-track.active .radio-track-name {
+  color: var(--color-primary);
+}
+[data-theme='reader'] .radio-track-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='reader'] .radio-track-dur {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme='reader'] .radio-error {
+  text-align: center;
+}
+@media (max-width: 640px) {
+  [data-theme='reader'] .radio-player {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding-top: 4px;
+  }
+  [data-theme='reader'] .radio-cover {
+    max-width: 180px;
+  }
 }
