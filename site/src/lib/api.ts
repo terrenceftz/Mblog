@@ -21,6 +21,13 @@ export interface ThemeConfig {
   fontSize?: number; homePageSize?: number;
   avatar?: string; intro?: string;
 }
+// 关于页结构化名片块（settings.about_blocks JSON 解析结果）
+export type AboutBlock =
+  | { type: 'text'; text: string }
+  | { type: 'kv'; label: string; value: string; link?: string }
+  | { type: 'quote'; text: string; author?: string }
+  | { type: 'progress'; title: string; start: string; end: string }
+  | { type: 'marquee'; text: string };
 export interface PublicSettings {
   siteName: string;
   /** 博主名称（前台首屏"你好，我是X"，后台站点设置可配） */
@@ -34,6 +41,7 @@ export interface PublicSettings {
   navMenuNormal: { label: string; url: string }[];
   navMenuReader: { label: string; url: string }[];
   aboutContent: string;
+  aboutBlocks: AboutBlock[];
   themeNormal: ThemeConfig;
   themeReader: ThemeConfig;
   githubEnabled: boolean;
@@ -96,7 +104,7 @@ export function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
     siteName: '我的博客', author: '', avatar: '', siteDesc: '', siteUrl: 'http://localhost', theme: 'normal', friendLinkEnabled: true,
     themeNormal: {}, themeReader: {}, githubEnabled: false, githubUsername: '',
-    doubanEnabled: false, doubanUid: '', turnstileSiteKey: '', aboutContent: '', neteasePlaylistId: '',
+    doubanEnabled: false, doubanUid: '', turnstileSiteKey: '', aboutContent: '', aboutBlocks: [], neteasePlaylistId: '',
     navMenuNormal: [
       { label: '首页', url: '/' },
       { label: '归档', url: '/archive' },
