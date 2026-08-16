@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import StatBubbles from '../components/StatBubbles.vue';
+import GradientBlob from '../components/GradientBlob.vue';
 import { getPublicSettings, getStats, type AboutBlock } from '../lib/api';
 
 const settings = Astro.locals.settings ?? (await getPublicSettings());
@@ -52,128 +53,128 @@ const blockPercents = aboutBlocks.map((b) => (b.type === 'progress' ? progressPe
 const revealDelay = (i: number) => `--reveal-delay:${(i % 5) * 60}ms`;
 ---
 <BaseLayout title="关于" description="关于这个博客与博主。">
-  <!-- 全页动态视频背景（webm 循环静音；fixed 铺满，内容滚动其上） -->
-  <div class="about-cinema">
+  <!-- 首屏：署名 hero（视频仅在 hero 内铺满，底部渐隐溶入站点底色） -->
+  <div class="about-hero">
     <video class="about-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1">
       <source src="/videos/about-bg.webm" type="video/webm" />
     </video>
     <div class="about-video-shade" aria-hidden="true" />
-
-    <div class="about-cinema-body">
-      <!-- 首屏：署名 hero（占满视口，浮在视频上） -->
-      <div class="about-hero">
-        <img class="about-avatar" src={absUrl(avatarUrl)} alt={siteName} />
-        <p class="about-kicker">HELLO, I AM</p>
-        <h1 class="about-name">{siteName}</h1>
-        <p class="about-intro">{introText}</p>
-        {settings.siteDesc && <p class="about-desc">{settings.siteDesc}</p>}
-        <div class="about-scroll-cue" aria-hidden="true">
-          <span>SCROLL</span>
-          <i class="about-scroll-line" />
-        </div>
-      </div>
-
-      <!-- 结构化名片流：text / kv / quote / progress / marquee -->
-      {aboutBlocks.length > 0 && (
-        <div class="about-blocks">
-          {aboutBlocks.map((b, i) => (
-            <Fragment>
-              {b.type === 'text' && (
-                <p class="about-text" data-reveal style={revealDelay(i)}>{b.text}</p>
-              )}
-              {b.type === 'kv' && (
-                <div class="about-kv" data-reveal style={revealDelay(i)}>
-                  <span class="about-kv-label">{b.label}</span>
-                  <span class="about-kv-leader" aria-hidden="true" />
-                  {b.link && /^https?:\/\//.test(b.link) ? (
-                    <a class="about-kv-value" href={b.link} target="_blank" rel="noopener noreferrer">{b.value} ↗</a>
-                  ) : (
-                    <span class="about-kv-value">{b.value}</span>
-                  )}
-                </div>
-              )}
-              {b.type === 'quote' && (
-                <blockquote class="about-quote" data-reveal style={revealDelay(i)}>
-                  <p class="about-quote-text">{b.text}</p>
-                  {b.author && <cite class="about-quote-author">— {b.author}</cite>}
-                </blockquote>
-              )}
-              {b.type === 'progress' && (
-                <div class="about-progress" data-reveal style={revealDelay(i)}>
-                  <div class="about-progress-head">
-                    <span class="about-progress-title">{b.title}</span>
-                    <span class="about-progress-num">{blockPercents[i]}%</span>
-                  </div>
-                  <div class="about-progress-track">
-                    <div class="about-progress-fill" style={`width:${blockPercents[i]}%`} />
-                  </div>
-                  <div class="about-progress-dates">
-                    <span>{b.start}</span>
-                    <span>{b.end}</span>
-                  </div>
-                </div>
-              )}
-              {b.type === 'marquee' && (
-                <div class="about-marquee" data-reveal role="marquee" aria-label={b.text}>
-                  <div class="about-marquee-track" aria-hidden="true">
-                    {Array.from({ length: 8 }).map(() => (
-                      <span class="about-marquee-item">{b.text}&nbsp;·&nbsp;</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Fragment>
-          ))}
-        </div>
-      )}
-
-      <!-- 旧版回退：空行分段 + 段首 emoji 标签（aboutBlocks 为空时） -->
-      {legacyBlocks.length > 0 && (
-        <div class="about-blocks">
-          {legacyBlocks.map((block) => {
-            const chars = [...block];
-            const first = chars[0];
-            const hasEmoji = EMOJI_RE.test(first || '');
-            const text = hasEmoji ? block.slice(chars[0].length).trim() : block;
-            return (
-              <div class="about-block" data-reveal>
-                {hasEmoji && <span class="about-block-emoji" aria-hidden="true">{first}</span>}
-                <p class="about-block-text">{text}</p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div class="about-stats-wrap" data-reveal>
-        <StatBubbles
-          client:visible
-          variant="plain"
-          postTotal={stats.postTotal}
-          commentTotal={stats.commentTotal}
-          totalViews={stats.totalViews}
-          friendLinkCount={stats.friendLinkCount}
-        />
-      </div>
-
-      <div class="about-links" data-reveal>
-        {settings.githubUsername && (
-          <a href={`https://github.com/${settings.githubUsername}`} target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-        )}
-        {settings.doubanUid && (
-          <a href={`https://www.douban.com/people/${settings.doubanUid}/`} target="_blank" rel="noopener noreferrer">豆瓣 ↗</a>
-        )}
-        <a href="/api/rss" target="_blank" rel="noopener noreferrer">RSS ↗</a>
-      </div>
-
-      <p class="about-copyright">© {year} {siteName} · Powered by MBLOG</p>
+    <img class="about-avatar" src={absUrl(avatarUrl)} alt={siteName} />
+    <p class="about-kicker">HELLO, I AM</p>
+    <h1 class="about-name">{siteName}</h1>
+    <p class="about-intro">{introText}</p>
+    {settings.siteDesc && <p class="about-desc">{settings.siteDesc}</p>}
+    <div class="about-scroll-cue" aria-hidden="true">
+      <span>SCROLL</span>
+      <i class="about-scroll-line" />
     </div>
+  </div>
+
+  <!-- 下方内容：站点常规底色 + GradientBlob 辉光（与 posts/archive 等页一致） -->
+  <div class="about-body">
+    <GradientBlob />
+
+    <!-- 结构化名片流：text / kv / quote / progress / marquee -->
+    {aboutBlocks.length > 0 && (
+      <div class="about-blocks">
+        {aboutBlocks.map((b, i) => (
+          <Fragment>
+            {b.type === 'text' && (
+              <p class="about-text" data-reveal style={revealDelay(i)}>{b.text}</p>
+            )}
+            {b.type === 'kv' && (
+              <div class="about-kv" data-reveal style={revealDelay(i)}>
+                <span class="about-kv-label">{b.label}</span>
+                <span class="about-kv-leader" aria-hidden="true" />
+                {b.link && /^https?:\/\//.test(b.link) ? (
+                  <a class="about-kv-value" href={b.link} target="_blank" rel="noopener noreferrer">{b.value} ↗</a>
+                ) : (
+                  <span class="about-kv-value">{b.value}</span>
+                )}
+              </div>
+            )}
+            {b.type === 'quote' && (
+              <blockquote class="about-quote" data-reveal style={revealDelay(i)}>
+                <p class="about-quote-text">{b.text}</p>
+                {b.author && <cite class="about-quote-author">— {b.author}</cite>}
+              </blockquote>
+            )}
+            {b.type === 'progress' && (
+              <div class="about-progress" data-reveal style={revealDelay(i)}>
+                <div class="about-progress-head">
+                  <span class="about-progress-title">{b.title}</span>
+                  <span class="about-progress-num">{blockPercents[i]}%</span>
+                </div>
+                <div class="about-progress-track">
+                  <div class="about-progress-fill" style={`width:${blockPercents[i]}%`} />
+                </div>
+                <div class="about-progress-dates">
+                  <span>{b.start}</span>
+                  <span>{b.end}</span>
+                </div>
+              </div>
+            )}
+            {b.type === 'marquee' && (
+              <div class="about-marquee" data-reveal role="marquee" aria-label={b.text}>
+                <div class="about-marquee-track" aria-hidden="true">
+                  {Array.from({ length: 8 }).map(() => (
+                    <span class="about-marquee-item">{b.text}&nbsp;·&nbsp;</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Fragment>
+        ))}
+      </div>
+    )}
+
+    <!-- 旧版回退：空行分段 + 段首 emoji 标签（aboutBlocks 为空时） -->
+    {legacyBlocks.length > 0 && (
+      <div class="about-blocks">
+        {legacyBlocks.map((block) => {
+          const chars = [...block];
+          const first = chars[0];
+          const hasEmoji = EMOJI_RE.test(first || '');
+          const text = hasEmoji ? block.slice(chars[0].length).trim() : block;
+          return (
+            <div class="about-block" data-reveal>
+              {hasEmoji && <span class="about-block-emoji" aria-hidden="true">{first}</span>}
+              <p class="about-block-text">{text}</p>
+            </div>
+          );
+        })}
+      </div>
+    )}
+
+    <div class="about-stats-wrap" data-reveal>
+      <StatBubbles
+        client:visible
+        variant="plain"
+        postTotal={stats.postTotal}
+        commentTotal={stats.commentTotal}
+        totalViews={stats.totalViews}
+        friendLinkCount={stats.friendLinkCount}
+      />
+    </div>
+
+    <div class="about-links" data-reveal>
+      {settings.githubUsername && (
+        <a href={`https://github.com/${settings.githubUsername}`} target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      )}
+      {settings.doubanUid && (
+        <a href={`https://www.douban.com/people/${settings.doubanUid}/`} target="_blank" rel="noopener noreferrer">豆瓣 ↗</a>
+      )}
+      <a href="/api/rss" target="_blank" rel="noopener noreferrer">RSS ↗</a>
+    </div>
+
+    <p class="about-copyright">© {year} {siteName} · Powered by MBLOG</p>
   </div>
 </BaseLayout>
 
 <script>
   // 背景视频为 normal 专属氛围：「减少动态」或 reader 主题时暂停；
-  // 切主题（mblog-theme-change，data-theme 已先行写入 html）时联动，不动 capabilities
+  // 切主题（mblog-theme-change，data-theme 已先行写入 html）与页面重新可见
+  // （浏览器会在标签页/面板隐藏时自动暂停视频，回来需手动恢复）时联动，不动 capabilities
   const v = document.querySelector<HTMLVideoElement>('.about-video');
   if (v) {
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -186,5 +187,6 @@ const revealDelay = (i: number) => `--reveal-delay:${(i % 5) * 60}ms`;
     };
     syncVideo();
     window.addEventListener('mblog-theme-change', syncVideo);
+    document.addEventListener('visibilitychange', syncVideo);
   }
 </script>

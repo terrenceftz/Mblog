@@ -2869,40 +2869,38 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   }
 }
 
-/* ---------- 关于我页：全页动态视频背景（沉浸式，无卡片） ---------- */
-[data-theme='normal'] .about-cinema {
-  position: relative;
-}
-/* 背景视频：fixed 铺满全屏，object-fit cover（滚动时内容在其上移动） */
+/* ---------- 关于我页：hero 视频渐隐融合（视频仅铺满首屏，底边溶入站点底色） ---------- */
+/* 背景视频：absolute 限 hero 内，随滚动自然离场；暖调 filter 向主题琥珀靠拢 */
 [data-theme='normal'] .about-video {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   background: var(--color-bg); /* 视频未加载/加载失败时的暗色兜底 */
+  filter: sepia(0.32) hue-rotate(-12deg) saturate(1.35) brightness(0.62) contrast(1.08);
 }
-/* 暗化遮罩：顶部轻暗保证署名可读，底部加深承接下方信息流 */
+/* 暗化遮罩：顶/底两端渐隐到 var(--color-bg)——顶边与透明 sticky 顶栏下的站点底色一致，
+   底边无缝溶入页面（视频滚动到导航区时不出现突兀色带） */
 [data-theme='normal'] .about-video-shade {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(9, 9, 11, 0.55) 0%,
-    rgba(9, 9, 11, 0.28) 38%,
-    rgba(9, 9, 11, 0.34) 55%,
-    rgba(9, 9, 11, 0.78) 100%
+    var(--color-bg) 0%,
+    rgba(9, 9, 11, 0.4) 14%,
+    rgba(9, 9, 11, 0.26) 42%,
+    rgba(9, 9, 11, 0.5) 74%,
+    rgba(9, 9, 11, 0.94) 94%,
+    var(--color-bg) 100%
   );
 }
-[data-theme='normal'] .about-cinema-body {
-  position: relative;
-  z-index: 2;
-}
-/* 首屏署名 hero：占满视口，垂直居中 */
+/* 首屏署名 hero：占满视口，垂直居中；文字压到视频/遮罩之上 */
 [data-theme='normal'] .about-hero {
+  position: relative;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -2910,6 +2908,19 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   justify-content: center;
   text-align: center;
   padding: 24px 20px;
+}
+[data-theme='normal'] .about-hero > img,
+[data-theme='normal'] .about-hero > p,
+[data-theme='normal'] .about-hero > h1 {
+  position: relative;
+  z-index: 2;
+}
+/* 下方内容：站点常规底色 + GradientBlob 辉光（与 posts/archive 等页同款版心） */
+[data-theme='normal'] .about-body {
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 44px 20px 0;
 }
 [data-theme='normal'] .about-avatar {
   width: 110px;
@@ -2957,18 +2968,16 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   margin: 0;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
 }
-/* 名片流：视频上信息分段（白字 + 细分隔线，无卡片容器） */
+/* 名片流（旧版回退）：常规底色上的信息分段 */
 [data-theme='normal'] .about-blocks {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 48px 20px 0;
+  padding: 0;
 }
 [data-theme='normal'] .about-block {
   display: flex;
   gap: 16px;
   align-items: flex-start;
   padding: 22px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-top: 1px solid var(--color-border);
 }
 [data-theme='normal'] .about-block-emoji {
   font-size: 22px;
@@ -2979,9 +2988,8 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   margin: 0;
   font-size: 15.5px;
   line-height: 1.9;
-  color: rgba(255, 255, 255, 0.94);
+  color: var(--color-text-secondary);
   white-space: pre-wrap;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
 }
 /* 统计：mono 琥珀数字 + 白 label */
 [data-theme='normal'] .about-stats {
@@ -3003,16 +3011,14 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   font-weight: 700;
   color: var(--color-primary);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.85);
 }
 [data-theme='normal'] .about-stat em {
   font-style: normal;
   font-size: 12px;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.82);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  color: var(--color-text-muted);
 }
-/* 链接：白字 + 琥珀下划线（视频上可读） */
+/* 链接：mono 文字流 + 琥珀下划线 */
 [data-theme='normal'] .about-links {
   display: flex;
   gap: 8px 30px;
@@ -3020,16 +3026,15 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   justify-content: center;
   align-items: baseline;
   margin-top: 46px;
-  padding: 0 20px;
+  padding: 0;
 }
 [data-theme='normal'] .about-links a {
   font-family: var(--font-mono);
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-secondary);
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
   text-underline-offset: 4px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
   transition: color 0.2s ease;
 }
 [data-theme='normal'] .about-links a:hover {
@@ -3037,15 +3042,15 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
 }
 [data-theme='normal'] .about-copyright {
   margin: 42px 0 0;
-  padding: 0 20px 56px;
+  padding: 0 0 56px;
   text-align: center;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  color: var(--color-text-muted);
 }
-/* hero 滚动提示（底部居中，呼吸竖线） */
+/* hero 滚动提示（底部居中，呼吸竖线；叠在视频上） */
 [data-theme='normal'] .about-scroll-cue {
   position: absolute;
+  z-index: 2;
   bottom: 26px;
   left: 50%;
   transform: translateX(-50%);
@@ -3070,17 +3075,14 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   0%, 100% { transform: scaleY(0.55); opacity: 0.45; }
   50% { transform: scaleY(1); opacity: 1; }
 }
-/* hero 需要为绝对定位的滚动提示提供定位上下文 */
-[data-theme='normal'] .about-hero { position: relative; }
 
-/* 结构化名片块（normal：视频上白字 + 细线分隔 + 琥珀点缀） */
+/* 结构化名片块（normal：常规底色 + 主题变量配色 + 琥珀点缀） */
 [data-theme='normal'] .about-text {
   margin: 0 0 18px;
   font-size: 15.5px;
   line-height: 1.9;
-  color: rgba(255, 255, 255, 0.94);
+  color: var(--color-text-secondary);
   white-space: pre-wrap;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
 }
 /* 键值行：mono 标签 + 点线引导 + 值（呼应首页分类/归档 leader dots） */
 [data-theme='normal'] .about-kv {
@@ -3088,25 +3090,24 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   align-items: baseline;
   gap: 12px;
   padding: 13px 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid var(--color-border);
 }
 [data-theme='normal'] .about-kv-label {
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 [data-theme='normal'] .about-kv-leader {
   flex: 1;
   min-width: 32px;
-  border-bottom: 1px dotted rgba(255, 255, 255, 0.32);
+  border-bottom: 1px dotted color-mix(in srgb, var(--color-text-muted) 45%, transparent);
   transform: translateY(-4px);
 }
 [data-theme='normal'] .about-kv-value {
   font-size: 15px;
-  color: rgba(255, 255, 255, 0.94);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+  color: var(--color-text-heading);
 }
 [data-theme='normal'] a.about-kv-value {
   color: var(--color-primary);
@@ -3115,22 +3116,21 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   text-underline-offset: 4px;
   transition: color 0.2s ease;
 }
-[data-theme='normal'] a.about-kv-value:hover { color: #fff; }
+[data-theme='normal'] a.about-kv-value:hover { color: var(--color-text-heading); }
 /* 引用块：大号斜体衬线 + 琥珀引号 */
 [data-theme='normal'] .about-quote {
   margin: 8px 0;
   padding: 34px 8px 28px;
   text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid var(--color-border);
 }
 [data-theme='normal'] .about-quote-text {
   font-family: var(--font-display);
   font-style: italic;
   font-size: clamp(1.35rem, 3vw, 1.8rem);
   line-height: 1.55;
-  color: #fff;
+  color: var(--color-text-heading);
   margin: 0 0 12px;
-  text-shadow: 0 3px 24px rgba(0, 0, 0, 0.8);
 }
 [data-theme='normal'] .about-quote-text::before { content: '\201C'; color: var(--color-primary); margin-right: 0.06em; }
 [data-theme='normal'] .about-quote-text::after { content: '\201D'; color: var(--color-primary); margin-left: 0.06em; }
@@ -3140,12 +3140,12 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   font-style: normal;
   font-size: 12px;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 /* 进度块：mono 大百分比 + 琥珀细进度条（辉光）+ 起止日期 */
 [data-theme='normal'] .about-progress {
   padding: 26px 4px 22px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid var(--color-border);
 }
 [data-theme='normal'] .about-progress-head {
   display: flex;
@@ -3153,18 +3153,17 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   align-items: baseline;
   margin-bottom: 12px;
 }
-[data-theme='normal'] .about-progress-title { font-size: 15px; color: rgba(255, 255, 255, 0.92); }
+[data-theme='normal'] .about-progress-title { font-size: 15px; color: var(--color-text); }
 [data-theme='normal'] .about-progress-num {
   font-family: var(--font-mono);
   font-size: clamp(22px, 3vw, 28px);
   font-weight: 700;
   color: var(--color-primary);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.85);
 }
 [data-theme='normal'] .about-progress-track {
   height: 3px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--color-border);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -3181,15 +3180,15 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   font-family: var(--font-mono);
   font-size: 11.5px;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-muted);
 }
 /* 跑马灯横幅：mono 大写无限滚动，两端渐隐 */
 [data-theme='normal'] .about-marquee {
   overflow: hidden;
   margin: 30px 0 6px;
   padding: 16px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
   -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
 }
@@ -3205,8 +3204,7 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.85);
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.75);
+  color: var(--color-text-secondary);
   padding-right: 0.6em;
 }
 @keyframes about-marquee-scroll {
