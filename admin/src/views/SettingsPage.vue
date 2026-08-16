@@ -37,6 +37,68 @@ const syncingDouban = ref(false);
 const playlists = ref<{ id: number; name: string; cover: string; count: number }[]>([]);
 const loadingPlaylists = ref(false);
 
+// 关于页结构化名片块编辑（存储为 JSON 字符串，与 navMenu 同路数）
+type BlockType = 'text' | 'kv' | 'quote' | 'progress' | 'marquee';
+interface AboutBlock {
+  type: BlockType;
+  text?: string;
+  label?: string;
+  value?: string;
+  link?: string;
+  author?: string;
+  title?: string;
+  start?: string;
+  end?: string;
+}
+const blockTypeLabels: Record<BlockType, string> = {
+  text: '文本', kv: '键值', quote: '引用', progress: '进度', marquee: '跑马灯',
+};
+const aboutBlocks = ref<AboutBlock[]>([]);
+const newBlockType = ref<BlockType>('text');
+
+function parseBlocks(raw: string): AboutBlock[] {
+  try {
+    const p = JSON.parse(raw);
+    return Array.isArray(p) ? (p as AboutBlock[]) : [];
+  } catch {
+    return [];
+  }
+}
+function addBlock(type: BlockType) {
+  const presets: Record<BlockType, AboutBlock> = {
+    text: { type, text: '' },
+    kv: { type, label: '', value: '', link: '' },
+    quote: { type, text: '', author: '' },
+    progress: { type, title: '', start: '', end: '' },
+    marquee: { type, text: 'KEEP GOING' },
+  };
+  aboutBlocks.value.push(presets[type]);
+}
+function removeBlock(i: number) {
+  aboutBlocks.value.splice(i, 1);
+}
+function moveBlock(i: number, dir: -1 | 1) {
+  const j = i + dir;
+  if (j < 0 || j >= aboutBlocks.value.length) return;
+  const [b] = aboutBlocks.value.splice(i, 1);
+  aboutBlocks.value.splice(j, 0, b);
+}
+// 进度百分比：与前台同公式（日期区间自动算，非法区间 0%）
+function progressPercent(b: AboutBlock): number {
+  const s = Date.parse(b.start || '');
+  const e = Date.parse(b.end || '');
+  if (Number.isNaN(s) || Number.isNaN(e) || e <= s) return 0;
+  return Math.max(0, Math.min(100, Math.round(((Date.now() - s) / (e - s)) * 100)));
+}
+function blockSummary(b: AboutBlock): string {
+  switch (b.type) {
+    case 'kv': return `${b.label || '标签'}：${b.value || '值'}`;
+    case 'quote': return b.text || '引用';
+    case 'progress': return `${b.title || '约定'} · ${progressPercent(b)}%`;
+    default: return b.text || '（空）';
+  }
+}
+
 // 网易云验证码登录
 const smsPhone = ref('');
 const smsCode = ref('');
@@ -51,11 +113,13 @@ const pwdChanging = ref(false);
 
 async function loadSettings() {
   settings.value = await api.getSettings();
+  aboutBlocks.value = parseBlocks(settings.value.aboutBlocks);
 }
 
 async function handleSaveSettings() {
   saving.value = true;
   try {
+    settings.value.aboutBlocks = JSON.stringify(aboutBlocks.value);
     const saved = await api.updateSettings(settings.value);
     settings.value = saved;
     toast.success('站点设置已成功保存！');
@@ -207,8 +271,54 @@ onMounted(() => {
             <input type="text" v-model="settings.avatar" class="form-control" placeholder="留空使用默认头像" />
           </div>
           <div class="mt-3">
-            <label class="form-label small fw-medium">关于我内容（前台「关于」页展示）</label>
-            <textarea v-model="settings.aboutContent" class="form-control" rows="6" placeholder="写下自我介绍、经历、联系方式…（换行分段）"></textarea>
+            <label class="form-label small fw-medium">关于页内容（名片块，前台「关于」页展示）</label>
+            <div v-if="aboutBlocks.length === 0" class="text-muted micro-text mb-2">
+              暂无区块——前台将回退展示旧版纯文本「关于我内容」。
+            </div>
+            <div v-for="(b, i) in aboutBlocks" :key="i" class="border rounded-3 p-2 mb-2">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge badge-soft-primary">{{ blockTypeLabels[b.type] }}</span>
+                <span class="text-muted micro-text text-truncate flex-grow-1">{{ blockSummary(b) }}</span>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-secondary" :disabled="i === 0" @click="moveBlock(i, -1)">↑</button>
+                  <button type="button" class="btn btn-outline-secondary" :disabled="i === aboutBlocks.length - 1" @click="moveBlock(i, 1)">↓</button>
+                  <button type="button" class="btn btn-outline-danger" @click="removeBlock(i)">删</button>
+                </div>
+              </div>
+              <template v-if="b.type === 'text'">
+                <textarea v-model="b.text" class="form-control form-control-sm" rows="3" placeholder="自我介绍段落…"></textarea>
+              </template>
+              <template v-else-if="b.type === 'kv'">
+                <div class="d-flex gap-2">
+                  <input v-model="b.label" class="form-control form-control-sm" placeholder="标签（如：性格）" style="flex: 0 0 100px" />
+                  <input v-model="b.value" class="form-control form-control-sm" placeholder="值（如：ENFP 竞选者）" />
+                </div>
+                <input v-model="b.link" class="form-control form-control-sm mt-1 font-monospace" placeholder="链接（可选，如 https://…）" />
+              </template>
+              <template v-else-if="b.type === 'quote'">
+                <textarea v-model="b.text" class="form-control form-control-sm" rows="2" placeholder="引用文字（如：人生是旷野，不是轨道。）"></textarea>
+                <input v-model="b.author" class="form-control form-control-sm mt-1" placeholder="作者（可选，如：梭罗）" />
+              </template>
+              <template v-else-if="b.type === 'progress'">
+                <input v-model="b.title" class="form-control form-control-sm mb-1" placeholder="标题（如：六年之约）" />
+                <div class="d-flex gap-2 align-items-center">
+                  <input type="date" v-model="b.start" class="form-control form-control-sm" />
+                  <span class="text-muted small">→</span>
+                  <input type="date" v-model="b.end" class="form-control form-control-sm" />
+                  <span class="font-monospace small text-primary flex-shrink-0">{{ progressPercent(b) }}%</span>
+                </div>
+              </template>
+              <template v-else-if="b.type === 'marquee'">
+                <input v-model="b.text" class="form-control form-control-sm font-monospace" placeholder="滚动文字（如：KEEP GOING）" />
+              </template>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+              <select v-model="newBlockType" class="form-select form-select-sm" style="width: auto">
+                <option v-for="(label, t) in blockTypeLabels" :key="t" :value="t">{{ label }}</option>
+              </select>
+              <button type="button" class="btn btn-outline-primary btn-sm" @click="addBlock(newBlockType)">添加区块</button>
+            </div>
+            <div class="text-muted micro-text mt-1">修改后记得顶部「保存所有设置」。为空时前台回退旧版纯文本。</div>
           </div>
         </div>
       </div>
