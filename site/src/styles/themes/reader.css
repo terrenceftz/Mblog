@@ -1100,25 +1100,97 @@
   color: var(--color-text-muted);
 }
 
-/* 归档页（复用全部文章页排版） */
+/* 归档页（极简：月份头 leader 引导 + 行式条目，与首页编辑式语言一致） */
 [data-theme='reader'] .archive-page .archive-group {
   margin-top: 32px;
 }
+[data-theme='reader'] .archive-page .archive-group:first-of-type {
+  margin-top: 0;
+}
 [data-theme='reader'] .archive-month {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
   font-family: var(--font-mono);
   font-size: 0.833rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   color: var(--color-primary);
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 8px;
-  margin: 0 0 2px;
+  font-variant-numeric: tabular-nums;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin: 0 0 4px;
+}
+[data-theme='reader'] .archive-month-rule {
+  flex: 1;
+  min-width: 32px;
+  border-bottom: 1px dotted var(--color-border);
+  transform: translateY(-4px);
+}
+[data-theme='reader'] .archive-month-count {
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+/* 列表：清掉旧模板残留的左侧竖线/圆点，行式条目 */
+[data-theme='reader'] .archive-page .posts-list {
+  border-left: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 [data-theme='reader'] .archive-page .posts-item {
-  padding: 14px 0;
+  padding: 0;
+  position: static;
 }
-[data-theme='reader'] .archive-page .posts-title-sm {
+[data-theme='reader'] .archive-page .posts-item::before {
+  content: none;
+}
+[data-theme='reader'] .archive-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 20px;
+  padding: 13px 0;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+[data-theme='reader'] .archive-row:hover,
+[data-theme='reader'] .archive-row:focus-visible {
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  border-radius: 4px;
+}
+[data-theme='reader'] .archive-row-date {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+[data-theme='reader'] .archive-row-title {
+  font-family: var(--font-display);
   font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--color-text-heading);
+  transition: color 0.2s ease, transform 0.25s ease;
+}
+[data-theme='reader'] .archive-row:hover .archive-row-title,
+[data-theme='reader'] .archive-row:focus-visible .archive-row-title {
+  color: var(--color-primary);
+  transform: translateX(4px);
+}
+[data-theme='reader'] .archive-row-arrow {
+  color: var(--color-primary);
+  font-size: 0.9375rem;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+[data-theme='reader'] .archive-row:hover .archive-row-arrow,
+[data-theme='reader'] .archive-row:focus-visible .archive-row-arrow {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* 说说页（极简模式适配） */
