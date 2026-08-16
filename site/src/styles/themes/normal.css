@@ -2837,8 +2837,8 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   font-size: 15.5px;
   line-height: 1.6;
   color: var(--color-text-muted);
-  transition: color 0.25s ease, font-size 0.25s ease, opacity 0.25s ease;
   opacity: 0.72;
+  /* 高亮瞬时切换（行逐秒变化，过渡动画反而产生闪烁/竞态） */
 }
 [data-theme='normal'] .radio-lyric-line.active {
   color: var(--color-primary);
