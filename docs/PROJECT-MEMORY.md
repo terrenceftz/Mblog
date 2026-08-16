@@ -188,6 +188,13 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - 修复：reader.css 追加电台极简套——无卡播放器（grid 140px 封面 + 1fr，透明底）、EQ 动效 `readerRadioEq`（白底小条）、圆形细边按钮 + 赭红主按钮（`--color-primary` 实心白字）、细线歌单行式（active 9% 琥珀 + inset 指示条）、移动端 ≤640px 单列；**reader tokens 补 `--color-error: #a03a2a`**（之前缺失，`radio-play-err` 会失效）。线上验证：歌单 10 首正常加载、播放器样式全命中。
 - 教训：新功能（如电台）上线时若不双主题适配，reader 会留下无样式页面——功能开发时就把双主题样式一起做。
 
+### 电台 normal 播放器版式 + 歌词（同日，已部署 `cf4fbd0`/`1ad8fc2`/`c92a3db`）
+- **backend**：`getSongLyric`（weapi `song/lyric`，lv/kv/tv -1）+ 公开路由 `/api/netease/lyric?id=`（无歌词返回空串）+ `test/netease.test.ts`（3 条路由校验层测试，不触网）→ 90/90。
+- **site normal 分离式播放器**（用户选定）：`.radio-top`（200px 封面+琥珀辉光 / 信息+`.radio-controls-bar` 横条=按钮组+进度+音量，上细线分隔）+ `.radio-lyrics` 歌词屏（300px 滚动、LRC 解析缓存、active 琥珀放大+辉光、scrollIntoView center 滚动跟随）+ 歌单。**reader 保持现状**：`.radio-top` 140px 无卡两列、控制条 column 纵向、`.radio-lyrics { display:none }`。
+- **坑（重要）**：歌词行 active 高亮用 `transition`（color/font-size 0.25s）时**逐秒切换的歌词行产生竞态**——高亮停留在过渡起点（灰色 15.5px）永不完成，font-weight 无 transition 立即生效 700（定位线索）；**去 transition 瞬时高亮即修复**。歌词高亮类规则不要加 transition。
+- 部署踩坑：**scp 多文件同 basename 会互相覆盖**（两个 netease.ts 同名 → 后传的覆盖先传的）→ backend 源文件 scp 务必用不同目标名（如 netease-lib.ts/netease-route.ts）。
+- 验证：线上歌单 10 首，歌词 62 行加载、active 琥珀 18px 高亮+辉光、滚动居中（offset 27px）、reader 歌词隐藏+原版式、API 返回 1521 字符 LRC。
+
 ### hero 视频渐隐融合迭代（同日，用户反馈"整页视频与全站气质割裂、导航区黑块"）
 - **结构**：视频从 fixed 整页改为 `.about-hero` 内 absolute（随滚动离场）；去 `.about-cinema` 容器；下方内容包 `.about-body`（relative + 720 版心 + `<GradientBlob />`，与 posts/archive 同款辉光）。
 - **主题融合**：视频 filter 暖调琥珀（sepia .32/hue-rotate -12deg/brightness .62）；遮罩**顶+底**都渐隐到 `var(--color-bg)`（顶边保证滚动时透明 sticky 顶栏下与其它页观感一致——修复「导航区黑块」）；下方 kv/quote/progress/marquee/stats/links 白 rgba 全换 `--color-text*`/`--color-border`。
