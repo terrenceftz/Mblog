@@ -171,6 +171,11 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - **reader 修复**：视频/遮罩/SCROLL 提示在 reader.css 外部规则 display:none（GradientBlob 先例）；结构化块极简样式（细线 kv/琥珀引号/细进度条/marquee 26s）；reduced-motion 下 marquee 只静态显示一份（nth-child(n+2) 隐藏）。
 - **视频主题联动**（非降级）：`syncVideo()` 监听 `mblog-theme-change`，reader 暂停 / normal 恢复播放；reduced-motion 照旧暂停。**视频背景按用户决定不做能力降级**。
 - **坑新增**：@astrojs/compiler 对模板表达式内含 `\u{...}` 码点转义的 regex 字面量会误判表达式边界（map 收尾丢 `}`，check 报 ts(1005) 且产物非法）——**含 `\u{...}` 的 regex 必须放 frontmatter 常量**再在模板调用（about.astro EMOJI_RE 先例，勿改回内联）。
+
+### 线上部署（2026-08-16 已部署 cs.mboker.cn）
+- 部署内容：backend `settings.ts` + `misc.ts`（scp 覆盖）/ site dist（tar 替换 `/root/.openclaw/.../mblog/site/dist`）/ admin dist（tar 替换 `/var/www/cs.mboker.cn/admin`）。PM2 重启 mblog-site + mblog-api，验证 about 页 200、aboutBlocks 返回数组（线上暂无结构化块→回退旧文本）、admin 新 hash 生效。
+- **⚠️ 复现 PM2 v18 事故**：`sudo /root/.nvm/.../pm2 restart --update-env` 直接跑 → sudo 默认 PATH 里 node 解析成 v18.19.1 → better-sqlite3 ABI 不匹配 ERR_DLOPEN_FAILED → 502。**正确姿势必须是 `sudo bash -c 'export PATH=/root/.nvm/versions/node/v22.22.2/bin:$PATH && pm2 restart mblog-api --update-env'`（sudo 内先 export 再重启）**——仅用 pm2 绝对路径不够，坑在于 sudo 会重置 PATH。
+- **SSH 连通教训**：2026-08-16 本机 SSH 22 端口一度被腾讯云安全组拦截（ping 通、80/443 通、22 超时=包被丢弃）。放通本机 IP 后恢复。若再遇 502/连不上，先查安全组是否把 SSH 来源收窄了。
 - 验证：backend 87/87、admin typecheck 0、site check 0 errors、双主题 dev 实测（reader 视频隐藏/normal fixed 播放、27% 进度与公式一致、javascript: 链接被拦）。本地 dev 库 `about_blocks` 已留 8 条演示块（text×1/kv×4/quote/progress/marquee），后台「站点设置→关于页内容」可改。
 - 提交链：`6969db3`（backend）→ `08459f4`+`51f8353`（admin）→ `89e6951`/`057b1a0`/`707fa7c`/`e8f6037`/`dbaa145`（site 五连）→ `37a699f`（审查修复）。**线上未部署**（下次部署记得 site dist + backend settings.ts/misc.ts + admin dist）。
 
