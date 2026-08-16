@@ -179,6 +179,10 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - 验证：backend 87/87、admin typecheck 0、site check 0 errors、双主题 dev 实测（reader 视频隐藏/normal fixed 播放、27% 进度与公式一致、javascript: 链接被拦）。本地 dev 库 `about_blocks` 已留 8 条演示块（text×1/kv×4/quote/progress/marquee），后台「站点设置→关于页内容」可改。
 - 提交链：`6969db3`（backend）→ `08459f4`+`51f8353`（admin）→ `89e6951`/`057b1a0`/`707fa7c`/`e8f6037`/`dbaa145`（site 五连）→ `37a699f`（审查修复）。**线上未部署**（下次部署记得 site dist + backend settings.ts/misc.ts + admin dist）。
 
+### reader 归档页排版修复（同日，已部署 `5ef2c6c`）
+- 根因：reader.css 归档有两套样式——旧模板类名（`.month`/`.date`/`.posts-title-sm`，新 archive.astro 已无此结构=死代码）+ 新适配只覆盖部分类 → `.archive-month` 是 block（label/rule/count 三 span 内联挤排，rule 宽 0）、`.archive-row` 是 inline（date/title/arrow 混排，日期衬线非 mono）、残留旧 `.archive-group ul` 竖线与 li::before 圆点。
+- 修复：reader 归档段重写——`.archive-month` flex + `.archive-month-rule` dotted leader + count；`.posts-list`/`.posts-item` 清 border-left/position/::before；`.archive-row` grid 三列（date mono / title display / arrow hover 滑入）；normal 主题零改动。**教训：normal/reader 双主题样式必须同步适配模板改版，类名级死代码容易残留。**
+
 ### hero 视频渐隐融合迭代（同日，用户反馈"整页视频与全站气质割裂、导航区黑块"）
 - **结构**：视频从 fixed 整页改为 `.about-hero` 内 absolute（随滚动离场）；去 `.about-cinema` 容器；下方内容包 `.about-body`（relative + 720 版心 + `<GradientBlob />`，与 posts/archive 同款辉光）。
 - **主题融合**：视频 filter 暖调琥珀（sepia .32/hue-rotate -12deg/brightness .62）；遮罩**顶+底**都渐隐到 `var(--color-bg)`（顶边保证滚动时透明 sticky 顶栏下与其它页观感一致——修复「导航区黑块」）；下方 kv/quote/progress/marquee/stats/links 白 rgba 全换 `--color-text*`/`--color-border`。
