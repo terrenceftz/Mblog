@@ -1406,3 +1406,125 @@
   color: var(--color-text-secondary);
   white-space: pre-wrap;
 }
+
+/* ---------- 关于页：reader 修复 + 结构化块极简适配 ---------- */
+/* 视频背景为 normal 专属（跨主题隐藏用外部规则，GradientBlob 先例） */
+[data-theme='reader'] .about-video,
+[data-theme='reader'] .about-video-shade {
+  display: none;
+}
+[data-theme='reader'] .about-scroll-cue { display: none; }
+[data-theme='reader'] .about-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin: 0 0 6px;
+}
+/* 结构化块（reader 极简：细线/左边框/细进度条） */
+[data-theme='reader'] .about-text {
+  margin: 0 0 16px;
+  font-size: 0.9375rem;
+  line-height: 1.9;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+}
+[data-theme='reader'] .about-kv {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+[data-theme='reader'] .about-kv-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+[data-theme='reader'] .about-kv-leader {
+  flex: 1;
+  min-width: 24px;
+  border-bottom: 1px dotted var(--color-border);
+  transform: translateY(-3px);
+}
+[data-theme='reader'] .about-kv-value { font-size: 0.9375rem; color: var(--color-text); }
+[data-theme='reader'] a.about-kv-value { color: var(--color-primary); }
+[data-theme='reader'] .about-quote {
+  margin: 8px 0;
+  padding: 24px 0 20px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+[data-theme='reader'] .about-quote-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--color-text-heading);
+  margin: 0 0 8px;
+}
+[data-theme='reader'] .about-quote-text::before { content: '\201C'; color: var(--color-primary); }
+[data-theme='reader'] .about-quote-text::after { content: '\201D'; color: var(--color-primary); }
+[data-theme='reader'] .about-quote-author {
+  display: block;
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+[data-theme='reader'] .about-progress { padding: 20px 0 16px; border-top: 1px solid var(--color-border); }
+[data-theme='reader'] .about-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+[data-theme='reader'] .about-progress-title { font-size: 0.9375rem; color: var(--color-text); }
+[data-theme='reader'] .about-progress-num {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme='reader'] .about-progress-track {
+  height: 3px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+[data-theme='reader'] .about-progress-fill { height: 100%; background: var(--color-primary); }
+[data-theme='reader'] .about-progress-dates {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+[data-theme='reader'] .about-marquee {
+  overflow: hidden;
+  margin: 24px 0 4px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+[data-theme='reader'] .about-marquee-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: reader-marquee 26s linear infinite;
+}
+[data-theme='reader'] .about-marquee-item {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding-right: 0.6em;
+}
+@keyframes reader-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='reader'] .about-marquee-track { animation: none; }
+}
