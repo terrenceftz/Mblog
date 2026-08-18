@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
 import FriendLinkForm from '../components/FriendLinkForm.vue';
-import { getFriendLinks } from '../lib/api';
+import { getFriendLinks, type FriendLink } from '../lib/api';
 
 const links = await getFriendLinks().catch(() => []);
 ---
@@ -10,7 +10,7 @@ const links = await getFriendLinks().catch(() => []);
   <PageHeader title="友情链接" subtitle="交换链接，一起写作。" count={`共 ${links.length} 个站点`} class="friends-page">
     {links.length > 0 ? (
       <div class="link-grid">
-        {links.map((l) => (
+        {links.map((l: FriendLink) => (
             <a class="link-card" href={l.url} target="_blank" rel="noopener noreferrer">
               {l.avatar ? (
                 <img class="link-avatar-img" src={l.avatar} alt={l.name} loading="lazy" />

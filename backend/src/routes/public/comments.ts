@@ -5,6 +5,7 @@ import { rateLimit } from '../../middleware/rateLimit';
 import { createCaptcha, verifyCaptcha } from '../../lib/captcha';
 import { verifyTurnstile } from '../../lib/turnstile';
 import { getSetting } from '../../lib/settings';
+import { sendEmail, escapeHtml } from '../../lib/mailer';
 import { clientIp } from '../../lib/clientIp';
 import type { Db } from '../../db';
 
@@ -92,6 +93,22 @@ export function commentsRoutes(ctx: Db) {
     }
 
     ctx.db.insert(comments).values({ postId: post.id, author, email, website, content, ip, status: 'pending', parentId }).run();
+
+    // 邮件通知博主：新评论待审核（SMTP 未配置时静默跳过，失败不影响主流程）
+    const notifyTo = getSetting(ctx, 'notify_email');
+    if (notifyTo) {
+      const siteName = getSetting(ctx, 'site_name');
+      const siteUrl = getSetting(ctx, 'site_url');
+      sendEmail(
+        ctx,
+        notifyTo,
+        `【${siteName || '博客'}】新评论待审核：${author}`,
+        `<p><strong>${escapeHtml(author)}</strong> 在《${escapeHtml(post.title)}》下发表了新评论：</p>
+         <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#555;">${escapeHtml(content)}</blockquote>
+         <p><a href="${siteUrl}/admin/comments">前往后台审核</a></p>`,
+      );
+    }
+
     return c.json({ data: { message: '评论已提交，等待审核' } }, 201);
   });
 

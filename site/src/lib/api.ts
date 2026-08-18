@@ -1,70 +1,41 @@
+// 三端共享 API 契约类型（真源见仓库根 shared/types.ts）
+export type {
+  PostListItem,
+  PostDetail,
+  Page,
+  ThemeConfig,
+  AboutBlock,
+  PublicSettings,
+  Category,
+  Tag,
+  ArchiveGroup,
+  Talk,
+  FriendLink,
+  Photo,
+  Project,
+  ProjectsData,
+  DoubanMovie,
+  DoubanData,
+  StatsData,
+} from '@shared/types';
+import type {
+  PostListItem,
+  PostDetail,
+  Page,
+  PublicSettings,
+  Category,
+  Tag,
+  ArchiveGroup,
+  Talk,
+  FriendLink,
+  Photo,
+  ProjectsData,
+  DoubanData,
+  StatsData,
+} from '@shared/types';
+
 // 服务端渲染时使用；生产容器内经环境变量指向 mblog-api 服务
 const API_BASE = process.env.API_BASE ?? 'http://localhost:3000';
-
-export interface PostListItem {
-  id: number; title: string; slug: string; summary: string; cover: string;
-  viewCount: number; categoryId: number | null; createdAt: number;
-  tags: { name: string; slug: string }[];
-}
-export interface PostDetail extends PostListItem {
-  contentHtml: string;
-  updatedAt: number;
-  /** 仅详情接口返回（列表接口无此字段） */
-  likeCount: number;
-  category: { id: number; name: string; slug: string } | null;
-  prev: { title: string; slug: string } | null;
-  next: { title: string; slug: string } | null;
-}
-export interface Page<T> { list: T[]; total: number }
-export interface ThemeConfig {
-  bg?: string; text?: string; muted?: string; primary?: string; border?: string;
-  fontSize?: number; homePageSize?: number;
-  avatar?: string; intro?: string;
-}
-// 关于页结构化名片块（settings.about_blocks JSON 解析结果）
-export type AboutBlock =
-  | { type: 'text'; text: string }
-  | { type: 'kv'; label: string; value: string; link?: string }
-  | { type: 'quote'; text: string; author?: string }
-  | { type: 'progress'; title: string; start: string; end: string }
-  | { type: 'marquee'; text: string };
-export interface PublicSettings {
-  siteName: string;
-  /** 博主名称（前台首屏"你好，我是X"，后台站点设置可配） */
-  author: string;
-  /** 博主头像（前台首屏头像，后台站点设置可配，回退主题配置） */
-  avatar: string;
-  siteDesc: string;
-  siteUrl: string;
-  theme: string;
-  friendLinkEnabled: boolean;
-  navMenuNormal: { label: string; url: string }[];
-  navMenuReader: { label: string; url: string }[];
-  aboutContent: string;
-  aboutBlocks: AboutBlock[];
-  themeNormal: ThemeConfig;
-  themeReader: ThemeConfig;
-  githubEnabled: boolean;
-  githubUsername: string;
-  doubanEnabled: boolean;
-  doubanUid: string;
-  turnstileSiteKey: string;
-  /** 电台歌单 ID（网易云，cookie 不下发仅后端持有） */
-  neteasePlaylistId: string;
-}
-export interface Category { id: number; name: string; slug: string; postCount: number; cover: string }
-export interface Tag { id: number; name: string; slug: string; postCount: number }
-export interface ArchiveGroup { month: string; items: { createdAt: number; title: string; slug: string }[] }
-export interface Talk { id: number; content: string; createdAt: number }
-export interface FriendLink { id: number; name: string; url: string; description: string; avatar: string }
-export interface Photo { id: number; url: string; title: string; description: string }
-export interface Project {
-  name: string; description: string; url: string;
-  language: string | null; stars: number; updatedAt: string;
-}
-export interface ProjectsData {
-  enabled: boolean; username?: string; projects: Project[]; error?: string; stale?: boolean;
-}
 
 // SSR 层短 TTL 缓存 + 单飞去重：首页一次渲染要打 7 个公开接口，且 middleware/页面/同进程
 // 多页面会重复拉取同一批数据。仅服务端启用（浏览器端走 island 的即时请求，不缓存以免陈旧）。
@@ -100,7 +71,7 @@ async function get<T>(path: string): Promise<T> {
   return p;
 }
 
-export function getPublicSettings(): Promise<PublicSettings> {
+export async function getPublicSettings(): Promise<PublicSettings> {
   return get<PublicSettings>('/settings/public').catch(() => ({
     siteName: '我的博客', author: '', avatar: '', siteDesc: '', siteUrl: 'http://localhost', theme: 'normal', friendLinkEnabled: true,
     themeNormal: {}, themeReader: {}, githubEnabled: false, githubUsername: '',
@@ -145,27 +116,5 @@ export const getFriendLinks = () => get<FriendLink[]>('/friend-links');
 export const getTalks = () => get<Talk[]>('/talks');
 export const getPhotos = () => get<Photo[]>('/photos');
 export const getProjects = () => get<ProjectsData>('/projects');
-export interface DoubanMovie {
-  title: string;
-  url: string;
-  cover: string;
-  rating: number;
-  ratingText: string;
-  date: string;
-}
-export interface DoubanData {
-  enabled: boolean;
-  uid?: string;
-  movies: DoubanMovie[];
-  error?: string;
-  stale?: boolean;
-}
 export const getDouban = () => get<DoubanData>('/douban');
-
-export interface StatsData {
-  postTotal: number;
-  commentTotal: number;
-  totalViews: number;
-  friendLinkCount: number;
-}
 export const getStats = () => get<StatsData>('/stats');

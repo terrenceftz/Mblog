@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageHeader from '../../components/PageHeader.astro';
 import { getCategories, type Category } from '../../lib/api';
+import { optimizeImage, type OptimizedImage } from '../../lib/img';
 
 const categories = await getCategories().catch(() => [] as Category[]);
 
@@ -43,6 +44,13 @@ const total = categories.reduce((n, c) => n + c.postCount, 0);
 // 特色图相对路径 → 公共绝对 URL（生产走 nginx 同域 /uploads 反代保持相对，本地直跑设 PUBLIC_API_BASE）
 const PUBLIC_API_BASE = process.env.PUBLIC_API_BASE ?? '';
 const absUrl = (u: string) => (u.startsWith('/') && PUBLIC_API_BASE ? `${PUBLIC_API_BASE}${u}` : u);
+// 分类特色图响应式优化（卡片 hover 背景 ~380px；失败回退原图）
+const catItems: { c: Category; cover: OptimizedImage | null }[] = await Promise.all(
+  categories.map(async (c) => ({
+    c,
+    cover: c.cover ? await optimizeImage(c.cover, { base: Astro.request.url, widths: [400, 800, 1200], sizes: '400px' }) : null,
+  })),
+);
 ---
 <BaseLayout title="分类" description="按分类浏览全部文章。">
   <PageHeader title="分类" subtitle="按分类浏览全部文章" count={`共 ${categories.length} 个分类 · ${total} 篇`} class="category-page">
@@ -51,12 +59,12 @@ const absUrl = (u: string) => (u.startsWith('/') && PUBLIC_API_BASE ? `${PUBLIC_
         {/* Luma 风格透视网格背景（暗色版：低透明度白线 + 渐隐） */}
         <div class="cat-grid-bg" aria-hidden="true" />
         <div class="cat-luma">
-          {categories.map((c, i) => (
+          {catItems.map(({ c, cover }, i) => (
             <a class="cat-card" href={`/category/${c.slug}`} data-reveal style={`--reveal-delay: ${(i % 8) * 50}ms`}>
               {/* Luma 原版 hover 背景图：特色图浮现 + 暗色遮罩（无特色图时回退琥珀光晕） */}
               {c.cover && (
                 <span class="cat-bg" aria-hidden="true">
-                  <img src={absUrl(c.cover)} alt="" loading="lazy" />
+                  <img src={cover ? cover.src : absUrl(c.cover)} srcset={cover?.srcset} sizes={cover?.sizes} alt="" loading="lazy" decoding="async" />
                 </span>
               )}
               <span class="cat-glow" aria-hidden="true" />

@@ -22,6 +22,7 @@ export const router = createRouter({
         { path: 'friends', name: 'admin-friends', component: () => import('../views/FriendLinkManager.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('../views/SettingsPage.vue') },
         { path: 'themes', name: 'admin-themes', component: () => import('../views/ThemesPage.vue') },
+        { path: 'audit-log', name: 'admin-audit-log', component: () => import('../views/AuditLog.vue') },
       ],
     },
   ],

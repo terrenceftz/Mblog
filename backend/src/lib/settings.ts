@@ -58,6 +58,13 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   // 电台（网易云）：cookie 为账号登录态（掩码存储，永不下发前端），playlist_id 为当前电台歌单
   netease_cookie: '',
   netease_playlist_id: '',
+  // 邮件通知（SMTP）：新评论待审核 / 博主回复时提醒。smtp_from 与 notify_email 同时配置才启用
+  smtp_host: '',
+  smtp_port: '465',
+  smtp_user: '',
+  smtp_pass: '',
+  smtp_from: '',
+  notify_email: '',
 };
 
 export function getSetting(ctx: Db, key: string): string {

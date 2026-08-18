@@ -3,11 +3,13 @@ process.env.JWT_SECRET = 'test-secret-0123456789abcdef0123456789abcdef';
 
 import { beforeEach } from 'vitest';
 import { resetRateLimit } from '../src/middleware/rateLimit';
+import { resetLoginLock } from '../src/routes/admin/auth';
 import { resetDoubanCache } from '../src/routes/public/douban';
 import { resetCaptchas } from '../src/lib/captcha';
 
 beforeEach(() => {
   resetRateLimit();
+  resetLoginLock();
   resetDoubanCache();
   resetCaptchas();
 });

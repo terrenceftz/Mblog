@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// 相册管理：本地上传（选图后本地压缩到 1600px 再传，减少卡顿）+ 外部 URL + 编辑标题 + 删除
-import { ref, onMounted } from 'vue';
+// 相册管理：本地上传（选图后本地压缩到 1600px 再传，减少卡顿）+ 外部 URL + 编辑标题/分组 + 删除
+import { ref, computed, onMounted } from 'vue';
 import { api, type Photo } from '../api/admin';
 import { toast } from '../lib/toast';
 
@@ -9,11 +9,24 @@ const loading = ref(false);
 const uploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const newTitle = ref('');
+const newAlbum = ref('');
 const newUrl = ref('');
+const albumFilter = ref('全部');
 const selectedName = ref('');
 const selectedSize = ref('');
 
 const MAX_EDGE = 1600;
+
+// 所有分组（供筛选下拉与新增表单的 datalist 提示）
+const albums = computed(() => {
+  const set = new Set<string>();
+  for (const p of photos.value) if (p.album.trim()) set.add(p.album.trim());
+  return [...set];
+});
+const filteredPhotos = computed(() => {
+  if (albumFilter.value === '全部') return photos.value;
+  return photos.value.filter((p) => p.album.trim() === albumFilter.value);
+});
 
 async function loadPhotos() {
   loading.value = true;
@@ -67,9 +80,10 @@ async function handleUpload() {
     const blob = await compressImage(file);
     const base = file.name.replace(/\.[^.]+$/, '') || 'photo';
     const url = await api.uploadPhoto(blob, `${base}.jpg`);
-    await api.createPhoto({ url, title: newTitle.value.trim() });
+    await api.createPhoto({ url, title: newTitle.value.trim(), album: newAlbum.value.trim() });
     toast.success('照片已上传');
     newTitle.value = '';
+    newAlbum.value = '';
     selectedName.value = '';
     selectedSize.value = '';
     if (fileInput.value) fileInput.value.value = '';
@@ -87,10 +101,11 @@ async function handleAddByUrl() {
     toast.warning('请输入图片地址');
     return;
   }
-  await api.createPhoto({ url, title: newTitle.value.trim() });
+  await api.createPhoto({ url, title: newTitle.value.trim(), album: newAlbum.value.trim() });
   toast.success('照片已添加');
   newUrl.value = '';
   newTitle.value = '';
+  newAlbum.value = '';
   loadPhotos();
 }
 
@@ -99,6 +114,14 @@ async function handleEditTitle(p: Photo) {
   if (input === null) return;
   await api.updatePhoto(p.id, { title: input.trim() });
   toast.success('标题已更新');
+  loadPhotos();
+}
+
+async function handleEditAlbum(p: Photo) {
+  const input = window.prompt('修改相册分组（留空归「全部」）', p.album);
+  if (input === null) return;
+  await api.updatePhoto(p.id, { album: input.trim() });
+  toast.success('分组已更新');
   loadPhotos();
 }
 
@@ -138,6 +161,13 @@ onMounted(loadPhotos);
             <input v-model="newTitle" class="form-control" maxlength="100" placeholder="照片标题" />
           </div>
           <div class="col-md-2">
+            <label class="form-label">相册分组</label>
+            <input v-model="newAlbum" list="album-options" class="form-control" maxlength="50" placeholder="如：旅行" />
+            <datalist id="album-options">
+              <option v-for="a in albums" :key="a" :value="a" />
+            </datalist>
+          </div>
+          <div class="col-md-2">
             <button @click="handleUpload" class="btn btn-primary w-100" :disabled="uploading">
               {{ uploading ? '上传中…' : '上传' }}
             </button>
@@ -156,21 +186,33 @@ onMounted(loadPhotos);
     </div>
 
     <div class="card">
-      <div class="card-header py-3">
+      <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
         <h3 class="card-title fw-bold m-0">照片列表 (共 {{ photos.length }} 张)</h3>
+        <div class="d-flex align-items-center gap-2">
+          <label class="form-label small text-muted m-0">按分组：</label>
+          <select v-model="albumFilter" class="form-select form-select-sm" style="width: auto">
+            <option value="全部">全部</option>
+            <option v-for="a in albums" :key="a" :value="a">{{ a }}</option>
+          </select>
+        </div>
       </div>
       <div class="card-body">
         <div v-if="loading" class="text-center text-muted py-5">加载中…</div>
-        <div v-else-if="photos.length === 0" class="text-center text-muted py-5">相册还是空的，先添加几张吧</div>
+        <div v-else-if="filteredPhotos.length === 0" class="text-center text-muted py-5">该分组暂无照片</div>
         <div v-else class="row g-3">
-          <div v-for="p in photos" :key="p.id" class="col-6 col-md-4 col-lg-3">
+          <div v-for="p in filteredPhotos" :key="p.id" class="col-6 col-md-4 col-lg-3">
             <div class="card h-100">
               <img :src="p.url" class="card-img-top" :alt="p.title || '照片'" style="height: 160px; object-fit: cover;" loading="lazy" />
               <div class="card-body p-2 d-flex flex-column gap-1">
                 <div class="text-truncate small">{{ p.title || '（无标题）' }}</div>
+                <div class="d-flex align-items-center gap-1">
+                  <span v-if="p.album" class="badge text-bg-secondary font-monospace">{{ p.album }}</span>
+                  <span v-else class="badge text-bg-light text-muted font-monospace">全部</span>
+                </div>
                 <div class="text-muted micro-text font-monospace">{{ p.created_at }}</div>
-                <div class="d-flex gap-1 mt-auto">
+                <div class="d-flex gap-1 mt-auto flex-wrap">
                   <button @click="handleEditTitle(p)" class="btn btn-sm btn-outline-primary">标题</button>
+                  <button @click="handleEditAlbum(p)" class="btn btn-sm btn-outline-secondary">分组</button>
                   <button @click="handleDelete(p)" class="btn btn-sm btn-ghost-danger">删除</button>
                 </div>
               </div>

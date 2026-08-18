@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import sharp from 'sharp';
-import { getPost } from '../../lib/api';
+import { getPost, type PostDetail } from '../../lib/api';
 
 // 动态 OG 分享图：深色渐变 + 琥珀光斑 + 文章标题（中文换行）
 // 注意：SVG 中文渲染依赖服务器字体（本地 Windows 有中文字体；Docker 部署需安装 CJK 字体）
@@ -27,7 +27,7 @@ function wrapTitle(title: string, perLine = 16): string[] {
 
 export const GET: APIRoute = async ({ params }) => {
   const { slug } = params;
-  let post;
+  let post: PostDetail | null = null;
   try {
     post = await getPost(slug!);
   } catch {

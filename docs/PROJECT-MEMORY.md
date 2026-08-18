@@ -1,6 +1,6 @@
 # MBLOG 项目记忆文档（会话交接）
 
-> 最后更新：2026-08-16（About 页结构化名片块 + reader 视频修复）
+> 最后更新：2026-08-18（全量优化：安全/审计/邮件通知/相册分组/备份/响应式图片/CI）
 > 用途：跨会话记忆，供下次继续开发使用。开发前先读本文件 + `git log --oneline -20`。
 
 ---
@@ -8,7 +8,7 @@
 ## 0. 环境（2026-08-12 定稿）
 
 - **Node v24.19.0**（winget OpenJS.NodeJS.LTS）+ **pnpm 11.21**（corepack enable）。保持 Node 24。
-- **better-sqlite3 = ^12.11.1**（有 Node 24 prebuilt；**不要升 v13**——无 prebuild 需 VS 编译必失败）。重装后 `npm test` 验证（当前 83/83）。
+- **better-sqlite3 = ^12.11.1**（有 Node 24 prebuilt；**不要升 v13**——无 prebuild 需 VS 编译必失败）。重装后 `npm test` 验证（当前 102/102）。
 - site（Astro 5.18 + sharp 0.34）在 Node 24 正常；admin（Vite 6）正常。
 - **GitHub 远程已关联（2026-08-12）**：`origin = https://github.com/terrenceftz/Mblog.git`（**Public**，主分支 main，262 commits）。`gh` 已登录 terrenceftz。
 - 坑：MSI 换 node.exe 前必须停所有 node 进程；Windows npm 脚本用 cross-env；pnpm build 许可在 pnpm-workspace.yaml allowBuilds。
@@ -201,15 +201,52 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - **黑块根因**：IAB/标签页隐藏时浏览器自动暂停视频且无人恢复 → syncVideo 增加 `visibilitychange` 监听（重新可见+normal+非 reduced 时恢复播放）。主题切换联动不变。
 - 坑：normal 顶栏 `.site-header` 是 **transparent sticky**（z100），内容永远从其下穿过——整页异色媒体会在 pill 胶囊两侧形成色带；hero 文字需 `position:relative; z-index:2` 压过 absolute 视频/遮罩。`.theme-toggle` 按钮全站有 2 个（PillNav + 隐藏 MobileHeader），role 定位点击可能 flaky。
 
+## 5d. 2026-08-18：全量优化（安全 / 审计 / 邮件通知 / 相册分组 / 备份 / 响应式图片 / CI）
+
+> 覆盖 P0~P2 共 14 项优化方向，三端 + 部署配置全动。**未部署线上**（只交付脚本，`./deploy.sh`）。
+
+### backend（测试 90 → 102）
+1. **索引 + busy_timeout**：`db/index.ts` 加 `busy_timeout = 5000`；`migrate.ts` 末尾幂等 `CREATE INDEX IF NOT EXISTS`（comments.post_id / post_tags(post_id,tag_id) / posts(category_id,status,created_at) / talks / friend_links / photos / admin_logs）。
+2. **安全响应头**（`app.ts` 全局）：补 `X-Frame-Options: DENY`、`Referrer-Policy`、`Permissions-Policy`（禁 camera/mic/geolocation）、HSTS 仅当 `x-forwarded-proto: https`（本地 http 不下发）。CSP 未做（admin/astro 大量内联脚本）。
+3. **登录锁定**（`admin/auth.ts`）：同用户名+IP 连续失败 5 次锁 15 分钟（成功清零），`LOCKED` 429。测试隔离：`resetLoginLock` 已加进 setup.ts beforeEach + helpers.makeTestApp + admin.test.ts 限流用例末尾（**beforeAll 早于 beforeEach，模块级锁会跨 describe 泄漏**）。
+4. **操作审计**：`admin_logs` 表（schema + migrate 建表）+ `middleware/audit.ts`（挂在 authMiddleware 之后，只记 POST/PUT/PATCH/DELETE，404 不记，写失败静默）+ `GET /admin/audit-logs`（分页+username/method 过滤）。
+5. **邮件通知（SMTP）**：`nodemailer@^6.10`（纯 JS，服务器部署无 ABI 风险）。settings 新增 `smtp_host/smtp_port/smtp_user/smtp_pass/smtp_from/notify_email`（smtp_pass 进 MASKED_KEYS）。`lib/mailer.ts`：`sendEmail` 静默失败 + `__setCreateTransport` 测试注入。触发点：新评论待审核 → 通知博主；博主回复（admin POST /comments/:id/reply）→ 通知原评论者（留了邮箱才发）。
+6. **相册 album 字段**：schema + migrate 幂等加列（老库补列、新装建表语句已含）+ admin POST/PATCH + public GET select。共享类型 `Photo`/`PhotoRow` 已加 `album`。
+7. **备份**：`lib/backup.ts` `runBackup`（**better-sqlite3 v12 的 backup() 是异步 API，必须 await！**）+ `POST /admin/backup` + 独立脚本 `scripts/backup.mjs`（可 cron）。
+
+### site（astro check 0 errors / 0 warnings / 0 hints）
+8. **11 个 check hints 清零**：BaseLayout 的 preload-onload 改 `<Fragment set:html>` 原始 HTML（onload 属性会被检查器当表达式解析）；JSON-LD 脚本补 `is:inline`；各处 implicit any 加类型标注；`getPublicSettings` 改 async。
+9. **响应式图片（astro:assets）**：`astro.config` 加 `image`（sharp 服务 + remotePatterns 白名单——**hostname 通配只支持 `*.`/`**.` 前缀，没有"全量通配"**，按真实图源枚举：localhost/127.0.0.1/cs.mboker.cn/`**.doubanio.com`/image.tmdb.org/`**.music.126.net`，构建时可用 `IMAGE_HOSTS=a,b` 扩展）。`lib/img.ts` `optimizeImage()`：**远程图必须传 `inferSize: true`**（否则 CLS 报错）；相对路径按 `PUBLIC_API_BASE` > `Astro.request.url` 转绝对；失败回退原图。接入 6 处：首页索引封面+豆瓣条、文章 hero+相关、分类封面、相册（gallery.astro 预生成 srcset 传入 Vue）、豆瓣页。已验证本地 dist 冒烟：`/_image?href=...&f=webp` 返回 RIFF/WEBP 真图。
+10. **RSS alternate link** 加入 BaseLayout head。
+11. **相册前台分组**：gallery.astro 按 album 分组渲染 section（空 album 归「全部」不显示标题）。
+
+### admin（typecheck 0 + 首个 vitest 单测）
+12. **草稿后端化**：PostEditor 3s 防抖自动保存改调 `api.savePost(status:'draft')`（新建首存 POST → 记住 `draftId` → 之后 PUT），localStorage 保留为即时兜底；手动发布用 `postId ?? draftId`。
+13. **SettingsPage 新增两卡**：邮件通知（SMTP 字段）+ 数据备份（立即备份按钮，`api.createBackup` → `POST /admin/backup`）。
+14. **PhotoManager**：album 输入（datalist 提示已有分组）+ 顶部按分组筛选 + 卡片分组徽章/改组按钮。
+15. **操作日志视图** `AuditLog.vue`（分页表格 + 方法筛选）+ router `/audit-log` + AdminLayout 导航。
+16. **vitest 最小单测**：抽 `lib/format.ts` 的 `fmtTime`（admin.ts 原内联函数移出）+ `test/format.test.ts`；vitest@^2.1.9 + `vitest.config.ts`。
+
+### 部署 / 工程
+17. **`deploy.sh`**：`backend|site|admin|all` 四模式，固化构建→tar→scp→备份覆盖→PM2 重启（**`sudo bash -c 'export PATH=$NODE_BIN:$PATH && pm2 restart'`** 正确姿势）→curl 健康检查；服务器参数走环境变量（默认值=线上实测）。
+18. **`.github/workflows/ci.yml`**：三端 job（backend test / site check+build / admin typecheck+test+build），Node 24。
+19. **nginx 两套配置**：gzip（js/css/json/xml/rss/svg/woff2）+ 安全头。**注意 add_header 不向下继承**——server 级与每个带 add_header 的 location 都需声明一遍（已逐 location 补齐）。docker 版无 HSTS（纯 HTTP）。
+20. **`.gitignore`** 补 `._prod_home.html`。
+21. **共享类型** `shared/types.ts`：site 公共契约 + admin 行类型收拢，site/admin 各自 tsconfig 配 `@shared/*` paths（纯 type-only 导入，运行时零开销；Vite/esbuild 擦除 import type 无需 resolve）。
+
+### 新增已知坑（并入第 7 节）
+- **better-sqlite3 v12 `backup()` 返回 Promise**——异步 API，必须 await，否则文件没写完 stat 就 ENOENT。
+- **astro remotePatterns 无全量通配**；远程图 getImage 必须 `inferSize: true`。
+- **nginx add_header 不继承**：location 自带 add_header 时 server 级安全头失效，需逐 location 复制。
+- **模块级登录锁跨 describe 泄漏**：beforeAll 早于 beforeEach，锁要在测试末尾或 makeTestApp 里清。
+
 ## 6. 待办 / 下一步
 
-- **线上部署验证**（2026-08-15 已部署，复查 cs.mboker.cn 三页 + 豆瓣图 + PM2 日志）
-- **既有 astro check 6 错误**（og Buffer / post updatedAt / Element 类型）：装 `@types/node` + post 内联 script 加 `as HTMLElement`（可选清理，当前 0 errors 是 grep 过滤结果，完整 `npm run check` 仍有 hints）
-- **后台关于页**：如果用户要 eonova 结构化区块（我是谁/性格/星座/爱好/引用/进度条）需后台结构化字段（目前纯文本分段 + emoji）
-- **.gitignore**：`docs/prompts/`、`admin-pure/`、`.zcode/`、`._prod_home.html` 建议忽略（可选）
-- **TMDB 直链**：首页豆瓣 8 图中有 2 张 `image.tmdb.org` 直链，国内网络若被墙不显示，可把 TMDB 域名加进 backend `cover.ts` 代理白名单
-- 相册图片/OG 图 CJK 字体部署验证
-- admin-pure/ 目录处置（占空间）
+- **SMTP 配置**：需要博主填真实 SMTP 凭据（后台「站点设置→邮件通知」），配置后发一条测试评论验证
+- **CSP**：留作后续（admin/astro 内联脚本多，成本高，需 report-only 渐进）
+- **admin-pure/**（766M，已 ignore）：确认无用后可手动删除腾空间
+- **IMAGE_HOSTS**：若未来换域名/加图源，构建时设该环境变量扩展 astro 图片白名单
+- **2026-08-18 已部署**：backend（含 nodemailer）+ site + admin + nginx 配置已全部上线（见 5d 与第 9 节更新）
 
 ## 7. 已知坑（踩过，别再来一遍）
 
@@ -231,6 +268,12 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 16. **构建产物无 Vite /api 代理**（2026-08-15）：`astro.config.mjs` 的 `/api`、`/uploads` proxy 只在 `npm run dev` 生效；`node dist/server/entry.mjs` 直跑时相对路径图全 404（首页豆瓣海报事故）。**前台渲染任何相对媒体路径（/api/cover、/uploads）都必须 absUrl 拼 API_BASE**（gallery.astro 老规矩，首页/文章页已补）。API_BASE 环境变量同时影响图片加载
 17. **移动端 topbar 与 hero 负 margin**：`.nh-hero` 桌面 `margin-top:-57px` 是为钻进桌面顶栏；移动端顶栏是 MobileHeader（文档流内 sticky），负 margin 会把首屏文字顶进顶栏底下被挡住——**移动端归零**（`@media(max-width:768px) .nh-hero{margin-top:0}`）
 18. **SSR 缓存只进服务端**：`api.ts` 缓存 Map 用 `typeof window === 'undefined'` 门控，否则浏览器端 island 会拿到陈旧数据
+19. **better-sqlite3 v12 `backup()` 是异步 API**（返回 Promise）：`db.backup(dest)` 必须 `await`，否则文件未写完，紧随的 stat 报 ENOENT、端点 500
+20. **astro remotePatterns 无全量通配**：hostname 通配只支持 `*.`/`**.` 前缀（裸 `**` 校验直接报错），需按真实图源枚举 + 构建时 `IMAGE_HOSTS` 扩展；远程图 `getImage` 不传 `inferSize: true` 会报「Missing width and height attributes（CLS）」；相对路径要先按 `PUBLIC_API_BASE` 或请求源转绝对
+21. **nginx `add_header` 不向下继承**：location 里声明了任意 add_header，server 级的安全头即失效——安全头需逐 location 复制（cs-mboker-cn.conf 已按此处理）
+22. **登录锁定模块级状态跨 describe 泄漏**：`locks` Map 是模块级，beforeAll（loginAsAdmin）早于 beforeEach 执行——重置动作要同时放 setup.ts beforeEach、helpers.makeTestApp、以及会写锁的测试用例末尾（admin.test.ts 限流用例先例）
+23. **服务器抓自己公网域名会 fetch failed（hairpin/NAT）**：腾讯云上 site SSR 用 `https://cs.mboker.cn/uploads/...` 抓图失败（安全组无 hairpin）。**服务端内部抓取一律用内网地址**——astro getImage 的 href 只被服务端抓取，`lib/img.ts` 的 toAbsolute 优先 `API_BASE`（localhost:3003）而非请求源/公网域名
+24. **线上 nginx 已全局 `gzip on`**：站点配置再加 `gzip on` 会 duplicate 报错——只扩展 `gzip_types`（补 json/woff2）+ `gzip_proxied any`（默认 off 不压缩代理的 API 响应）；`gzip_min_length 1024` 下小 JSON 不压属正常
 
 ## 8. 事故记录（重要！）
 

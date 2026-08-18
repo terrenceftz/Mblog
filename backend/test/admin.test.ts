@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { comments } from '../src/db/schema';
 import { makeTestApp, loginAsAdmin, authHeaders, solveCaptcha } from './helpers';
 import { resetRateLimit } from '../src/middleware/rateLimit';
+import { resetLoginLock } from '../src/routes/admin/auth';
 
 describe('admin auth', () => {
   const { app } = makeTestApp();
@@ -56,6 +57,8 @@ describe('admin auth', () => {
     expect(res.status).toBe(429);
     const body = await res.json();
     expect(body.error.code).toBe('RATE_LIMITED');
+    // 清理本次测试写入的锁定态（beforeAll 早于 beforeEach，泄漏会给后续 describe 的登录造成 429）
+    resetLoginLock();
   });
 });
 

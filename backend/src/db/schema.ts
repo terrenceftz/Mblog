@@ -98,6 +98,18 @@ export const photos = sqliteTable('photos', {
   url: text('url').notNull(),
   title: text('title').notNull().default(''),
   description: text('description').notNull().default(''),
+  album: text('album').notNull().default(''),
   sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+});
+
+// 后台操作审计日志（登录后台的写操作：谁、何时、做了什么）
+export const adminLogs = sqliteTable('admin_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  username: text('username').notNull(),
+  method: text('method').notNull(),
+  path: text('path').notNull(),
+  status: integer('status').notNull(),
+  ip: text('ip').notNull().default(''),
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
 });

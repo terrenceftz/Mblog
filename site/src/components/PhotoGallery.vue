@@ -5,7 +5,11 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import gsap from 'gsap/dist/gsap.js';
 
-interface Photo { id: number; url: string; title: string; description: string }
+interface Photo {
+  id: number; url: string; title: string; description: string; album: string;
+  /** SSR 预生成的响应式图片（webp 多尺寸 srcset）；空则回退原图 */
+  img?: { src: string; srcset: string; sizes: string };
+}
 
 const props = defineProps<{ photos: Photo[] }>();
 const gridEl = ref<HTMLElement | null>(null);
@@ -34,7 +38,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
 <template>
   <div ref="gridEl" class="gallery-grid">
     <button v-for="p in photos" :key="p.id" type="button" class="gallery-item" @click="openLightbox(p)">
-      <img :src="p.url" :alt="p.title || '相册图片'" loading="lazy" />
+      <img :src="p.img?.src || p.url" :srcset="p.img?.srcset || undefined" :sizes="p.img?.sizes || undefined" :alt="p.title || '相册图片'" loading="lazy" decoding="async" />
       <span v-if="p.title" class="gallery-item-title">{{ p.title }}</span>
     </button>
   </div>

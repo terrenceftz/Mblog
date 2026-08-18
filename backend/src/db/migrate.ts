@@ -46,16 +46,51 @@ export function ensureMigrated(ctx: Db): void {
     );
   `);
 
-  // 相册表（简约单相册：url + 标题/描述 + 排序）
+  // 相册表（简约相册：url + 标题/描述 + 分组 + 排序）
   ctx.sqlite.exec(`
     CREATE TABLE IF NOT EXISTS photos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       url TEXT NOT NULL,
       title TEXT NOT NULL DEFAULT '',
       description TEXT NOT NULL DEFAULT '',
+      album TEXT NOT NULL DEFAULT '',
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL
     );
+  `);
+
+  // 增量列迁移：相册分组（老库补列；新库建表语句已含）
+  const hasAlbum = (ctx.sqlite.prepare('PRAGMA table_info(photos)').all() as { name: string }[]).some(
+    (c) => c.name === 'album',
+  );
+  if (!hasAlbum) {
+    ctx.sqlite.exec(`ALTER TABLE photos ADD COLUMN album text NOT NULL DEFAULT ''`);
+  }
+
+  // 后台操作审计日志表
+  ctx.sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS admin_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL,
+      method TEXT NOT NULL,
+      path TEXT NOT NULL,
+      status INTEGER NOT NULL,
+      ip TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL
+    );
+  `);
+
+  // 常用查询索引（SQLite 外键不会自动建索引；数据量上来后评论/标签/分类过滤会退化）
+  // 幂等，直接执行不报错
+  ctx.sqlite.exec(`
+    CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
+    CREATE INDEX IF NOT EXISTS idx_post_tags_post_id ON post_tags(post_id);
+    CREATE INDEX IF NOT EXISTS idx_post_tags_tag_id ON post_tags(tag_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_category_status_created ON posts(category_id, status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_talks_created_at ON talks(created_at);
+    CREATE INDEX IF NOT EXISTS idx_friend_links_status ON friend_links(status);
+    CREATE INDEX IF NOT EXISTS idx_photos_sort_created ON photos(sort_order, created_at);
+    CREATE INDEX IF NOT EXISTS idx_admin_logs_created_at ON admin_logs(created_at);
   `);
 
   const existing = ctx.db.select({ id: users.id }).from(users).limit(1).get();

@@ -16,18 +16,23 @@
 - 📝 **写作**：Vditor 富文本编辑器（WYSIWYG + Markdown），图片/音频上传、封面上传、草稿自动保存（localStorage）
 - 🖼 **相册**：瀑布流展示（reactbits Masonry 移植，GSAP 入场 + 点击 lightbox 放大），后台管理（上传自动压缩至 1600px / 外部 URL / 改标题 / 删除）
 - 👤 **关于页**：后台编辑内容，eonova 名片式分段展示（段首 emoji 自动识别为区块标签）
-- 💬 **评论**：Cloudflare Turnstile 云验证（未配置回落数学验证码），两级回复 + 审核
+- 💬 **评论**：Cloudflare Turnstile 云验证（未配置回落数学验证码），两级回复 + 审核，**新评论/博主回复可选邮件（SMTP）通知**
 - 🔗 **友链**：前台申请 + 后台审核，支持头像
 - 📁 **项目**：GitHub 公开仓库自动同步
 - 🎬 **影音**：豆瓣已看 + TMDB 海报图源
 - 💭 **说说**：短动态，作者直发免审核
+- 🖼 **相册分组**：照片可归入相册分组，前台按组分段展示，后台可筛选/改组
 - 🔎 **搜索**：SQLite FTS5 全文搜索（中文逐字分词）
+- 🗂 **操作日志**：后台写操作审计（谁/何时/做了什么），管理页可查
+- 💾 **数据备份**：在线 SQLite 备份（WAL 安全），后台一键 + 服务器定时脚本
 - 📂 **归档 / 标签 / 分类 / RSS** 齐全
 
 **性能与体验**
 - 首页滚动入场动效、统计数字 count-up、卡片多层 hover 反馈
+- **响应式图片**：astro:assets（sharp）封面/相册/豆瓣图出多尺寸 webp + srcset，按视口选档
 - **智能降级**：低端设备 / 触屏 / prefers-reduced-motion 时，WebGL 流体背景降级为静态渐变、关闭高开销动画——桌面端全特效，低端设备流畅
-- SEO 完善：动态 sitemap.xml / robots.txt、canonical、OG/Twitter 标签、文章 JSON-LD（BlogPosting + BreadcrumbList）
+- **安全**：全站安全响应头（HSTS/X-Frame-Options/Referrer-Policy/Permissions-Policy）、登录失败锁定、admin 写操作审计、SQL 索引 + WAL
+- SEO 完善：动态 sitemap.xml / robots.txt、canonical、RSS alternate、OG/Twitter 标签、文章 JSON-LD（BlogPosting + BreadcrumbList）
 - 可访问性：skip-link、全局 focus-visible、表单 label、404 返回真状态码
 
 ---
@@ -55,7 +60,7 @@ MBLOG/
 └── admin/     # Vue 后台 :5173（base=/admin/）
 ```
 
-- 后台管理页面：登录 → 仪表盘 / 文章 / 分类 / 标签 / 评论 / 说说 / **相册** / 友链 / 站点设置 / 主题配置
+- 后台管理页面：登录 → 仪表盘 / 文章 / 分类 / 标签 / 评论 / 说说 / **相册** / 友链 / 站点设置（含 SMTP 通知 / 备份）/ 主题配置 / **操作日志**
 - 前台页面：首页 / 全部文章 / 归档 / 分类 / 标签 / 搜索 / 友链 / 项目 / 影音 / 说说 / **相册** / **关于** / 文章页（TOC + 相关文章 + 评论）
 
 ---
@@ -97,10 +102,16 @@ npm run dev        # http://localhost:5173/admin/login
 ## 🧪 测试与检查
 
 ```bash
-cd backend && npm test        # vitest 全量（83 项）
+cd backend && npm test        # vitest 全量（102 项）
 cd site && npm run check      # astro check 类型检查
 cd admin && npm run typecheck # vue-tsc
+cd admin && npm test          # vitest 最小单测
 ```
+
+## 🤖 CI 与部署
+
+- **GitHub Actions**（`.github/workflows/ci.yml`）：push/PR 自动跑三端 test / check / build
+- **部署脚本**（`deploy.sh`）：`./deploy.sh backend|site|admin|all` 固化构建 → 打包 → scp → 备份覆盖 → PM2 重启（含 v22 PATH 正确姿势）→ 健康检查；服务器参数用环境变量覆盖（默认值即线上实测配置）
 
 ---
 
@@ -122,7 +133,7 @@ docker compose up -d --build
 ## ⚙️ 常用配置
 
 - **主题**：后台「主题配置」可分别定制 normal / reader 的配色（5 色 + 主色色板）、字号、首页文章数、首屏头像/简介，以及**双主题各自的导航菜单**
-- **站点**：后台「站点设置」管理站点信息、博主名称/头像、关于内容、存储（本地/COS）、Turnstile、GitHub、豆瓣、导航等
+- **站点**：后台「站点设置」管理站点信息、博主名称/头像、关于内容、存储（本地/COS）、Turnstile、**SMTP 邮件通知**、GitHub、豆瓣、**数据备份**、导航等
 - **默认主题切换**：前台导航栏「阅读模式」按钮（localStorage 记忆）
 
 ---

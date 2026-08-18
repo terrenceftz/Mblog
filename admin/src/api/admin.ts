@@ -77,6 +77,7 @@ export interface Photo {
   url: string;
   title: string;
   description: string;
+  album: string;
   sortOrder: number;
   created_at: string;
 }
@@ -127,6 +128,13 @@ export interface SiteSettings {
   /** 电台（网易云） */
   neteaseCookie: string;
   neteasePlaylistId: string;
+  /** 邮件通知（SMTP）：新评论待审核 / 博主回复提醒 */
+  smtpHost: string;
+  smtpPort: string;
+  smtpUser: string;
+  smtpPass: string;
+  smtpFrom: string;
+  notifyEmail: string;
 }
 
 export interface ThemeColors {
@@ -148,6 +156,17 @@ export interface ThemeConfig {
   colors: Record<'normal' | 'reader', ThemeColors>;
 }
 
+/** 后台操作审计日志行 */
+export interface AdminLogRow {
+  id: number;
+  username: string;
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path: string;
+  status: number;
+  ip: string;
+  createdAt: number;
+}
+
 /* =========================================================
    API 适配层：Gemini UI 的 api.xxx() 接口 → 真实后端
    保留 Gemini 的方法签名与数据类型（页面模板依赖），
@@ -155,6 +174,7 @@ export interface ThemeConfig {
    并把后端返回字段映射为 Gemini 期望的形状。
    ========================================================= */
 import { request, ApiError } from './client';
+import { fmtTime } from '../lib/format';
 import type {
   Page,
   AdminPostDetail,
@@ -169,13 +189,6 @@ import type {
 } from './posts';
 
 const TOKEN_KEY = 'admin_token';
-
-/** 时间戳 → 'YYYY-MM-DD HH:mm' */
-function fmtTime(ts: number): string {
-  const d = new Date(ts);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
 
 /** 评论状态：Gemini 含 'spam'，后端无 → 映射 rejected */
 function mapCommentStatus(s: CommentRow['status']): Comment['status'] {
@@ -456,18 +469,19 @@ export const api = {
       url: p.url,
       title: p.title,
       description: p.description,
+      album: p.album,
       sortOrder: p.sortOrder,
       created_at: fmtTime(p.createdAt),
     }));
   },
 
-  async createPhoto(input: { url: string; title?: string; description?: string }): Promise<Photo> {
+  async createPhoto(input: { url: string; title?: string; description?: string; album?: string }): Promise<Photo> {
     await request<{ url: string }>('/admin/photos', { method: 'POST', body: JSON.stringify(input) });
     const list = await api.getPhotos();
     return list[0];
   },
 
-  async updatePhoto(id: number, input: { url?: string; title?: string; description?: string }): Promise<boolean> {
+  async updatePhoto(id: number, input: { url?: string; title?: string; description?: string; album?: string }): Promise<boolean> {
     await request<{ id: number }>(`/admin/photos/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
     return true;
   },
@@ -606,7 +620,13 @@ export const api = {
       cosBucket: s.cos_bucket || '',
       cosRegion: s.cos_region || '',
       neteaseCookie: s.netease_cookie || '',
-      neteasePlaylistId: s.netease_playlist_id || ''
+      neteasePlaylistId: s.netease_playlist_id || '',
+      smtpHost: s.smtp_host || '',
+      smtpPort: s.smtp_port || '465',
+      smtpUser: s.smtp_user || '',
+      smtpPass: s.smtp_pass || '',
+      smtpFrom: s.smtp_from || '',
+      notifyEmail: s.notify_email || ''
     };
   },
 
@@ -638,11 +658,16 @@ export const api = {
       douban_enabled: boolStr(settings.doubanSyncEnabled, current.douban_enabled),
       douban_last_sync: settings.lastDoubanSync ?? current.douban_last_sync,
       netease_cookie: settings.neteaseCookie ?? current.netease_cookie,
-      netease_playlist_id: settings.neteasePlaylistId ?? current.netease_playlist_id
+      netease_playlist_id: settings.neteasePlaylistId ?? current.netease_playlist_id,
+      smtp_host: settings.smtpHost ?? current.smtp_host,
+      smtp_port: settings.smtpPort ?? current.smtp_port,
+      smtp_user: settings.smtpUser ?? current.smtp_user,
+      smtp_from: settings.smtpFrom ?? current.smtp_from,
+      notify_email: settings.notifyEmail ?? current.notify_email
     };
     // 掩码占位：'********' 或留空 = 保持已存密钥不变
-    for (const key of ['cos_secret_key', 'tmdb_api_key', 'turnstile_secret_key', 'netease_cookie'] as const) {
-      const v = settings[key === 'cos_secret_key' ? 'apiSecret' : key === 'tmdb_api_key' ? 'doubanApiKey' : key === 'turnstile_secret_key' ? 'turnstileSecretKey' : 'neteaseCookie'];
+    for (const key of ['cos_secret_key', 'tmdb_api_key', 'turnstile_secret_key', 'netease_cookie', 'smtp_pass'] as const) {
+      const v = settings[key === 'cos_secret_key' ? 'apiSecret' : key === 'tmdb_api_key' ? 'doubanApiKey' : key === 'turnstile_secret_key' ? 'turnstileSecretKey' : key === 'netease_cookie' ? 'neteaseCookie' : 'smtpPass'];
       if (v === undefined) continue;
       if (!v || v === '********') delete payload[key];
       else payload[key] = v;
@@ -666,6 +691,21 @@ export const api = {
   async triggerDoubanSync(): Promise<string> {
     const r = await request<{ count: number }>('/admin/douban/sync', { method: 'POST' });
     return `已同步 ${r.count} 部，缓存已预热`;
+  },
+
+  /** 立即执行一次数据库在线备份，返回文件信息 */
+  async createBackup(): Promise<string> {
+    const r = await request<{ file: string; size: number }>('/admin/backup', { method: 'POST' });
+    return `${r.file}（${(r.size / 1024).toFixed(0)} KB）`;
+  },
+
+  // ---------- 操作日志 ----------
+  async getAuditLogs(params: { page?: number; pageSize?: number; method?: string } = {}): Promise<{ list: AdminLogRow[]; total: number }> {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set('page', String(params.page));
+    if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+    if (params.method) qs.set('method', params.method);
+    return request<{ list: AdminLogRow[]; total: number }>(`/admin/audit-logs?${qs.toString()}`);
   },
 
   // ---------- 主题配置 ----------

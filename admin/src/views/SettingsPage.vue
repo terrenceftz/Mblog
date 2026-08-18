@@ -30,10 +30,17 @@ const settings = ref<SiteSettings>({
   cosRegion: '',
   neteaseCookie: '',
   neteasePlaylistId: '',
+  smtpHost: '',
+  smtpPort: '465',
+  smtpUser: '',
+  smtpPass: '',
+  smtpFrom: '',
+  notifyEmail: '',
 });
 
 const saving = ref(false);
 const syncingDouban = ref(false);
+const backingUp = ref(false);
 const playlists = ref<{ id: number; name: string; cover: string; count: number }[]>([]);
 const loadingPlaylists = ref(false);
 
@@ -140,6 +147,18 @@ async function handleSyncDouban() {
     toast.error('同步失败，请检查豆瓣 User ID');
   } finally {
     syncingDouban.value = false;
+  }
+}
+
+async function handleBackup() {
+  backingUp.value = true;
+  try {
+    const info = await api.createBackup();
+    toast.success(`备份完成：${info}`);
+  } catch (err) {
+    toast.error('备份失败，请查看服务器日志');
+  } finally {
+    backingUp.value = false;
   }
 }
 
@@ -522,6 +541,66 @@ onMounted(() => {
               </button>
             </div>
             <div class="text-muted micro-text mt-1">先保存 Cookie 再「刷新收藏歌单」。修改后记得「保存所有设置」。</div>
+          </div>
+        </div>
+      </div>
+      <!-- 邮件通知（SMTP）：新评论待审核 / 博主回复提醒 -->
+      <div class="card">
+        <div class="card-header py-3">
+          <h3 class="card-title fw-bold m-0">邮件通知（SMTP）</h3>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-medium">SMTP 主机</label>
+              <input type="text" v-model="settings.smtpHost" class="form-control" placeholder="smtp.example.com" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-medium">端口</label>
+              <input type="text" v-model="settings.smtpPort" class="form-control" placeholder="465" />
+            </div>
+            <div class="col-md-3 d-flex align-items-end pb-1">
+              <span class="text-muted micro-text">465=SSL · 587=STARTTLS</span>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-medium">账号</label>
+              <input type="text" v-model="settings.smtpUser" class="form-control" placeholder="发件账号" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-medium">密码 / 授权码</label>
+              <input type="password" v-model="settings.smtpPass" class="form-control" placeholder="已配置时显示 ****，留空保持不变" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-medium">发件人地址</label>
+              <input type="text" v-model="settings.smtpFrom" class="form-control" placeholder="blog@example.com" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-medium">收件人邮箱（新评论/回复提醒）</label>
+              <input type="text" v-model="settings.notifyEmail" class="form-control" placeholder="admin@example.com" />
+            </div>
+          </div>
+          <div class="text-muted micro-text mt-3">
+            新评论待审核时会发邮件到收件人；博主回复评论时会提醒原评论者（对方留了邮箱才发）。
+            SMTP 主机与发件人同时配置才启用；发送失败静默不影响主流程。配置后记得「保存所有设置」。
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据备份 -->
+      <div class="card">
+        <div class="card-header py-3">
+          <h3 class="card-title fw-bold m-0">数据备份</h3>
+        </div>
+        <div class="card-body">
+          <div class="p-3 bg-body-tertiary rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="text-muted small">
+              在线备份 SQLite（WAL 安全，无需停机）。备份文件存服务器 <code>backend/backups/</code>，
+              也可在服务器用 <code>node scripts/backup.mjs</code> 定时执行。
+            </div>
+            <button @click="handleBackup" class="btn btn-outline-primary text-nowrap" :disabled="backingUp">
+              <span v-if="backingUp" class="spinner-border spinner-border-sm me-1"></span>
+              <span>立即备份</span>
+            </button>
           </div>
         </div>
       </div>

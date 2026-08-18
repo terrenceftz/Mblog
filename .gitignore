@@ -2,6 +2,7 @@ node_modules/
 dist/
 data/
 uploads/
+backups/
 .astro/
 *.log
 .env
@@ -9,3 +10,4 @@ uploads/
 .zcode/
 admin-pure/
 docs/prompts/
+._prod_home.html

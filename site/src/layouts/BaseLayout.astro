@@ -73,6 +73,7 @@ const pageImage = new URL(image || '/banner.png', baseUrl).href;
     <title>{title ? `${title} · ${siteName}` : siteName}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" type="application/rss+xml" title="RSS 订阅" href="/api/rss" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={siteName} />
     <meta property="og:title" content={ogTitle} />
@@ -111,8 +112,9 @@ const pageImage = new URL(image || '/banner.png', baseUrl).href;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href={blockingFonts} rel="stylesheet" />
-    <!-- 另一主题独有字体：异步预载（不阻塞首屏渲染），切换主题时已就绪 -->
-    <link rel="preload" as="style" href={lazyFonts} onload="this.onload=null;this.rel='stylesheet'" />
+    <!-- 另一主题独有字体：异步预载（不阻塞首屏渲染），切换主题时已就绪。
+         用 set:html 输出原始 HTML，避免 onload 属性被当作表达式检查 -->
+    <Fragment set:html={`<link rel="preload" as="style" href="${lazyFonts}" onload="this.onload=null;this.rel='stylesheet'">`} />
     <noscript><link rel="stylesheet" href={lazyFonts} /></noscript>
     <!-- 后台主题配置：覆盖主题 CSS 变量 -->
     <Fragment set:html={themeStyle} />

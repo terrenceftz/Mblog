@@ -14,6 +14,7 @@ export function photosRoutes(ctx: Db) {
         url: photos.url,
         title: photos.title,
         description: photos.description,
+        album: photos.album,
       })
       .from(photos)
       .orderBy(desc(photos.sortOrder), desc(photos.createdAt))

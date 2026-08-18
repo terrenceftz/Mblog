@@ -2,24 +2,53 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
 import PhotoGallery from '../components/PhotoGallery.vue';
-import { getPhotos } from '../lib/api';
+import { getPhotos, type Photo } from '../lib/api';
+import { optimizeImage, type OptimizedImage } from '../lib/img';
 
 const photos = await getPhotos().catch(() => []);
 // 后端返回的上传地址是相对路径（/uploads/...）。生产靠 nginx 同域 /uploads 反代（保持相对）；
 // 本地直跑无反代时设 PUBLIC_API_BASE=http://localhost:3000 拼成浏览器可访问的绝对 URL
 // （注意不能用 API_BASE——它是服务器内网地址如 localhost:3003，拼进 HTML 浏览器打不开）
 const PUBLIC_API_BASE = process.env.PUBLIC_API_BASE ?? '';
-const photoItems = photos.map((p) => ({
-  ...p,
-  url: p.url.startsWith('/') && PUBLIC_API_BASE ? `${PUBLIC_API_BASE}${p.url}` : p.url,
-}));
+// 相册照片响应式优化（瀑布流列宽流动，用 100vw 让浏览器按 srcset 选档；失败回退原图）
+const photoItems: (Photo & { img: OptimizedImage | null })[] = await Promise.all(
+  photos.map(async (p: Photo) => {
+    const url = p.url.startsWith('/') && PUBLIC_API_BASE ? `${PUBLIC_API_BASE}${p.url}` : p.url;
+    const img = await optimizeImage(url, { base: Astro.request.url, widths: [480, 960, 1600], sizes: '100vw' });
+    return { ...p, url, img };
+  }),
+);
+// 按相册分组（album 为空归「全部」），组内保持后端排序
+const grouped = new Map<string, typeof photoItems>();
+for (const it of photoItems) {
+  const key = it.album?.trim() || '全部';
+  if (!grouped.has(key)) grouped.set(key, []);
+  grouped.get(key)!.push(it);
+}
+const groups = [...grouped.entries()].map(([name, items]) => ({ name, items }));
 ---
 <BaseLayout title="相册" description="生活碎片与光影记录。">
   <PageHeader title="相册" subtitle="生活碎片与光影记录。" count={photos.length > 0 ? `共 ${photos.length} 张` : undefined} class="gallery-page">
-    {photoItems.length > 0 ? (
-      <PhotoGallery client:visible photos={photoItems} />
+    {groups.length > 0 ? (
+      groups.map((g) => (
+        <section class="gallery-album" data-reveal>
+          {g.name !== '全部' && (
+            <h2 class="gallery-album-title">{g.name}<span class="gallery-album-count">{g.items.length} 张</span></h2>
+          )}
+          <PhotoGallery client:visible photos={g.items} />
+        </section>
+      ))
     ) : (
       <p class="gallery-empty">相册还是空的，去后台添加照片吧</p>
     )}
   </PageHeader>
 </BaseLayout>
+
+<style is:global>
+  .gallery-album + .gallery-album { margin-top: 48px; }
+  .gallery-album-title {
+    display: flex; align-items: baseline; gap: 12px;
+    font-size: 1.4rem; font-weight: 600; margin: 0 0 20px; color: var(--color-text);
+  }
+  .gallery-album-count { font-size: 13px; font-weight: 400; color: var(--color-text-muted); font-family: var(--font-mono, monospace); }
+</style>

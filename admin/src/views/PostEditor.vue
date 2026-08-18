@@ -48,18 +48,52 @@ const wordCount = computed(() => {
 
 const DRAFT_KEY = `mblog_admin_draft_${isEditMode.value ? `edit_${postId.value}` : 'new'}`;
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let autoSavePending = false;
 let restoringDraft = true;
+/** 后端草稿行 id：新建页自动保存首次 POST 产生，之后自动保存改 PUT 该行 */
+const draftId = ref<number | null>(null);
+
+function writeLocalDraft() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(postForm.value));
+  } catch {
+    /* 忽略存储失败 */
+  }
+}
 
 function scheduleAutoSave() {
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(postForm.value));
-    } catch {
-      /* 忽略存储失败 */
-    }
+    void persistDraft();
   }, 3000);
 }
+
+/** 草稿自动保存到后端（status=draft；空表单不落库）。失败静默，本地草稿兜底。 */
+async function persistDraft() {
+  if (autoSavePending) return;
+  const f = postForm.value;
+  if (!f.title.trim() && !f.content.trim()) return;
+  autoSavePending = true;
+  try {
+    const saved = await api.savePost({
+      id: postId.value ?? draftId.value ?? undefined,
+      title: f.title || '无标题草稿',
+      content: f.content,
+      summary: f.summary,
+      categoryId: f.categoryId,
+      tags: f.tags,
+      status: 'draft',
+      cover: f.cover,
+    });
+    draftId.value = saved.id;
+  } catch {
+    // 后端自动保存失败不打断编辑，本地草稿继续兜底
+  } finally {
+    autoSavePending = false;
+    writeLocalDraft();
+  }
+}
+
 function clearAutoSave() {
   try {
     localStorage.removeItem(DRAFT_KEY);
@@ -127,10 +161,11 @@ async function handleSave(status?: 'published' | 'draft') {
   try {
     const selectedCat = categories.value.find((c) => c.id === postForm.value.categoryId);
     const saved = await api.savePost({
-      id: postId.value || undefined,
+      id: postId.value ?? draftId.value ?? undefined,
       ...postForm.value,
       categoryName: selectedCat ? selectedCat.name : '未分类',
     });
+    draftId.value = saved.id;
 
     toast.success(status === 'draft' ? '草稿保存成功' : '文章已成功发布！');
     clearAutoSave();

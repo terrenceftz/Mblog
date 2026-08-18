@@ -39,6 +39,7 @@ export function photosAdminRoutes(ctx: Db) {
         url,
         title: typeof body?.title === 'string' ? body.title.trim().slice(0, 100) : '',
         description: typeof body?.description === 'string' ? body.description.trim().slice(0, 500) : '',
+        album: typeof body?.album === 'string' ? body.album.trim().slice(0, 50) : '',
         sortOrder: Number.isInteger(body?.sortOrder) ? (body.sortOrder as number) : 0,
       })
       .returning()
@@ -56,6 +57,7 @@ export function photosAdminRoutes(ctx: Db) {
     if (typeof body?.title === 'string') patch.title = body.title.trim().slice(0, 100);
     if (typeof body?.description === 'string') patch.description = body.description.trim().slice(0, 500);
     if (typeof body?.url === 'string' && URL_RE.test(body.url.trim())) patch.url = body.url.trim();
+    if (typeof body?.album === 'string') patch.album = body.album.trim().slice(0, 50);
     if (Number.isInteger(body?.sortOrder)) patch.sortOrder = body.sortOrder as number;
     if (Object.keys(patch).length) {
       ctx.db.update(photos).set(patch).where(eq(photos.id, id)).run();

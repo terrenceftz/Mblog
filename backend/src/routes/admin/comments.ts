@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { eq, desc, and, count, inArray } from 'drizzle-orm';
 import { comments } from '../../db/schema';
+import { getSetting } from '../../lib/settings';
+import { sendEmail, escapeHtml } from '../../lib/mailer';
 import type { Db } from '../../db';
 
 export function commentsAdminRoutes(ctx: Db) {
@@ -52,6 +54,21 @@ export function commentsAdminRoutes(ctx: Db) {
     ctx.db.insert(comments).values({
       postId: parent.postId, author: '博主', content, status: 'approved', parentId: id,
     }).run();
+
+    // 邮件提醒原评论者：TA 的评论收到了博主回复（原评论留了邮箱才发；SMTP 未配置静默跳过）
+    if (parent.email) {
+      const siteName = getSetting(ctx, 'site_name');
+      const siteUrl = getSetting(ctx, 'site_url');
+      sendEmail(
+        ctx,
+        parent.email,
+        `你的评论在【${siteName || '博客'}】收到了回复`,
+        `<p>${escapeHtml(parent.author)}，你在博客中的评论收到了新回复：</p>
+         <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#555;">${escapeHtml(content)}</blockquote>
+         <p><a href="${siteUrl}/">回到博客看看</a></p>`,
+      );
+    }
+
     return c.json({ data: { ok: true } }, 201);
   });
 
