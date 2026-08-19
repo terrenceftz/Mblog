@@ -14,6 +14,14 @@ interface OptimizeOptions {
   format?: 'webp' | 'avif';
 }
 
+// 已知服务端不可达的图源（服务器在国内，TMDB 直连被墙）：SSR 优化直接跳过，
+// 浏览器端维持直连（墙外用户正常）。避免每次渲染白跑一次 fetch + 刷日志。
+const SSR_SKIP_HOSTS = new Set(['image.tmdb.org']);
+
+// 优化失败短期缓存：同一 URL 10 分钟内不再重试（外网图源抖动时不反复空跑）
+const FAIL_TTL = 10 * 60 * 1000;
+const failCache = new Map<string, number>();
+
 /**
  * 响应式图片：把封面/相册图出多尺寸 webp srcset（sharp 处理，disk 缓存）。
  * - 相对/站内路径按 base（或 PUBLIC_API_BASE）转绝对——SSR 下 astro:assets 需要可抓取的 URL
@@ -27,11 +35,21 @@ export async function optimizeImage(
   if (!src) return { src, srcset: '', sizes };
   const absolute = toAbsolute(src, base);
   if (!absolute) return { src, srcset: '', sizes };
+  const failAt = failCache.get(absolute);
+  if (failAt && Date.now() - failAt < FAIL_TTL) return { src, srcset: '', sizes };
   try {
+    if (SSR_SKIP_HOSTS.has(new URL(absolute).hostname)) return { src, srcset: '', sizes };
     // inferSize: 让 astro 拉取远程图推断宽高（远程图不显式传 width/height 会报 CLS 错误）
     const result = await getImage({ src: absolute, widths, sizes, format, inferSize: true });
     return { src: result.src, srcset: result.srcSet.attribute, sizes };
   } catch (err) {
+    failCache.set(absolute, Date.now());
+    if (failCache.size > 500) {
+      const now = Date.now();
+      for (const [k, t] of failCache) {
+        if (now - t >= FAIL_TTL) failCache.delete(k);
+      }
+    }
     console.warn('[img] 优化失败，回退原图：', src, (err as Error).message);
     return { src, srcset: '', sizes };
   }

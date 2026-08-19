@@ -276,20 +276,23 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 23. **backend 预编译**：`npm run build:server`（esbuild CJS bundle 1.5MB，external：better-sqlite3/cos/archiver/nodemailer）。**坑：format=esm 会炸 CJS 依赖的 dynamic require('fs')（dotenv），必须 format=cjs 输出 .cjs**。deploy.sh 已改：本地打包 → tar 含 dist-server → 服务器 npm install archiver+nodemailer → **PM2 一次性切换**（describe 检测 index.cjs，否则 delete+start node dist-server/index.cjs + pm2 save）。
 24. `.gitignore` + `dist-server/`。
 
-### 部署清单（SSH 恢复后）
-```
-./deploy.sh backend   # 含 PM2 tsx→node 切换 + archiver 安装
-./deploy.sh site && ./deploy.sh admin
-# nginx 手动：scp deploy/nginx/sites-available/cs-mboker-cn.conf → /etc/nginx/sites-available/ && nginx -t && reload
-# 服务器 backend/.env 检查 TRUST_PROXY=1（阅读量去重/统计/评论限流按真实 IP；没有则所有访客共享 127.0.0.1 桶）
-# pm2 logrotate：pm2 install pm2-logrotate（防日志无限增长）
-```
+### 部署清单（2026-08-19 深夜已全部执行 ✅）
+- `./deploy.sh backend`：**PM2 已切换 node dist-server/index.cjs**（内存 90MB→21MB），archiver 已装
+- `./deploy.sh site` ×2（第二次带 TMDB skip）+ `./deploy.sh admin`
+- nginx conf 已同步 reload（`/_image` 30 天 immutable 生效）
+- TRUST_PROXY=1 服务器本来就有（无需改）
+- pm2-logrotate 已装（max 10M / retain 30）
+- 线上验证：/api/track 真实 IP 记录（PV/UV 去重 ✓）、RSS 20 条全文 ✓、sitemap 补页 ✓、页面全 200 ✓、日志干净 ✓
+
+### 追加修复（部署中发现）
+- **TMDB 直链 SSR 优化必失败**：服务器墙内抓 image.tmdb.org 超时（fetch failed 刷日志）。修复：`lib/img.ts` 加 `SSR_SKIP_HOSTS`（TMDB 域名 SSR 直接回退原图，浏览器端直连不变）+ 失败结果 10 分钟缓存。**不要试图后端代理 TMDB——后端同样墙内直连，一样不通**。
 
 ### 新增已知坑（并入第 7 节）
 - **esbuild ESM bundle 炸 CJS 依赖**：format=esm 时 dotenv 的 require('fs') 报 "Dynamic require not supported"——**node CJS 依赖链必须 format=cjs（.cjs）**。
 - **EXIF 必须在 canvas 压缩前读**（canvas.toBlob 洗掉全部元数据）。
 - **ALS 需要 `requestALS.run(ctx, () => next())` 包住 next()** 才能传播到页面渲染；api.ts 里 import node:async_hooks 必须**动态**（browser island 会静态引到 api.ts）。
 - **SSH 22 再次被安全组拦截（2026-08-19 复发）**：本机开代理后出口 IP 变化 + 安全组来源白名单收窄 → 直连与走 socks 代理（`connect -S 127.0.0.1:7897`，kex 阶段被远端关闭）都不通。**恢复姿势：腾讯云控制台安全组放通 22 来源（本机当前公网 IP 或 0.0.0.0/0 临时）**，与 2026-08-16 事故同因。
+- **TMDB 图源国内全链路被墙**：服务器 SSR 抓 image.tmdb.org 必超时；后端 cover 代理也救不了（后端同样要直连）。唯一现实解：SSR 跳过（`img.ts` SSR_SKIP_HOSTS）+ 浏览器直连（墙外用户正常）。若要墙内可见需后端配出国代理，当前不做。
 
 ## 6. 待办 / 下一步
 
