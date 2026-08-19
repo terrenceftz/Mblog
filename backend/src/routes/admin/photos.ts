@@ -40,6 +40,8 @@ export function photosAdminRoutes(ctx: Db) {
         title: typeof body?.title === 'string' ? body.title.trim().slice(0, 100) : '',
         description: typeof body?.description === 'string' ? body.description.trim().slice(0, 500) : '',
         album: typeof body?.album === 'string' ? body.album.trim().slice(0, 50) : '',
+        // EXIF 摘要 JSON（上传端解析后传入；长度护栏防异常大对象）
+        exif: typeof body?.exif === 'string' ? body.exif.slice(0, 2000) : '',
         sortOrder: Number.isInteger(body?.sortOrder) ? (body.sortOrder as number) : 0,
       })
       .returning()

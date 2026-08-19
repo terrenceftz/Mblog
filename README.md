@@ -13,26 +13,28 @@
 - View Transitions 圆形扩散主题切换；主题色/字号/首页文章数后台可配
 
 **内容与交互**
-- 📝 **写作**：Vditor 富文本编辑器（WYSIWYG + Markdown），图片/音频上传、封面上传、草稿自动保存（localStorage）
-- 🖼 **相册**：瀑布流展示（reactbits Masonry 移植，GSAP 入场 + 点击 lightbox 放大），后台管理（上传自动压缩至 1600px / 外部 URL / 改标题 / 删除）
+- 📝 **写作**：Vditor 富文本编辑器（WYSIWYG + Markdown），图片/音频上传、封面上传、**合集/专栏归属**、草稿自动保存（后端 + localStorage 双保险）
+- 🖼 **相册**：瀑布流展示（reactbits Masonry 移植，GSAP 入场 + 点击 lightbox 放大），**分组相册**、**lightbox EXIF 拍摄参数**，后台管理（上传自动压缩至 1600px / 外部 URL / 改标题 / 删除）
 - 👤 **关于页**：后台编辑内容，eonova 名片式分段展示（段首 emoji 自动识别为区块标签）
-- 💬 **评论**：Cloudflare Turnstile 云验证（未配置回落数学验证码），两级回复 + 审核，**新评论/博主回复可选邮件（SMTP）通知**
+- 💬 **评论**：Cloudflare Turnstile 云验证（未配置回落数学验证码），两级回复 + 审核，**邮件通知三路径**（新评论→博主 / 审核通过→评论者 / 被回复→订阅者）
 - 🔗 **友链**：前台申请 + 后台审核，支持头像
+- 📚 **合集/专栏**：系列文章聚合，前台按写作顺序展示，后台独立管理
 - 📁 **项目**：GitHub 公开仓库自动同步
 - 🎬 **影音**：豆瓣已看 + TMDB 海报图源
 - 💭 **说说**：短动态，作者直发免审核
-- 🖼 **相册分组**：照片可归入相册分组，前台按组分段展示，后台可筛选/改组
+- 📊 **访问统计**：自建 PV/UV（sendBeacon 信标 + IP 去重），后台仪表盘今日/本月浏览
 - 🔎 **搜索**：SQLite FTS5 全文搜索（中文逐字分词）
 - 🗂 **操作日志**：后台写操作审计（谁/何时/做了什么），管理页可查
-- 💾 **数据备份**：在线 SQLite 备份（WAL 安全），后台一键 + 服务器定时脚本
-- 📂 **归档 / 标签 / 分类 / RSS** 齐全
+- 💾 **数据备份与导出**：在线 SQLite 备份（自动保留 20 份）+ **全量导出 zip**（Markdown + 上传文件）
+- 🔐 **两步验证**：TOTP（Google Authenticator 等），扫码绑定
+- 📂 **归档 / 标签 / 分类 / RSS（全文输出）** 齐全
 
 **性能与体验**
 - 首页滚动入场动效、统计数字 count-up、卡片多层 hover 反馈
-- **响应式图片**：astro:assets（sharp）封面/相册/豆瓣图出多尺寸 webp + srcset，按视口选档
+- **响应式图片**：astro:assets（sharp）多尺寸 webp srcset + `/_image` 30 天 immutable 浏览器缓存
 - **智能降级**：低端设备 / 触屏 / prefers-reduced-motion 时，WebGL 流体背景降级为静态渐变、关闭高开销动画——桌面端全特效，低端设备流畅
-- **安全**：全站安全响应头（HSTS/X-Frame-Options/Referrer-Policy/Permissions-Policy）、登录失败锁定、admin 写操作审计、SQL 索引 + WAL
-- SEO 完善：动态 sitemap.xml / robots.txt、canonical、RSS alternate、OG/Twitter 标签、文章 JSON-LD（BlogPosting + BreadcrumbList）
+- **安全**：全站安全响应头（HSTS/X-Frame-Options/Referrer-Policy/Permissions-Policy）、登录失败锁定 + 限流、可选 2FA（TOTP）、admin 写操作审计、SQL 索引 + WAL
+- SEO 完善：动态 sitemap.xml（含分类/标签/合集页）/ robots.txt / canonical / RSS 全文 / OG/Twitter 标签 / 文章 JSON-LD（BlogPosting + BreadcrumbList）
 - 可访问性：skip-link、全局 focus-visible、表单 label、404 返回真状态码
 
 ---
@@ -102,7 +104,7 @@ npm run dev        # http://localhost:5173/admin/login
 ## 🧪 测试与检查
 
 ```bash
-cd backend && npm test        # vitest 全量（102 项）
+cd backend && npm test        # vitest 全量（118 项）
 cd site && npm run check      # astro check 类型检查
 cd admin && npm run typecheck # vue-tsc
 cd admin && npm test          # vitest 最小单测

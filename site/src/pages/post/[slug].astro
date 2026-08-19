@@ -85,13 +85,17 @@ for (const r of related) {
       <div class="article-hero">
         <img src={heroCover ? heroCover.src : absUrl(post.cover)} srcset={heroCover?.srcset} sizes={heroCover?.sizes} alt={post.title} decoding="async" />
         <header class="article-header">
-          {post.category && (
-            <p class="article-kicker">
+          <p class="article-kicker">
+            {post.collection && (
+              <a class="article-series" href={`/collection/${post.collection.slug}`}>{post.collection.name}</a>
+            )}
+            {post.collection && <span class="kicker-sep" aria-hidden="true">·</span>}
+            {post.category && (
               <a href={`/category/${post.category.slug}`}>{post.category.name}</a>
-              <span class="kicker-sep" aria-hidden="true">·</span>
-              <time datetime={new Date(post.createdAt).toISOString()}>{fmtDate(post.createdAt)}</time>
-            </p>
-          )}
+            )}
+            {post.category && <span class="kicker-sep" aria-hidden="true">·</span>}
+            <time datetime={new Date(post.createdAt).toISOString()}>{fmtDate(post.createdAt)}</time>
+          </p>
           <h1 class="article-title">{post.title}</h1>
           <div class="article-meta">
             <span>{post.viewCount} 次阅读</span>
@@ -103,6 +107,10 @@ for (const r of related) {
     ) : (
       <header class="article-header">
         <p class="article-kicker">
+          {post.collection && (
+            <a class="article-series" href={`/collection/${post.collection.slug}`}>{post.collection.name}</a>
+          )}
+          {post.collection && <span class="kicker-sep" aria-hidden="true">·</span>}
           {post.category && (
             <a href={`/category/${post.category.slug}`}>{post.category.name}</a>
           )}

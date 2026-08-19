@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { eq, desc, count } from 'drizzle-orm';
-import { mediaFiles, posts, comments } from '../../db/schema';
+import { eq, desc, count, sql, like } from 'drizzle-orm';
+import { mediaFiles, posts, comments, talks, friendLinks, dailyStats } from '../../db/schema';
 import { getStorage } from '../../storage';
 import type { Db } from '../../db';
 
@@ -97,8 +97,27 @@ export function uploadAdminRoutes(ctx: Db) {
     const published = ctx.db.select({ n: count() }).from(posts).where(eq(posts.status, 'published')).get()?.n ?? 0;
     const commentTotal = ctx.db.select({ n: count() }).from(comments).get()?.n ?? 0;
     const pendingComments = ctx.db.select({ n: count() }).from(comments).where(eq(comments.status, 'pending')).get()?.n ?? 0;
-    const totalViews = ctx.db.select({ n: posts.viewCount }).from(posts).all().reduce((s, r) => s + r.n, 0);
-    return c.json({ data: { postTotal, published, commentTotal, pendingComments, totalViews } });
+    // 待审说说 / 待审友链（此前前端写死 0）
+    const pendingTalks = ctx.db.select({ n: count() }).from(talks).where(eq(talks.status, 'pending')).get()?.n ?? 0;
+    const pendingFriendLinks = ctx.db.select({ n: count() }).from(friendLinks).where(eq(friendLinks.status, 'pending')).get()?.n ?? 0;
+    const totalViews = ctx.db
+      .select({ n: sql<number>`coalesce(sum(${posts.viewCount}), 0)` })
+      .from(posts)
+      .get()?.n ?? 0;
+    // 今日 / 本月浏览量（来自 /api/track 信标聚合；无信标数据的旧库为 0）
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, '0');
+    const day = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    const month = day.slice(0, 7);
+    const todayViews = ctx.db.select({ n: dailyStats.views }).from(dailyStats).where(eq(dailyStats.day, day)).get()?.n ?? 0;
+    const monthViews = ctx.db
+      .select({ n: sql<number>`coalesce(sum(${dailyStats.views}), 0)` })
+      .from(dailyStats)
+      .where(like(dailyStats.day, `${month}%`))
+      .get()?.n ?? 0;
+    return c.json({
+      data: { postTotal, published, commentTotal, pendingComments, pendingTalks, pendingFriendLinks, totalViews, todayViews, monthViews },
+    });
   });
 
   return app;

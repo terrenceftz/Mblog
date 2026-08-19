@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { eq, desc, count, and, inArray } from 'drizzle-orm';
-import { posts, tags, postTags, categories } from '../../db/schema';
+import { posts, tags, postTags, categories, collections } from '../../db/schema';
 import { createPost, updatePost, deletePost } from '../../services/posts';
 import type { Db } from '../../db';
 
@@ -47,6 +47,11 @@ export function postsAdminRoutes(ctx: Db) {
       const cat = ctx.db.select({ id: categories.id }).from(categories).where(eq(categories.id, categoryId)).get();
       if (!cat) return c.json({ error: { code: 'INVALID', message: '分类不存在' } }, 400);
     }
+    const collectionId = typeof body.collectionId === 'number' ? body.collectionId : null;
+    if (collectionId !== null) {
+      const col = ctx.db.select({ id: collections.id }).from(collections).where(eq(collections.id, collectionId)).get();
+      if (!col) return c.json({ error: { code: 'INVALID', message: '合集不存在' } }, 400);
+    }
     const tagIds = Array.isArray(body.tagIds) ? body.tagIds : [];
     if (tagIds.length) {
       const tagCount = ctx.db.select({ n: count() }).from(tags).where(inArray(tags.id, tagIds)).get()?.n ?? 0;
@@ -64,6 +69,7 @@ export function postsAdminRoutes(ctx: Db) {
       summary: typeof body.summary === 'string' ? body.summary : undefined,
       cover: typeof body.cover === 'string' ? body.cover : undefined,
       categoryId,
+      collectionId,
       status: body.status === 'published' ? 'published' : 'draft',
       tagIds,
     });
@@ -79,6 +85,11 @@ export function postsAdminRoutes(ctx: Db) {
     if (categoryId !== null) {
       const cat = ctx.db.select({ id: categories.id }).from(categories).where(eq(categories.id, categoryId)).get();
       if (!cat) return c.json({ error: { code: 'INVALID', message: '分类不存在' } }, 400);
+    }
+    const collectionId = typeof body.collectionId === 'number' ? body.collectionId : null;
+    if (collectionId !== null) {
+      const col = ctx.db.select({ id: collections.id }).from(collections).where(eq(collections.id, collectionId)).get();
+      if (!col) return c.json({ error: { code: 'INVALID', message: '合集不存在' } }, 400);
     }
     const tagIds = Array.isArray(body.tagIds) ? body.tagIds : [];
     if (tagIds.length) {
@@ -96,6 +107,7 @@ export function postsAdminRoutes(ctx: Db) {
       summary: typeof body.summary === 'string' ? body.summary : undefined,
       cover: typeof body.cover === 'string' ? body.cover : undefined,
       categoryId,
+      collectionId,
       status: body.status === 'published' ? 'published' : 'draft',
       tagIds,
     });

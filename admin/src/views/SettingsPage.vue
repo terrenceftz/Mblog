@@ -36,6 +36,7 @@ const settings = ref<SiteSettings>({
   smtpPass: '',
   smtpFrom: '',
   notifyEmail: '',
+  totpEnabled: false,
 });
 
 const saving = ref(false);
@@ -159,6 +160,80 @@ async function handleBackup() {
     toast.error('备份失败，请查看服务器日志');
   } finally {
     backingUp.value = false;
+  }
+}
+
+// ---------- 全量导出 ----------
+const exporting = ref(false);
+async function handleExport() {
+  exporting.value = true;
+  try {
+    await api.downloadExport();
+    toast.success('导出已开始下载（zip：文章 Markdown + 上传文件 + manifest）');
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : '导出失败');
+  } finally {
+    exporting.value = false;
+  }
+}
+
+// ---------- 两步验证（TOTP） ----------
+const totpSetupData = ref<{ secret: string; uri: string } | null>(null);
+const totpQr = ref('');
+const totpCode = ref('');
+const totpBusy = ref(false);
+
+async function handleTotpSetup() {
+  totpBusy.value = true;
+  try {
+    const data = await api.totpSetup();
+    totpSetupData.value = data;
+    totpCode.value = '';
+    // 二维码按需渲染（qrcode 库动态加载，不进主 chunk）
+    const QR: typeof import('qrcode') = await import('qrcode');
+    totpQr.value = await QR.toDataURL(data.uri, { margin: 1, width: 220 });
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : '生成密钥失败');
+  } finally {
+    totpBusy.value = false;
+  }
+}
+
+async function handleTotpEnable() {
+  if (!/^\d{6}$/.test(totpCode.value.trim())) {
+    toast.warning('请输入认证器显示的 6 位码');
+    return;
+  }
+  totpBusy.value = true;
+  try {
+    await api.totpEnable(totpCode.value.trim());
+    settings.value.totpEnabled = true;
+    totpSetupData.value = null;
+    totpQr.value = '';
+    totpCode.value = '';
+    toast.success('两步验证已启用，下次登录需输入验证码');
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : '验证码校验失败');
+  } finally {
+    totpBusy.value = false;
+  }
+}
+
+async function handleTotpDisable() {
+  if (!/^\d{6}$/.test(totpCode.value.trim())) {
+    toast.warning('请输入当前验证码以确认关闭');
+    return;
+  }
+  totpBusy.value = true;
+  try {
+    await api.totpDisable(totpCode.value.trim());
+    settings.value.totpEnabled = false;
+    totpCode.value = '';
+    toast.success('两步验证已关闭');
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : '验证码校验失败');
+  } finally {
+    totpBusy.value = false;
   }
 }
 
@@ -586,20 +661,71 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 数据备份 -->
+      <!-- 数据备份与导出 -->
       <div class="card">
         <div class="card-header py-3">
-          <h3 class="card-title fw-bold m-0">数据备份</h3>
+          <h3 class="card-title fw-bold m-0">数据备份与导出</h3>
         </div>
-        <div class="card-body">
+        <div class="card-body d-flex flex-column gap-3">
           <div class="p-3 bg-body-tertiary rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div class="text-muted small">
-              在线备份 SQLite（WAL 安全，无需停机）。备份文件存服务器 <code>backend/backups/</code>，
+              在线备份 SQLite（WAL 安全，无需停机）。备份文件存服务器 <code>backend/backups/</code>（自动保留最近 20 份），
               也可在服务器用 <code>node scripts/backup.mjs</code> 定时执行。
             </div>
             <button @click="handleBackup" class="btn btn-outline-primary text-nowrap" :disabled="backingUp">
               <span v-if="backingUp" class="spinner-border spinner-border-sm me-1"></span>
               <span>立即备份</span>
+            </button>
+          </div>
+          <div class="p-3 bg-body-tertiary rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="text-muted small">
+              全量导出 zip：全部文章（Markdown + frontmatter 元数据）+ 本地上传文件 + manifest 清单，下载数据主权到手。
+            </div>
+            <button @click="handleExport" class="btn btn-outline-secondary text-nowrap" :disabled="exporting">
+              <span v-if="exporting" class="spinner-border spinner-border-sm me-1"></span>
+              <span>导出全部数据</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 两步验证（TOTP） -->
+      <div class="card">
+        <div class="card-header py-3">
+          <h3 class="card-title fw-bold m-0">两步验证（2FA）</h3>
+        </div>
+        <div class="card-body">
+          <div v-if="settings.totpEnabled" class="p-3 bg-success-subtle border border-success-subtle rounded-3">
+            <div class="fw-semibold small text-success mb-2">✓ 已启用——登录时需输入认证器 6 位验证码</div>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+              <input v-model="totpCode" class="form-control form-control-sm font-monospace" style="width: 140px" maxlength="6" inputmode="numeric" placeholder="当前验证码" />
+              <button @click="handleTotpDisable" class="btn btn-sm btn-outline-danger" :disabled="totpBusy">关闭两步验证</button>
+            </div>
+          </div>
+          <div v-else-if="totpSetupData" class="p-3 bg-body-tertiary rounded-3 border">
+            <div class="fw-semibold small mb-2">1. 用认证器 App 扫码（或手动输入密钥）</div>
+            <div class="d-flex gap-3 align-items-start flex-wrap">
+              <img v-if="totpQr" :src="totpQr" alt="TOTP 二维码" class="border rounded bg-white p-1" width="176" height="176" />
+              <div class="small">
+                <div class="text-muted mb-1">密钥（手动输入时用）：</div>
+                <code class="user-select-all font-monospace d-block mb-2" style="word-break: break-all;">{{ totpSetupData.secret }}</code>
+                <div class="fw-semibold small mb-1">2. 输入 App 显示的 6 位码完成绑定</div>
+                <div class="d-flex gap-2">
+                  <input v-model="totpCode" class="form-control form-control-sm font-monospace" style="width: 120px" maxlength="6" inputmode="numeric" placeholder="000000" />
+                  <button @click="handleTotpEnable" class="btn btn-sm btn-primary text-nowrap" :disabled="totpBusy">
+                    <span v-if="totpBusy" class="spinner-border spinner-border-sm me-1"></span>确认启用
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="p-3 bg-body-tertiary rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="text-muted small">
+              未启用。开启后登录需密码 + 认证器 6 位码（支持 Google Authenticator / 1Password / Aegis 等）。
+            </div>
+            <button @click="handleTotpSetup" class="btn btn-outline-primary text-nowrap" :disabled="totpBusy">
+              <span v-if="totpBusy" class="spinner-border spinner-border-sm me-1"></span>
+              <span>生成密钥并启用</span>
             </button>
           </div>
         </div>

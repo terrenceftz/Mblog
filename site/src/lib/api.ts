@@ -7,6 +7,7 @@ export type {
   AboutBlock,
   PublicSettings,
   Category,
+  Collection,
   Tag,
   ArchiveGroup,
   Talk,
@@ -24,6 +25,7 @@ import type {
   Page,
   PublicSettings,
   Category,
+  Collection,
   Tag,
   ArchiveGroup,
   Talk,
@@ -52,10 +54,18 @@ async function get<T>(path: string): Promise<T> {
     const flying = inflight.get(path);
     if (flying) return flying as Promise<T>;
   }
+  // 服务端请求带真实访客 IP（nginx x-real-ip → ALS → 后端阅读量去重/统计按真实 IP 生效）。
+  // 动态 import 避免浏览器端 island 引到 node:async_hooks。
+  let ipHeader: Record<string, string> = {};
+  if (typeof window === 'undefined') {
+    const { requestALS } = await import('./requestContext');
+    const ip = requestALS.getStore()?.ip;
+    if (ip) ipHeader = { 'x-real-ip': ip };
+  }
   // 12s 超时兜底：外部接口（豆瓣/GitHub 等）异常慢时 SSR 不挂死，区块走调用方 .catch 优雅降级
   const p = (async () => {
     const res = await fetch(`${API_BASE}/api${path}`, {
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', ...ipHeader },
       signal: AbortSignal.timeout(12000),
     });
     if (!res.ok) throw new Error(`API ${path} -> ${res.status}`);
@@ -99,17 +109,19 @@ export async function getPublicSettings(): Promise<PublicSettings> {
   }));
 }
 
-export function getPosts(params: { page?: number; pageSize?: number; category?: string; tag?: string; q?: string } = {}) {
+export function getPosts(params: { page?: number; pageSize?: number; category?: string; tag?: string; collection?: string; q?: string } = {}) {
   const qs = new URLSearchParams();
   if (params.page) qs.set('page', String(params.page));
   if (params.pageSize) qs.set('pageSize', String(params.pageSize));
   if (params.category) qs.set('category', params.category);
   if (params.tag) qs.set('tag', params.tag);
+  if (params.collection) qs.set('collection', params.collection);
   if (params.q) qs.set('q', params.q);
   return get<Page<PostListItem>>(`/posts?${qs.toString()}`);
 }
 export const getPost = (slug: string) => get<PostDetail>(`/posts/${slug}`);
 export const getCategories = () => get<Category[]>('/categories');
+export const getCollections = () => get<Collection[]>('/collections');
 export const getTags = () => get<Tag[]>('/tags');
 export const getArchive = () => get<ArchiveGroup[]>('/archive');
 export const getFriendLinks = () => get<FriendLink[]>('/friend-links');

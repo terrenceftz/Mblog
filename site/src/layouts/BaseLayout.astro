@@ -74,6 +74,28 @@ const pageImage = new URL(image || '/banner.png', baseUrl).href;
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="alternate" type="application/rss+xml" title="RSS 订阅" href="/api/rss" />
+    <!-- 访问统计信标：页面可见后 sendBeacon 上报 PV/UV（无阻塞；跳过爬虫特征与预渲染） -->
+    <script is:inline>
+      (function () {
+        try {
+          var nav = navigator;
+          if (nav.webdriver || /bot|crawl|spider|preview/i.test(nav.userAgent)) return;
+          var send = function () {
+            var body = JSON.stringify({ path: location.pathname });
+            if (nav.sendBeacon) {
+              nav.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }));
+            } else {
+              fetch('/api/track', { method: 'POST', headers: { 'content-type': 'application/json' }, body: body, keepalive: true }).catch(function () {});
+            }
+          };
+          if (document.visibilityState === 'visible') send();
+          else document.addEventListener('visibilitychange', function once() {
+            document.removeEventListener('visibilitychange', once);
+            if (document.visibilityState === 'visible') send();
+          });
+        } catch (e) { /* 统计失败静默 */ }
+      })();
+    </script>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={siteName} />
     <meta property="og:title" content={ogTitle} />

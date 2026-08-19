@@ -15,6 +15,7 @@ export const router = createRouter({
         { path: 'posts/new', name: 'admin-post-new', component: () => import('../views/PostEditor.vue') },
         { path: 'posts/:id', name: 'admin-post-edit', component: () => import('../views/PostEditor.vue') },
         { path: 'categories', name: 'admin-categories', component: () => import('../views/CategoryManager.vue') },
+        { path: 'collections', name: 'admin-collections', component: () => import('../views/CollectionManager.vue') },
         { path: 'tags', name: 'admin-tags', component: () => import('../views/TagManager.vue') },
         { path: 'comments', name: 'admin-comments', component: () => import('../views/CommentManager.vue') },
         { path: 'talks', name: 'admin-talks', component: () => import('../views/TalkManager.vue') },

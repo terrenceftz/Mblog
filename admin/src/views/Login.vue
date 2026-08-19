@@ -2,11 +2,15 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../api/admin';
+import { ApiError } from '../api/client';
 import { toast } from '../lib/toast';
 
 const router = useRouter();
 const username = ref('');
 const password = ref('');
+const totpCode = ref('');
+// 两步验证：密码正确但缺/错 TOTP 码（后端 TOTP_REQUIRED）时展开输入框
+const showTotp = ref(false);
 const loading = ref(false);
 
 async function handleLogin() {
@@ -14,18 +18,25 @@ async function handleLogin() {
     toast.warning('请输入用户名和密码');
     return;
   }
+  if (showTotp.value && !/^\d{6}$/.test(totpCode.value.trim())) {
+    toast.warning('请输入 6 位两步验证码');
+    return;
+  }
 
   loading.value = true;
   try {
-    const success = await api.login(username.value, password.value);
+    const success = await api.loginWithTotp(username.value, password.value, showTotp.value ? totpCode.value.trim() : undefined);
     if (success) {
       toast.success('登录成功，欢迎回来！');
       router.push('/dashboard');
-    } else {
-      toast.error('用户名或密码错误，请重试');
     }
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : '登录失败');
+    if (err instanceof ApiError && err.code === 'TOTP_REQUIRED') {
+      showTotp.value = true;
+      toast.info('请输入认证器中的 6 位验证码');
+    } else {
+      toast.error(err instanceof Error ? err.message : '登录失败');
+    }
   } finally {
     loading.value = false;
   }
@@ -82,6 +93,26 @@ async function handleLogin() {
               autocomplete="current-password"
             />
           </div>
+        </div>
+
+        <div v-if="showTotp" class="mb-4">
+          <label class="form-label text-secondary small fw-medium mb-2">两步验证码</label>
+          <div class="input-group">
+            <span class="input-group-text bg-dark border-secondary text-secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>
+            </span>
+            <input
+              type="text"
+              v-model="totpCode"
+              class="form-control bg-dark text-white border-secondary shadow-none font-monospace text-center tracking-widest"
+              placeholder="000000"
+              maxlength="6"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              autofocus
+            />
+          </div>
+          <div class="text-secondary micro-text mt-1">打开认证器 App，输入当前 6 位码</div>
         </div>
 
         <button

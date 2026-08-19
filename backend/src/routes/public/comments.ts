@@ -92,7 +92,10 @@ export function commentsRoutes(ctx: Db) {
       }
     }
 
-    ctx.db.insert(comments).values({ postId: post.id, author, email, website, content, ip, status: 'pending', parentId }).run();
+    // 邮件订阅开关：仅在留了邮箱时生效（被回复时通知该评论作者）
+    const notify = email && body.notify === true ? 1 : 0;
+
+    ctx.db.insert(comments).values({ postId: post.id, author, email, website, content, ip, status: 'pending', parentId, notify }).run();
 
     // 邮件通知博主：新评论待审核（SMTP 未配置时静默跳过，失败不影响主流程）
     const notifyTo = getSetting(ctx, 'notify_email');
@@ -107,6 +110,28 @@ export function commentsRoutes(ctx: Db) {
          <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#555;">${escapeHtml(content)}</blockquote>
          <p><a href="${siteUrl}/admin/comments">前往后台审核</a></p>`,
       );
+    }
+
+    // 订阅通知：回复了开了订阅的评论 → 通知原评论者（TA 的评论过审后才会显示，这里只提醒"收到了回复"）
+    if (parentId !== null) {
+      const parent = ctx.db
+        .select({ notify: comments.notify, email: comments.email, author: comments.author })
+        .from(comments)
+        .where(eq(comments.id, parentId))
+        .get();
+      if (parent?.notify === 1 && parent.email) {
+        const siteName = getSetting(ctx, 'site_name');
+        const siteUrl = getSetting(ctx, 'site_url');
+        sendEmail(
+          ctx,
+          parent.email,
+          `你订阅的评论在【${siteName || '博客'}】收到了新回复`,
+          `<p>${escapeHtml(parent.author)}，你订阅的评论收到了新回复：</p>
+           <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#555;">${escapeHtml(content)}</blockquote>
+           <p>回复将在审核通过后展示。<a href="${siteUrl}/post/${post.slug}">回到文章</a>（回复仅在过审后可见）</p>
+           <p style="color:#999;font-size:12px;">你在评论时选择了"有回复时邮件通知"。此通知基于这条评论的订阅开关，无需退订操作。</p>`,
+        );
+      }
     }
 
     return c.json({ data: { message: '评论已提交，等待审核' } }, 201);

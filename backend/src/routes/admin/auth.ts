@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { users } from '../../db/schema';
 import { signToken } from '../../lib/jwt';
+import { getSetting, setSetting } from '../../lib/settings';
+import { generateTotpSecret, verifyTotp, totpUri } from '../../lib/totp';
 import { authMiddleware } from '../../middleware/auth';
 import { rateLimit } from '../../middleware/rateLimit';
 import { clientIp } from '../../lib/clientIp';
@@ -50,11 +52,59 @@ export function authRoutes(ctx: Db) {
       return c.json({ error: { code: 'UNAUTHORIZED', message: '用户名或密码错误' } }, 401);
     }
     locks.delete(lockKey); // 成功登录清零失败计数
+
+    // 两步验证：启用后必须带 6 位认证器码（缺码/错码返回 TOTP_REQUIRED，前端展开输入框）
+    if (getSetting(ctx, 'totp_enabled') === '1') {
+      const code = typeof body?.totpCode === 'string' ? body.totpCode : '';
+      if (!verifyTotp(getSetting(ctx, 'totp_secret'), code)) {
+        return c.json({ error: { code: 'TOTP_REQUIRED', message: '请输入两步验证码' } }, 401);
+      }
+    }
+
     const token = await signToken({ username: user.username });
     return c.json({ data: { token } });
   });
 
   // authRoutes 挂载在全局鉴权中间件之前，故此处按路由单独启用鉴权
+
+  // 两步验证：生成新密钥（未启用态）。返回 secret + otpauth URI（前端渲染二维码）
+  app.post('/totp/setup', authMiddleware, (c) => {
+    if (getSetting(ctx, 'totp_enabled') === '1') {
+      return c.json({ error: { code: 'CONFLICT', message: '两步验证已启用，如需更换请先关闭' } }, 409);
+    }
+    const secret = generateTotpSecret();
+    setSetting(ctx, 'totp_secret', secret);
+    const user = c.get('user') as { username: string };
+    const siteName = getSetting(ctx, 'site_name') || 'MBLOG';
+    return c.json({ data: { secret, uri: totpUri(secret, user.username, siteName) } });
+  });
+
+  // 两步验证：确认启用（校验认证器当前码）
+  app.post('/totp/enable', authMiddleware, async (c) => {
+    const body = await c.req.json().catch(() => null);
+    const code = typeof body?.code === 'string' ? body.code : '';
+    const secret = getSetting(ctx, 'totp_secret');
+    if (!secret) return c.json({ error: { code: 'INVALID', message: '请先生成密钥' } }, 400);
+    if (!verifyTotp(secret, code)) {
+      return c.json({ error: { code: 'INVALID', message: '验证码不正确' } }, 400);
+    }
+    setSetting(ctx, 'totp_enabled', '1');
+    return c.json({ data: { ok: true } });
+  });
+
+  // 两步验证：关闭（需当前有效码，防止 token 泄露后直接关掉二防线）
+  app.post('/totp/disable', authMiddleware, async (c) => {
+    const body = await c.req.json().catch(() => null);
+    const code = typeof body?.code === 'string' ? body.code : '';
+    const secret = getSetting(ctx, 'totp_secret');
+    if (!secret || !verifyTotp(secret, code)) {
+      return c.json({ error: { code: 'INVALID', message: '验证码不正确' } }, 400);
+    }
+    setSetting(ctx, 'totp_secret', '');
+    setSetting(ctx, 'totp_enabled', '0');
+    return c.json({ data: { ok: true } });
+  });
+
   app.post('/password', authMiddleware, async (c) => {
     const body = await c.req.json().catch(() => null);
     const oldPassword = typeof body?.oldPassword === 'string' ? body.oldPassword : '';

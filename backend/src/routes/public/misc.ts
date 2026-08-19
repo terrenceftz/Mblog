@@ -3,6 +3,7 @@ import { eq, desc } from 'drizzle-orm';
 import { posts } from '../../db/schema';
 import { getSettings } from '../../lib/settings';
 import { parseThemeConfig } from '../../lib/themeConfig';
+import { renderMarkdown } from '../../services/markdown';
 import type { Db } from '../../db';
 
 // 转义 CDATA 内的结束序列，防止内容破坏 XML 结构
@@ -32,7 +33,9 @@ export function miscRoutes(ctx: Db) {
     return c.json({ data });
   });
 
-  app.get('/rss', (c) => {
+  // RSS：description=纯文本摘要，content:encoded=渲染后全文（阅读器内完整阅读）。
+  // 全文 HTML 由写入链路同一套 rehype-sanitize 渲染，安全性与文章页一致。
+  app.get('/rss', async (c) => {
     const { site_name: siteName, site_description: siteDesc, site_url: siteUrl } = getSettings(ctx, [
       'site_name',
       'site_description',
@@ -40,36 +43,48 @@ export function miscRoutes(ctx: Db) {
     ]);
     const baseUrl = siteUrl || 'http://localhost';
     const list = ctx.db
-      .select({ title: posts.title, slug: posts.slug, summary: posts.summary, createdAt: posts.createdAt })
+      .select({
+        title: posts.title, slug: posts.slug, summary: posts.summary,
+        contentMd: posts.contentMd, createdAt: posts.createdAt,
+      })
       .from(posts)
       .where(eq(posts.status, 'published'))
       .orderBy(desc(posts.createdAt))
       .limit(20)
       .all();
 
-    const items = list
-      .map((p) => {
-        const link = `${baseUrl}/post/${p.slug}`;
-        return `<item>
+    const items = (
+      await Promise.all(
+        list.map(async (p) => {
+          const link = `${baseUrl}/post/${p.slug}`;
+          const html = await renderMarkdown(p.contentMd || '');
+          // 绝对化站内相对链接（/uploads、/api/cover），阅读器内无站点源可解析相对地址
+          const fullHtml = html.replace(/(src|href)="\/(?!\/)/g, `$1="${baseUrl}/`);
+          return `<item>
   <title>${cdata(p.title)}</title>
   <link>${link}</link>
   <guid>${link}</guid>
   <description>${cdata(p.summary)}</description>
+  <content:encoded>${cdata(fullHtml)}</content:encoded>
   <pubDate>${new Date(p.createdAt).toUTCString()}</pubDate>
 </item>`;
-      })
-      .join('\n');
+        }),
+      )
+    ).join('\n');
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
   <title>${cdata(siteName)}</title>
   <description>${cdata(siteDesc)}</description>
   <link>${baseUrl}</link>
+  <atom:link href="${baseUrl}/api/rss" rel="self" type="application/rss+xml"/>
+  <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
 ${items}
 </channel>
 </rss>`;
     c.header('Content-Type', 'application/rss+xml; charset=utf-8');
+    c.header('Cache-Control', 'public, max-age=600'); // 阅读器轮询友好：10 分钟内直接用缓存
     return c.body(xml);
   });
 

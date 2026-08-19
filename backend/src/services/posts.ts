@@ -11,6 +11,7 @@ export interface PostInput {
   summary?: string;
   cover?: string;
   categoryId?: number | null;
+  collectionId?: number | null;
   status?: 'draft' | 'published';
   tagIds?: number[];
 }
@@ -51,6 +52,7 @@ export async function createPost(ctx: Db, input: PostInput): Promise<number> {
       summary,
       cover: input.cover ?? '',
       categoryId: input.categoryId ?? null,
+      collectionId: input.collectionId ?? null,
       status: input.status ?? 'draft',
     }).returning({ id: posts.id }).get();
     syncFts(ctx, { id: row.id, title: input.title, contentMd: input.contentMd });
@@ -74,6 +76,7 @@ export async function updatePost(ctx: Db, id: number, input: PostInput): Promise
       summary: input.summary?.trim() || input.contentMd.slice(0, 150),
       cover: input.cover ?? '',
       categoryId: input.categoryId ?? null,
+      collectionId: input.collectionId ?? null,
       status: input.status ?? existing.status,
       updatedAt: Date.now(),
     }).where(eq(posts.id, id)).run();

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, shallowRef } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
-import Vditor from 'vditor';
+import type Vditor from 'vditor';
 import 'vditor/dist/index.css';
-import { api, type Post, type Category } from '../api/admin';
+import { api, type Post, type Category, type Collection } from '../api/admin';
 import { toast } from '../lib/toast';
 import TagPicker from '../components/TagPicker.vue';
 
@@ -19,6 +19,7 @@ const postId = computed(() => {
 const isEditMode = computed(() => postId.value !== null);
 
 const categories = ref<Category[]>([]);
+const collections = ref<Collection[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 
@@ -28,6 +29,7 @@ const postForm = ref<{
   content: string;
   summary: string;
   categoryId: number;
+  collectionId: number | null;
   tags: string[];
   status: 'published' | 'draft' | 'archived';
   cover: string;
@@ -37,6 +39,7 @@ const postForm = ref<{
   content: '',
   summary: '',
   categoryId: 1,
+  collectionId: null,
   tags: [],
   status: 'published',
   cover: '',
@@ -104,6 +107,7 @@ function clearAutoSave() {
 
 async function loadData() {
   categories.value = await api.getCategories();
+  collections.value = await api.getCollections().catch(() => []);
 
   // 新建页：恢复本地草稿
   if (!isEditMode.value) {
@@ -135,6 +139,7 @@ async function loadData() {
         content: existing.content,
         summary: existing.summary,
         categoryId: existing.categoryId,
+        collectionId: existing.collectionId ?? null,
         tags: [...existing.tags],
         status: existing.status,
         cover: existing.cover,
@@ -179,7 +184,7 @@ async function handleSave(status?: 'published' | 'draft') {
   }
 }
 
-let vditor: Vditor | null = null;
+let vditor: InstanceType<typeof Vditor> | null = null;
 let vditorReady = false;
 
 // 音频插入（Vditor 工具栏自定义按钮）
@@ -262,10 +267,12 @@ function vditorTheme(): 'dark' | 'classic' {
   return document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'classic';
 }
 
-function initVditor() {
+async function initVditor() {
   if (vditorReady) return;
   vditorReady = true;
-  vditor = new Vditor('vditor', {
+  // 动态加载 vditor（~300KB）：编辑器外壳先渲染，库到位后再初始化
+  const { default: VditorCtor } = await import('vditor');
+  vditor = new VditorCtor('vditor', {
     height: 480,
     mode: 'wysiwyg',
     theme: vditorTheme(),
@@ -426,6 +433,18 @@ onMounted(async () => {
                   {{ cat.name }}
                 </option>
               </select>
+            </div>
+
+            <!-- Collection Select（可选：归入系列，前台 /collection/[slug] 按写作顺序展示） -->
+            <div class="mb-3">
+              <label class="form-label small fw-medium">合集（可选）</label>
+              <select v-model="postForm.collectionId" class="form-select">
+                <option :value="null">不归属任何合集</option>
+                <option v-for="col in collections" :key="col.id" :value="col.id">
+                  {{ col.name }}
+                </option>
+              </select>
+              <div class="text-muted micro-text mt-1">合集可在「合集管理」页创建</div>
             </div>
 
             <!-- Status Selector -->

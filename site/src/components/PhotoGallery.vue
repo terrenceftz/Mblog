@@ -6,7 +6,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import gsap from 'gsap/dist/gsap.js';
 
 interface Photo {
-  id: number; url: string; title: string; description: string; album: string;
+  id: number; url: string; title: string; description: string; album: string; exif: string;
   /** SSR 预生成的响应式图片（webp 多尺寸 srcset）；空则回退原图 */
   img?: { src: string; srcset: string; sizes: string };
 }
@@ -14,6 +14,24 @@ interface Photo {
 const props = defineProps<{ photos: Photo[] }>();
 const gridEl = ref<HTMLElement | null>(null);
 const lightbox = ref<Photo | null>(null);
+
+/** EXIF JSON → 展示行（机型 · 光圈 · 快门 · 焦距 · ISO · 拍摄时间） */
+function exifText(raw: string | undefined): string {
+  if (!raw) return '';
+  try {
+    const e = JSON.parse(raw) as Record<string, unknown>;
+    const parts: string[] = [];
+    if (e.model) parts.push(String(e.model));
+    if (e.aperture) parts.push(`f/${e.aperture}`);
+    if (e.shutter) parts.push(String(e.shutter));
+    if (e.focal) parts.push(`${e.focal}mm`);
+    if (e.iso) parts.push(`ISO ${e.iso}`);
+    if (e.takenAt) parts.push(String(e.takenAt));
+    return parts.join(' · ');
+  } catch {
+    return '';
+  }
+}
 
 function openLightbox(p: Photo) { lightbox.value = p; }
 function closeLightbox() { lightbox.value = null; }
@@ -47,9 +65,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
     <div v-if="lightbox" class="gallery-lightbox" role="dialog" aria-modal="true" aria-label="图片查看" @click="closeLightbox">
       <div class="gallery-lightbox-inner" @click.stop>
         <img :src="lightbox.url" :alt="lightbox.title || ''" />
-        <div v-if="lightbox.title || lightbox.description" class="gallery-lightbox-meta">
+        <div v-if="lightbox.title || lightbox.description || exifText(lightbox.exif)" class="gallery-lightbox-meta">
           <h3 v-if="lightbox.title" class="gallery-lightbox-title">{{ lightbox.title }}</h3>
           <p v-if="lightbox.description" class="gallery-lightbox-desc">{{ lightbox.description }}</p>
+          <p v-if="exifText(lightbox.exif)" class="gallery-lightbox-exif">{{ exifText(lightbox.exif) }}</p>
         </div>
         <button type="button" class="gallery-lightbox-close" aria-label="关闭" @click="closeLightbox">✕</button>
       </div>

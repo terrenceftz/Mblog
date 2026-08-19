@@ -20,6 +20,7 @@ export interface PostDetail extends PostListItem {
   /** 仅详情接口返回（列表接口无此字段） */
   likeCount: number;
   category: { id: number; name: string; slug: string } | null;
+  collection: { id: number; name: string; slug: string; description: string } | null;
   prev: { title: string; slug: string } | null;
   next: { title: string; slug: string } | null;
 }
@@ -61,11 +62,16 @@ export interface PublicSettings {
   neteasePlaylistId: string;
 }
 export interface Category { id: number; name: string; slug: string; postCount: number; cover: string }
+export interface Collection { id: number; name: string; slug: string; description: string; postCount: number }
 export interface Tag { id: number; name: string; slug: string; postCount: number }
 export interface ArchiveGroup { month: string; items: { createdAt: number; title: string; slug: string }[] }
 export interface Talk { id: number; content: string; createdAt: number }
 export interface FriendLink { id: number; name: string; url: string; description: string; avatar: string }
-export interface Photo { id: number; url: string; title: string; description: string; album: string }
+export interface Photo {
+  id: number; url: string; title: string; description: string; album: string;
+  /** EXIF 摘要 JSON 字符串（机型/光圈/快门/焦距/ISO/时间），可能为空串 */
+  exif: string;
+}
 export interface Project {
   name: string; description: string; url: string;
   language: string | null; stars: number; updatedAt: string;
@@ -98,6 +104,7 @@ export interface StatsData {
 // ---------- admin 后端行契约（对应 backend /api/admin/* 返回） ----------
 
 export interface CategoryRow { id: number; name: string; slug: string; sortOrder: number; postCount: number; cover: string }
+export interface CollectionRow { id: number; name: string; slug: string; description: string; sortOrder: number; postCount: number }
 export interface TagRow { id: number; name: string; slug: string; postCount: number }
 export interface CommentRow {
   id: number; postId: number; author: string; email: string; content: string;
@@ -109,12 +116,14 @@ export interface FriendLinkRow {
 }
 export interface AdminPostRow {
   id: number; title: string; slug: string; status: 'draft' | 'published';
-  categoryId: number | null; viewCount: number; createdAt: number; updatedAt: number;
+  categoryId: number | null; collectionId: number | null;
+  viewCount: number; createdAt: number; updatedAt: number;
 }
 /** 后台文章详情（含编辑所需内容字段，tags 带 id） */
 export interface AdminPostDetail {
   id: number; title: string; slug: string; summary: string; cover: string;
-  viewCount: number; categoryId: number | null; createdAt: number; updatedAt: number;
+  viewCount: number; categoryId: number | null; collectionId: number | null;
+  createdAt: number; updatedAt: number;
   contentMd: string; contentHtml: string;
   status: 'draft' | 'published';
   tags: { id: number; name: string; slug: string }[];
@@ -122,13 +131,13 @@ export interface AdminPostDetail {
 }
 export interface PostPayload {
   title: string; slug?: string; contentMd: string; summary?: string; cover?: string;
-  categoryId?: number | null; status?: 'draft' | 'published'; tagIds?: number[];
+  categoryId?: number | null; collectionId?: number | null; status?: 'draft' | 'published'; tagIds?: number[];
 }
 export interface TalkRow {
   id: number; content: string; ip: string;
   status: 'pending' | 'approved' | 'rejected'; createdAt: number;
 }
 export interface PhotoRow {
-  id: number; url: string; title: string; description: string; album: string;
+  id: number; url: string; title: string; description: string; album: string; exif: string;
   sortOrder: number; createdAt: number;
 }

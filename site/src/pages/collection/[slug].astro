@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostList from '../../components/PostList.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getPosts, getCollections } from '../../lib/api';
+
+// 合集/专栏页：系列文章按发布时间正序阅读（区别于分类的时间倒序）。
+// 合集体量小（系列文章），一次取全量本地反转+分页，避免"倒序接口+正序展示"的页码错位。
+const { slug } = Astro.params;
+const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1));
+const pageSize = 20;
+const [data, collections] = await Promise.all([
+  getPosts({ collection: slug, page: 1, pageSize: 999 }).catch(() => ({ list: [], total: 0 })),
+  getCollections().catch(() => []),
+]);
+const collection = collections.find((c) => c.slug === slug);
+const name = collection?.name ?? String(slug);
+const ordered = [...data.list].reverse(); // API 时间倒序 → 系列正序
+const totalPages = Math.max(1, Math.ceil(ordered.length / pageSize));
+const slice = ordered.slice((page - 1) * pageSize, page * pageSize);
+---
+<BaseLayout title={`合集：${name}`} description={collection?.description || `「${name}」合集下的全部文章。`}>
+  <PageHeader title={`合集：${name}`} subtitle={collection?.description || '系列文章按写作顺序排列'} count={`共 ${ordered.length} 篇`}>
+    <PostList posts={slice} />
+    <Pagination page={page} totalPages={totalPages} href={(n) => `/collection/${slug}?page=${n}`} />
+  </PageHeader>
+</BaseLayout>

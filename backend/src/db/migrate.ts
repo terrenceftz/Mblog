@@ -67,6 +67,55 @@ export function ensureMigrated(ctx: Db): void {
     ctx.sqlite.exec(`ALTER TABLE photos ADD COLUMN album text NOT NULL DEFAULT ''`);
   }
 
+  // 增量列迁移：照片 EXIF 摘要（JSON）
+  const hasExif = (ctx.sqlite.prepare('PRAGMA table_info(photos)').all() as { name: string }[]).some(
+    (c) => c.name === 'exif',
+  );
+  if (!hasExif) {
+    ctx.sqlite.exec(`ALTER TABLE photos ADD COLUMN exif text NOT NULL DEFAULT ''`);
+  }
+
+  // 增量列迁移：评论邮件订阅（被回复时通知评论者）
+  const hasNotify = (ctx.sqlite.prepare('PRAGMA table_info(comments)').all() as { name: string }[]).some(
+    (c) => c.name === 'notify',
+  );
+  if (!hasNotify) {
+    ctx.sqlite.exec(`ALTER TABLE comments ADD COLUMN notify integer NOT NULL DEFAULT 0`);
+  }
+
+  // 合集/专栏表（系列文章）
+  ctx.sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS collections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+  `);
+
+  // 增量列迁移：文章所属合集（可空，删合集置空）
+  const hasCollection = (ctx.sqlite.prepare('PRAGMA table_info(posts)').all() as { name: string }[]).some(
+    (c) => c.name === 'collection_id',
+  );
+  if (!hasCollection) {
+    ctx.sqlite.exec(`ALTER TABLE posts ADD COLUMN collection_id integer`);
+  }
+
+  // 访问统计：按天浏览量 + 当日独立 IP 去重表
+  ctx.sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS daily_stats (
+      day TEXT PRIMARY KEY,
+      views INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS visit_log (
+      day TEXT NOT NULL,
+      ip TEXT NOT NULL,
+      PRIMARY KEY (day, ip)
+    );
+  `);
+
   // 后台操作审计日志表
   ctx.sqlite.exec(`
     CREATE TABLE IF NOT EXISTS admin_logs (
@@ -87,6 +136,7 @@ export function ensureMigrated(ctx: Db): void {
     CREATE INDEX IF NOT EXISTS idx_post_tags_post_id ON post_tags(post_id);
     CREATE INDEX IF NOT EXISTS idx_post_tags_tag_id ON post_tags(tag_id);
     CREATE INDEX IF NOT EXISTS idx_posts_category_status_created ON posts(category_id, status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_posts_collection ON posts(collection_id);
     CREATE INDEX IF NOT EXISTS idx_talks_created_at ON talks(created_at);
     CREATE INDEX IF NOT EXISTS idx_friend_links_status ON friend_links(status);
     CREATE INDEX IF NOT EXISTS idx_photos_sort_created ON photos(sort_order, created_at);

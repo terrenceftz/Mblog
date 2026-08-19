@@ -65,6 +65,9 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   smtp_pass: '',
   smtp_from: '',
   notify_email: '',
+  // 两步验证（TOTP）：启用后登录需输入认证器 6 位码。secret 掩码存储
+  totp_secret: '',
+  totp_enabled: '0',
 };
 
 export function getSetting(ctx: Db, key: string): string {

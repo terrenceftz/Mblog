@@ -1,6 +1,6 @@
 # MBLOG 项目记忆文档（会话交接）
 
-> 最后更新：2026-08-18（全量优化：安全/审计/邮件通知/相册分组/备份/响应式图片/CI）
+> 最后更新：2026-08-19（第二批优化：2FA/合集/统计/导出/EXIF/RSS 全文/sitemap/图片缓存/PM2 预编译）
 > 用途：跨会话记忆，供下次继续开发使用。开发前先读本文件 + `git log --oneline -20`。
 
 ---
@@ -239,6 +239,57 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - **astro remotePatterns 无全量通配**；远程图 getImage 必须 `inferSize: true`。
 - **nginx add_header 不继承**：location 自带 add_header 时 server 级安全头失效，需逐 location 复制。
 - **模块级登录锁跨 describe 泄漏**：beforeAll 早于 beforeEach，锁要在测试末尾或 makeTestApp 里清。
+
+## 5e. 2026-08-19：第二批优化（功能为主，14 项里除「文章定时发布」全做）
+
+> **未部署**（实施完成时本机 SSH 22 被代理/安全组拦截，待恢复后 `./deploy.sh backend && ./deploy.sh site && ./deploy.sh admin` + nginx 手动同步 + TRUST_PROXY 检查，见下方部署清单）。
+
+### backend（测试 102 → 118）
+1. **synchronous=NORMAL**（`db/index.ts`）：WAL 推荐档，写吞吐提升。
+2. **备份保留策略**：`runBackup` 后 `pruneBackups`（BACKUP_KEEP 默认 20 份，按文件名时间戳删最旧）；`scripts/backup.mjs` 同款。
+3. **阅读量去重**：详情路由同 IP+slug 1h 窗口只计一次（内存 Map，`resetViewDedup` 测试钩子）。**依赖 site ALS IP 透传 + 服务器 TRUST_PROXY=1** 才按真实 IP 生效。
+4. **RSS 全文**：`content:encoded` 渲染 HTML（相对链接绝对化到 siteUrl）+ description 纯摘要 + lastBuildDate/atom:link + Cache-Control 600s。
+5. **评论通知三路径**：审核通过（PATCH/批量 approve，非通过→通过只发一次）通知评论者；**访客回复**与博主回复统一尊重 `comments.notify` 订阅开关（新列，评论时勾选，需留邮箱）。
+6. **合集**：`collections` 表 + `posts.collection_id`（无外键，删合集手动置空）+ admin CRUD + 公开 `/collections`（innerJoin 只算已发布）+ `/posts?collection=slug` 过滤 + 详情带 collection。
+7. **访问统计**：`POST /api/track`（rateLimit 120/min；daily_stats 按天 PV + visit_log (day,ip) 主键去重 UV）；**`/admin/stats` 真实化**：todayViews/monthViews（daily_stats 聚合）+ pendingTalks/pendingFriendLinks 真实计数（此前前端写死 0）。
+8. **2FA（TOTP）**：`lib/totp.ts` 手写 RFC 6238（node:crypto，零依赖，测试用 RFC 官方向量）。settings `totp_secret`（MASKED）+ `totp_enabled`；登录启用后缺/错码返回 **401 + code TOTP_REQUIRED**（client.ts 已放行不强制登出）；`/admin/totp/setup|enable|disable` 三路由。
+9. **全量导出**：`GET /admin/export` archiver 流式 zip（posts/*.md YAML frontmatter + manifest.json + uploads/ 本地文件）。新依赖 archiver（纯 JS）。
+10. **photos.exif 列**：text JSON（上传端解析）。
+
+### site（check 0/0/0）
+11. **sitemap 补页**：+gallery/about/category/radio + 分类/标签/合集详情页。
+12. **track beacon**：BaseLayout 内联脚本（sendBeacon，跳过 bot/webdriver，页面可见才发）。
+13. **ALS IP 透传**：`lib/requestContext.ts`（AsyncLocalStorage）+ middleware 包 next() 捕获 nginx x-real-ip + `api.ts` get() 动态 import 读取并以 x-real-ip 头转发后端（动态 import 防 browser island 引到 node:async_hooks）。
+14. **合集页** `/collection/[slug]`：一次取全量本地反转+分页（系列正序，避免倒序接口+正序展示的页码错位）；文章页 kicker 加系列胶囊链接（双主题样式已加 `.article-series`）。
+15. **lightbox EXIF**：PhotoGallery 解析 exif JSON 展示 mono 小字（机型 · f/x · 1/xs · mm · ISO · 时间）。
+
+### admin（typecheck 0 + build OK）
+16. **合集管理页**（表格行内编辑，样式对齐 CategoryManager）+ 路由 `/collections` + 侧栏导航。
+17. **PostEditor**：合集下拉；**vditor 动态 import**（PostEditor chunk 307KB → 14KB，vditor 独立 chunk 进编辑器才加载）。
+18. **PhotoManager EXIF 采集**：exifreader 读原始 File（**必须在 canvas 压缩前**——压缩洗掉元数据），快门小数秒规整 1/xs。
+19. **SettingsPage**：备份卡改造（备份保留说明 + 导出按钮）+ **2FA 卡**（setup 出二维码（qrcode lib 动态加载）→ 输码 enable；关闭需当前码）。
+20. **Login.vue**：TOTP_REQUIRED 时展开 6 位码输入（ApiError 增加 code 字段传递）。
+21. Dashboard todayViews/monthViews/pendingTalks/pendingFriendLinks 现为真实值（原写死 0）。
+
+### 部署侧（待执行）
+22. **nginx `/_image` 30 天 immutable**：两套 conf 已加 location（proxy_hide_header 上游 no-cache）。**add_header 不继承**安全头需照抄（已抄）。
+23. **backend 预编译**：`npm run build:server`（esbuild CJS bundle 1.5MB，external：better-sqlite3/cos/archiver/nodemailer）。**坑：format=esm 会炸 CJS 依赖的 dynamic require('fs')（dotenv），必须 format=cjs 输出 .cjs**。deploy.sh 已改：本地打包 → tar 含 dist-server → 服务器 npm install archiver+nodemailer → **PM2 一次性切换**（describe 检测 index.cjs，否则 delete+start node dist-server/index.cjs + pm2 save）。
+24. `.gitignore` + `dist-server/`。
+
+### 部署清单（SSH 恢复后）
+```
+./deploy.sh backend   # 含 PM2 tsx→node 切换 + archiver 安装
+./deploy.sh site && ./deploy.sh admin
+# nginx 手动：scp deploy/nginx/sites-available/cs-mboker-cn.conf → /etc/nginx/sites-available/ && nginx -t && reload
+# 服务器 backend/.env 检查 TRUST_PROXY=1（阅读量去重/统计/评论限流按真实 IP；没有则所有访客共享 127.0.0.1 桶）
+# pm2 logrotate：pm2 install pm2-logrotate（防日志无限增长）
+```
+
+### 新增已知坑（并入第 7 节）
+- **esbuild ESM bundle 炸 CJS 依赖**：format=esm 时 dotenv 的 require('fs') 报 "Dynamic require not supported"——**node CJS 依赖链必须 format=cjs（.cjs）**。
+- **EXIF 必须在 canvas 压缩前读**（canvas.toBlob 洗掉全部元数据）。
+- **ALS 需要 `requestALS.run(ctx, () => next())` 包住 next()** 才能传播到页面渲染；api.ts 里 import node:async_hooks 必须**动态**（browser island 会静态引到 api.ts）。
+- **SSH 22 再次被安全组拦截（2026-08-19 复发）**：本机开代理后出口 IP 变化 + 安全组来源白名单收窄 → 直连与走 socks 代理（`connect -S 127.0.0.1:7897`，kex 阶段被远端关闭）都不通。**恢复姿势：腾讯云控制台安全组放通 22 来源（本机当前公网 IP 或 0.0.0.0/0 临时）**，与 2026-08-16 事故同因。
 
 ## 6. 待办 / 下一步
 

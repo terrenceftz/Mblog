@@ -1106,6 +1106,14 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
 [data-theme='normal'] .article-kicker a:hover {
   text-decoration: underline;
 }
+/* 合集/系列链接：细边框胶囊，区别于分类的纯文字 */
+[data-theme='normal'] .article-kicker .article-series {
+  border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+  border-radius: 999px;
+  padding: 1px 10px;
+  margin-right: 2px;
+  font-size: 0.92em;
+}
 [data-theme='normal'] .article-kicker .kicker-sep {
   margin: 0 8px;
   opacity: 0.6;
@@ -2411,6 +2419,14 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   margin: 0;
   font-size: 13px;
   color: var(--color-text-muted);
+}
+/* EXIF 拍摄参数：mono 小字，摄影信息氛围 */
+[data-theme='normal'] .gallery-lightbox-exif {
+  margin: 6px 0 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--color-text-muted) 80%, transparent);
 }
 [data-theme='normal'] .gallery-lightbox-close {
   position: absolute;

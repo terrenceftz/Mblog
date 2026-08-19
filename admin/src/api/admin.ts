@@ -22,6 +22,7 @@ export interface Post {
   content: string;
   summary: string;
   categoryId: number;
+  collectionId: number | null;
   categoryName: string;
   tags: string[];
   status: 'published' | 'draft' | 'archived';
@@ -39,6 +40,15 @@ export interface Category {
   description: string;
   postCount: number;
   cover: string;
+}
+
+export interface Collection {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  sortOrder: number;
+  postCount: number;
 }
 
 export interface Tag {
@@ -78,6 +88,7 @@ export interface Photo {
   title: string;
   description: string;
   album: string;
+  exif: string;
   sortOrder: number;
   created_at: string;
 }
@@ -135,6 +146,8 @@ export interface SiteSettings {
   smtpPass: string;
   smtpFrom: string;
   notifyEmail: string;
+  /** 两步验证是否已启用 */
+  totpEnabled: boolean;
 }
 
 export interface ThemeColors {
@@ -235,16 +248,20 @@ export const api = {
       published: number;
       commentTotal: number;
       pendingComments: number;
+      pendingTalks: number;
+      pendingFriendLinks: number;
       totalViews: number;
+      todayViews: number;
+      monthViews: number;
     }>('/admin/stats');
     return {
       postCount: s.postTotal,
       commentCount: s.commentTotal,
       pendingComments: s.pendingComments,
-      pendingFriendLinks: 0, // 后端无单独统计
-      pendingTalks: 0,
-      todayViews: s.totalViews,
-      monthViews: 0
+      pendingFriendLinks: s.pendingFriendLinks,
+      pendingTalks: s.pendingTalks,
+      todayViews: s.todayViews,
+      monthViews: s.monthViews
     };
   },
 
@@ -261,6 +278,7 @@ export const api = {
       content: '',
       summary: '',
       categoryId: p.categoryId ?? 0,
+      collectionId: p.collectionId ?? null,
       categoryName: p.categoryId ? (categoryNameMap[p.categoryId] ?? '') : '',
       tags: [],
       status: p.status as Post['status'],
@@ -281,6 +299,7 @@ export const api = {
       content: p.contentMd,
       summary: p.summary,
       categoryId: p.categoryId ?? 0,
+      collectionId: p.collectionId ?? null,
       categoryName: p.category?.name ?? '',
       tags: p.tags.map(t => t.name),
       status: p.status as Post['status'],
@@ -305,6 +324,7 @@ export const api = {
       summary: postData.summary || '',
       cover: postData.cover || '',
       categoryId: postData.categoryId || null,
+      collectionId: (postData as { collectionId?: number | null }).collectionId ?? null,
       status: (postData.status === 'published' ? 'published' : 'draft') as 'draft' | 'published',
       tagIds
     };
@@ -364,6 +384,33 @@ export const api = {
 
   async deleteCategory(id: number): Promise<boolean> {
     await request<{ ok: true }>(`/admin/categories/${id}`, { method: 'DELETE' });
+    return true;
+  },
+
+  // ---------- 合集 ----------
+  async getCollections(): Promise<Collection[]> {
+    const rows = await request<{ id: number; name: string; slug: string; description: string; sortOrder: number; postCount: number }[]>('/admin/collections');
+    return rows;
+  },
+
+  async saveCollection(col: Partial<Collection>): Promise<Collection> {
+    if (col.id) {
+      await request<{ id: number }>(`/admin/collections/${col.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name: col.name, slug: col.slug, description: col.description, sortOrder: col.sortOrder })
+      });
+      const list = await api.getCollections();
+      return list.find(c => c.id === col.id) ?? list[0];
+    }
+    const row = await request<Collection>('/admin/collections', {
+      method: 'POST',
+      body: JSON.stringify({ name: col.name, slug: col.slug, description: col.description, sortOrder: col.sortOrder ?? 0 })
+    });
+    return { ...row, postCount: 0 };
+  },
+
+  async deleteCollection(id: number): Promise<boolean> {
+    await request<{ ok: true }>(`/admin/collections/${id}`, { method: 'DELETE' });
     return true;
   },
 
@@ -470,12 +517,13 @@ export const api = {
       title: p.title,
       description: p.description,
       album: p.album,
+      exif: p.exif,
       sortOrder: p.sortOrder,
       created_at: fmtTime(p.createdAt),
     }));
   },
 
-  async createPhoto(input: { url: string; title?: string; description?: string; album?: string }): Promise<Photo> {
+  async createPhoto(input: { url: string; title?: string; description?: string; album?: string; exif?: string }): Promise<Photo> {
     await request<{ url: string }>('/admin/photos', { method: 'POST', body: JSON.stringify(input) });
     const list = await api.getPhotos();
     return list[0];
@@ -626,7 +674,8 @@ export const api = {
       smtpUser: s.smtp_user || '',
       smtpPass: s.smtp_pass || '',
       smtpFrom: s.smtp_from || '',
-      notifyEmail: s.notify_email || ''
+      notifyEmail: s.notify_email || '',
+      totpEnabled: s.totp_enabled === '1'
     };
   },
 
@@ -686,6 +735,47 @@ export const api = {
       body: JSON.stringify({ oldPassword, newPassword })
     });
     return true;
+  },
+
+  // ---------- 两步验证（TOTP） ----------
+  /** 生成新密钥（未启用态）：返回 secret + otpauth URI（渲染二维码用） */
+  async totpSetup(): Promise<{ secret: string; uri: string }> {
+    return request<{ secret: string; uri: string }>('/admin/totp/setup', { method: 'POST' });
+  },
+  /** 确认启用（校验认证器 6 位码） */
+  async totpEnable(code: string): Promise<boolean> {
+    await request<{ ok: true }>('/admin/totp/enable', { method: 'POST', body: JSON.stringify({ code }) });
+    return true;
+  },
+  /** 关闭（需当前有效码） */
+  async totpDisable(code: string): Promise<boolean> {
+    await request<{ ok: true }>('/admin/totp/disable', { method: 'POST', body: JSON.stringify({ code }) });
+    return true;
+  },
+
+  /** 登录（带可选 TOTP 码）：密码对但缺/错码时抛 TOTP_REQUIRED，由登录页展开输入框 */
+  async loginWithTotp(username: string, password: string, totpCode?: string): Promise<boolean> {
+    const { token } = await request<{ token: string }>('/admin/login', {
+      method: 'POST',
+      body: JSON.stringify(totpCode ? { username, password, totpCode } : { username, password }),
+    });
+    localStorage.setItem(TOKEN_KEY, token);
+    return true;
+  },
+
+  /** 全量导出 zip（posts md + uploads + manifest），blob 触发浏览器下载 */
+  async downloadExport(): Promise<void> {
+    const res = await fetch('/api/admin/export', {
+      headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY) ?? ''}` },
+    });
+    if (!res.ok) throw new ApiError(res.status, '导出失败');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mblog-export-${new Date().toISOString().slice(0, 10)}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
   },
 
   async triggerDoubanSync(): Promise<string> {

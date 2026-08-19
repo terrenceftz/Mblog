@@ -45,17 +45,18 @@ health_check() {
 }
 
 deploy_backend() {
-  say "[backend] 打包源码（排除 node_modules/data/uploads）"
+  say "[backend] 本地 esbuild 打包（node 直跑产物，免服务器运行时 TS 编译）"
+  (cd backend && npm run build:server) || die "backend 打包失败"
   tar -cf /tmp/mblog-backend.tar \
     --exclude=node_modules --exclude=data --exclude=uploads --exclude=backups --exclude=test \
-    -C backend src package.json package-lock.json tsconfig.json drizzle scripts
+    -C backend src package.json package-lock.json tsconfig.json drizzle scripts dist-server
   say "[backend] 上传到 $SERVER:$BACKEND_DIR"
   $SCP /tmp/mblog-backend.tar "$SERVER:/tmp/mblog-backend.tar"
   $SSH "$SERVER" "sudo bash -c 'cd $BACKEND_DIR && tar -xf /tmp/mblog-backend.tar && rm /tmp/mblog-backend.tar'"
-  say "[backend] 安装新增依赖 nodemailer（纯 JS 无编译；不跑全量 npm install，避免动 esbuild/tsx——服务器 tsx 靠 npx 缓存运行）"
-  $SSH "$SERVER" "sudo bash -c 'export PATH=$NODE_BIN:\$PATH && cd $BACKEND_DIR && npm install nodemailer@^6.10.1'"
-  say "[backend] 重启 mblog-api"
-  $SSH "$SERVER" "$PM2_RESTART mblog-api --update-env'"
+  say "[backend] 安装新增纯 JS 依赖（archiver；已装时 npm 秒过。不跑全量 install，避免动 esbuild/tsx）"
+  $SSH "$SERVER" "sudo bash -c 'export PATH=$NODE_BIN:\$PATH && cd $BACKEND_DIR && npm install archiver@^7.0.1 nodemailer@^6.10.1 --no-audit --no-fund 2>&1 | tail -1'"
+  say "[backend] PM2：已指向 node 产物则 restart，否则一次性切换（tsx → node dist-server）"
+  $SSH "$SERVER" "sudo bash -c 'export PATH=$NODE_BIN:\$PATH && cd $BACKEND_DIR && if pm2 describe mblog-api 2>/dev/null | grep -q \"index.cjs\"; then pm2 restart mblog-api --update-env; else pm2 delete mblog-api >/dev/null 2>&1; pm2 start dist-server/index.cjs --name mblog-api && pm2 save; fi'"
   sleep 3
   health_check "http://localhost:3003/api/health" "backend"
 }

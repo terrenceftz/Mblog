@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // 相册管理：本地上传（选图后本地压缩到 1600px 再传，减少卡顿）+ 外部 URL + 编辑标题/分组 + 删除
+// 上传时顺带解析 EXIF（机型/光圈/快门/焦距/ISO/时间）——必须在 canvas 压缩前读原始文件（压缩会洗掉元数据）
 import { ref, computed, onMounted } from 'vue';
+import ExifReader from 'exifreader';
 import { api, type Photo } from '../api/admin';
 import { toast } from '../lib/toast';
 
@@ -69,6 +71,41 @@ async function compressImage(file: File): Promise<Blob> {
   }
 }
 
+/** 读取 EXIF 摘要（JSON：model/aperture/shutter/focal/iso/takenAt）；无 EXIF 或解析失败返回空串 */
+async function readExif(file: File): Promise<string> {
+  try {
+    const tags = ExifReader.load(await file.arrayBuffer());
+    const pick = (keys: string[]) => {
+      for (const k of keys) {
+        const d = (tags[k] as { description?: unknown } | undefined)?.description;
+        if (typeof d === 'string' && d.trim()) return d.trim();
+        if (typeof d === 'number') return String(d);
+      }
+      return '';
+    };
+    // 快门展示规整：小数秒转 1/x；ExifReader 常给 "0.004" 或 "1/250"
+    const rawShutter = pick(['ExposureTime']);
+    let shutter = rawShutter;
+    const asNum = Number(rawShutter.replace(/[^0-9./]/g, ''));
+    if (rawShutter && !rawShutter.includes('/') && Number.isFinite(asNum) && asNum > 0 && asNum < 1) {
+      shutter = `1/${Math.round(1 / asNum)}s`;
+    } else if (rawShutter) {
+      shutter = rawShutter.replace(/\s*s$/, 's');
+    }
+    const parts = {
+      model: pick(['Model', 'CameraModel', 'Make']),
+      aperture: pick(['FNumber', 'ApertureValue']),
+      shutter,
+      focal: pick(['FocalLengthIn35mmFormat', 'FocalLength']),
+      iso: pick(['ISOSpeedRatings', 'ISOSpeed', 'ISO']),
+      takenAt: pick(['DateTimeOriginal', 'DateTime']).replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3'),
+    };
+    return Object.values(parts).some(Boolean) ? JSON.stringify(parts) : '';
+  } catch {
+    return '';
+  }
+}
+
 async function handleUpload() {
   const file = fileInput.value?.files?.[0];
   if (!file) {
@@ -77,10 +114,11 @@ async function handleUpload() {
   }
   uploading.value = true;
   try {
+    const exif = await readExif(file);
     const blob = await compressImage(file);
     const base = file.name.replace(/\.[^.]+$/, '') || 'photo';
     const url = await api.uploadPhoto(blob, `${base}.jpg`);
-    await api.createPhoto({ url, title: newTitle.value.trim(), album: newAlbum.value.trim() });
+    await api.createPhoto({ url, title: newTitle.value.trim(), album: newAlbum.value.trim(), exif });
     toast.success('照片已上传');
     newTitle.value = '';
     newAlbum.value = '';

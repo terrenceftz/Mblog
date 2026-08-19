@@ -41,6 +41,20 @@ export function commentsAdminRoutes(ctx: Db) {
     const row = ctx.db.select().from(comments).where(eq(comments.id, id)).get();
     if (!row) return c.json({ error: { code: 'NOT_FOUND', message: '评论不存在' } }, 404);
     ctx.db.update(comments).set({ status }).where(eq(comments.id, id)).run();
+
+    // 审核通过 → 通知评论者（仅从非通过态转为通过时发一次，避免重复邮件）
+    if (status === 'approved' && row.status !== 'approved' && row.email) {
+      const siteName = getSetting(ctx, 'site_name');
+      const siteUrl = getSetting(ctx, 'site_url');
+      sendEmail(
+        ctx,
+        row.email,
+        `你的评论已在【${siteName || '博客'}】通过审核`,
+        `<p>${escapeHtml(row.author)}，你的评论已通过审核并公开展示：</p>
+         <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#555;">${escapeHtml(row.content)}</blockquote>
+         <p><a href="${siteUrl}">回到博客看看</a></p>`,
+      );
+    }
     return c.json({ data: { id, status } });
   });
 
@@ -55,17 +69,17 @@ export function commentsAdminRoutes(ctx: Db) {
       postId: parent.postId, author: '博主', content, status: 'approved', parentId: id,
     }).run();
 
-    // 邮件提醒原评论者：TA 的评论收到了博主回复（原评论留了邮箱才发；SMTP 未配置静默跳过）
-    if (parent.email) {
+    // 邮件提醒原评论者：尊重其订阅开关（评论时勾选"有回复时通知"才发）
+    if (parent.notify === 1 && parent.email) {
       const siteName = getSetting(ctx, 'site_name');
       const siteUrl = getSetting(ctx, 'site_url');
       sendEmail(
         ctx,
         parent.email,
-        `你的评论在【${siteName || '博客'}】收到了回复`,
-        `<p>${escapeHtml(parent.author)}，你在博客中的评论收到了新回复：</p>
+        `你订阅的评论在【${siteName || '博客'}】收到了博主回复`,
+        `<p>${escapeHtml(parent.author)}，你订阅的评论收到了博主回复：</p>
          <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#555;">${escapeHtml(content)}</blockquote>
-         <p><a href="${siteUrl}/">回到博客看看</a></p>`,
+         <p><a href="${siteUrl}">回到博客看看</a></p>`,
       );
     }
 
@@ -81,6 +95,24 @@ export function commentsAdminRoutes(ctx: Db) {
       ctx.db.delete(comments).where(inArray(comments.id, ids)).run();
     } else if (action === 'approve' || action === 'reject') {
       const status = action === 'reject' ? 'rejected' : 'approved';
+      // 批量通过：给从未通过态转通过且留了邮箱的评论者发通知
+      if (status === 'approved') {
+        const rows = ctx.db.select().from(comments).where(inArray(comments.id, ids)).all();
+        const siteName = getSetting(ctx, 'site_name');
+        const siteUrl = getSetting(ctx, 'site_url');
+        for (const row of rows) {
+          if (row.status !== 'approved' && row.email) {
+            sendEmail(
+              ctx,
+              row.email,
+              `你的评论已在【${siteName || '博客'}】通过审核`,
+              `<p>${escapeHtml(row.author)}，你的评论已通过审核并公开展示：</p>
+               <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#555;">${escapeHtml(row.content)}</blockquote>
+               <p><a href="${siteUrl}">回到博客看看</a></p>`,
+            );
+          }
+        }
+      }
       ctx.db.update(comments).set({ status }).where(inArray(comments.id, ids)).run();
     } else {
       return c.json({ error: { code: 'INVALID', message: '无效操作' } }, 400);

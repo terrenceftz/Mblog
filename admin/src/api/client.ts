@@ -2,7 +2,7 @@ const BASE = '/api';
 const TOKEN_KEY = 'admin_token';
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public code?: string) {
     super(message);
   }
 }
@@ -30,11 +30,13 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   const res = await fetch(BASE + path, { ...options, headers });
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    // 401 集中处理：改密码时旧密码错误（INVALID_PASSWORD）属凭据错误而非会话过期，不强制登出
-    if (res.status === 401 && body?.error?.code !== 'INVALID_PASSWORD') {
+    // 401 集中处理：INVALID_PASSWORD（改密旧码错）与 TOTP_REQUIRED（登录缺两步码）
+    // 都是凭据输入问题而非会话过期，不强制登出
+    const code: string | undefined = body?.error?.code;
+    if (res.status === 401 && code !== 'INVALID_PASSWORD' && code !== 'TOTP_REQUIRED') {
       handleUnauthorized();
     }
-    throw new ApiError(res.status, body?.error?.message ?? `请求失败 (${res.status})`);
+    throw new ApiError(res.status, body?.error?.message ?? `请求失败 (${res.status})`, code);
   }
   return body.data as T;
 }

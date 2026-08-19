@@ -17,7 +17,7 @@ describe('public posts', () => {
     expect(body.data.list[0].slug).toBe('first');
   });
 
-  it('详情返回渲染 HTML 并递增阅读量', async () => {
+  it('详情返回渲染 HTML 并递增阅读量（同 IP 1h 窗口去重，重复访问不计数）', async () => {
     ctx.db.insert(posts).values({
       title: '详情', slug: 'detail', status: 'published', contentMd: '# 标题',
       contentHtml: '<h1>标题</h1>', // 写入时渲染的值（服务层负责生成）
@@ -28,7 +28,27 @@ describe('public posts', () => {
     expect(body.data.viewCount).toBe(1);
     const again = await app.request('/api/posts/detail');
     const body2 = await again.json();
-    expect(body2.data.viewCount).toBe(2);
+    expect(body2.data.viewCount).toBe(1); // 同 IP 窗口内第二次访问不再 +1
+  });
+
+  it('阅读量去重按 IP 区分：不同 IP 各计一次', async () => {
+    const prevTrust = process.env.TRUST_PROXY;
+    process.env.TRUST_PROXY = '1';
+    try {
+      ctx.db.insert(posts).values({
+        title: '去重', slug: 'dedup', status: 'published', contentMd: '', contentHtml: '',
+      }).run();
+      const h = (ip: string) => ({ 'x-real-ip': ip });
+      const r1 = await app.request('/api/posts/dedup', { headers: h('1.1.1.1') });
+      expect(((await r1.json()) as any).data.viewCount).toBe(1);
+      const r2 = await app.request('/api/posts/dedup', { headers: h('1.1.1.1') });
+      expect(((await r2.json()) as any).data.viewCount).toBe(1);
+      const r3 = await app.request('/api/posts/dedup', { headers: h('2.2.2.2') });
+      expect(((await r3.json()) as any).data.viewCount).toBe(2);
+    } finally {
+      if (prevTrust === undefined) delete process.env.TRUST_PROXY;
+      else process.env.TRUST_PROXY = prevTrust;
+    }
   });
 
   it('不存在的文章返回 404', async () => {
