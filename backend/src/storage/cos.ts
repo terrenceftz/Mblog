@@ -23,7 +23,8 @@ export class COSStorage implements StorageProvider {
   }
 
   async upload(input: UploadInput): Promise<StorageResult> {
-    const ext = path.extname(input.filename).toLowerCase().slice(0, 10);
+    // 优先用服务端嗅探派生的扩展名；无则回退文件名扩展名（仅兜底，正常上传必有 ext）
+    const ext = (input.ext ?? path.extname(input.filename)).toLowerCase().slice(0, 10);
     const key = `uploads/${Date.now()}-${randomUUID()}${ext}`;
     await this.cos.putObject({
       Bucket: this.config.bucket,

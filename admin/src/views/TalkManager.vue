@@ -126,7 +126,6 @@ onMounted(() => {
                   <span v-else class="badge badge-soft-danger">已拒绝</span>
 
                   <span class="text-muted micro-text font-monospace">{{ t.created_at }}</span>
-                  <span class="badge badge-soft-secondary micro-text">❤️ {{ t.likeCount }} 赞</span>
                 </div>
 
                 <div class="fs-4 text-main mb-2" style="white-space: pre-wrap; line-height: 1.6;">

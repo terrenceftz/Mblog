@@ -25,7 +25,7 @@ export interface Post {
   collectionId: number | null;
   categoryName: string;
   tags: string[];
-  status: 'published' | 'draft' | 'archived';
+  status: 'published' | 'draft';
   cover: string;
   views: number;
   commentCount: number;
@@ -69,7 +69,7 @@ export interface Comment {
   content: string;
   ip: string;
   userAgent: string;
-  status: 'approved' | 'pending' | 'spam' | 'rejected';
+  status: 'approved' | 'pending' | 'rejected';
   replyContent?: string;
   created_at: string;
 }
@@ -203,12 +203,12 @@ import type {
 
 const TOKEN_KEY = 'admin_token';
 
-/** 评论状态：Gemini 含 'spam'，后端无 → 映射 rejected */
+/** 评论状态：后端只支持 approved/pending/rejected（无 spam），其余一律按 pending 展示 */
 function mapCommentStatus(s: CommentRow['status']): Comment['status'] {
   return s === 'rejected' ? 'rejected' : s === 'approved' ? 'approved' : 'pending';
 }
 function unmapCommentStatus(s: Comment['status']): CommentRow['status'] {
-  return s === 'spam' ? 'rejected' : s;
+  return s;
 }
 
 /** 分类 id → 名称 映射缓存 */
@@ -276,17 +276,17 @@ export const api = {
       title: p.title,
       slug: p.slug,
       content: '',
-      summary: '',
+      summary: p.summary ?? '',
       categoryId: p.categoryId ?? 0,
       collectionId: p.collectionId ?? null,
       categoryName: p.categoryId ? (categoryNameMap[p.categoryId] ?? '') : '',
-      tags: [],
+      tags: (p.tags ?? []).map(t => t.name),
       status: p.status as Post['status'],
-      cover: '',
+      cover: p.cover ?? '',
       views: p.viewCount,
-      commentCount: 0,
+      commentCount: p.commentCount ?? 0,
       created_at: fmtTime(p.createdAt),
-      updated_at: fmtTime(p.createdAt)
+      updated_at: fmtTime(p.updatedAt ?? p.createdAt)
     }));
   },
 
@@ -307,7 +307,7 @@ export const api = {
       views: p.viewCount,
       commentCount: 0,
       created_at: fmtTime(p.createdAt),
-      updated_at: fmtTime(p.createdAt)
+      updated_at: fmtTime(p.updatedAt ?? p.createdAt)
     };
   },
 
@@ -500,10 +500,10 @@ export const api = {
     return true;
   },
 
-  async batchUpdateComments(ids: number[], action: 'approve' | 'spam' | 'delete'): Promise<boolean> {
+  async batchUpdateComments(ids: number[], action: 'approve' | 'reject' | 'delete'): Promise<boolean> {
     await request<{ ok: true }>('/admin/comments/batch', {
       method: 'POST',
-      body: JSON.stringify({ ids, action: action === 'spam' ? 'reject' : action })
+      body: JSON.stringify({ ids, action })
     });
     return true;
   },

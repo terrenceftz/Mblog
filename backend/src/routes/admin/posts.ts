@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { eq, desc, count, and, inArray } from 'drizzle-orm';
-import { posts, tags, postTags, categories, collections } from '../../db/schema';
+import { posts, tags, postTags, categories, collections, comments } from '../../db/schema';
 import { createPost, updatePost, deletePost } from '../../services/posts';
 import type { Db } from '../../db';
 
@@ -25,7 +25,32 @@ export function postsAdminRoutes(ctx: Db) {
     const total = ctx.db.select({ n: count() }).from(posts).where(where).get()?.n ?? 0;
     const list = ctx.db.select().from(posts).where(where)
       .orderBy(desc(posts.updatedAt)).limit(pageSize).offset((page - 1) * pageSize).all();
-    return c.json({ data: { list, total } });
+    // 列表补齐 tags 与已审核评论数（批量查询，避免 N+1）
+    const ids = list.map((p) => p.id);
+    const tagRows = ids.length
+      ? ctx.db.select({ postId: postTags.postId, name: tags.name, slug: tags.slug })
+          .from(postTags).innerJoin(tags, eq(postTags.tagId, tags.id))
+          .where(inArray(postTags.postId, ids)).all()
+      : [];
+    const tagMap = new Map<number, { name: string; slug: string }[]>();
+    for (const t of tagRows) {
+      const arr = tagMap.get(t.postId) ?? [];
+      arr.push({ name: t.name, slug: t.slug });
+      tagMap.set(t.postId, arr);
+    }
+    const commentRows = ids.length
+      ? ctx.db.select({ postId: comments.postId, n: count() })
+          .from(comments)
+          .where(and(inArray(comments.postId, ids), eq(comments.status, 'approved')))
+          .groupBy(comments.postId).all()
+      : [];
+    const commentCountMap = new Map(commentRows.map((r) => [r.postId, r.n]));
+    const rows = list.map((p) => ({
+      ...p,
+      tags: tagMap.get(p.id) ?? [],
+      commentCount: commentCountMap.get(p.id) ?? 0,
+    }));
+    return c.json({ data: { list: rows, total } });
   });
 
   app.get('/posts/:id', (c) => {

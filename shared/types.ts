@@ -117,7 +117,9 @@ export interface FriendLinkRow {
 export interface AdminPostRow {
   id: number; title: string; slug: string; status: 'draft' | 'published';
   categoryId: number | null; collectionId: number | null;
+  summary: string; cover: string;
   viewCount: number; createdAt: number; updatedAt: number;
+  tags: { name: string; slug: string }[]; commentCount: number;
 }
 /** 后台文章详情（含编辑所需内容字段，tags 带 id） */
 export interface AdminPostDetail {

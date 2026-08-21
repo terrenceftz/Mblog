@@ -40,7 +40,10 @@ const settings = ref<SiteSettings>({
 });
 
 const saving = ref(false);
+const loaded = ref(false);
 const syncingDouban = ref(false);
+/** 豆瓣同步结果（实时消息；后端不持久化同步时间，避免把文案当时间戳存进配置） */
+const syncResult = ref('');
 const backingUp = ref(false);
 const playlists = ref<{ id: number; name: string; cover: string; count: number }[]>([]);
 const loadingPlaylists = ref(false);
@@ -120,11 +123,22 @@ const confirmPassword = ref('');
 const pwdChanging = ref(false);
 
 async function loadSettings() {
-  settings.value = await api.getSettings();
-  aboutBlocks.value = parseBlocks(settings.value.aboutBlocks);
+  try {
+    settings.value = await api.getSettings();
+    aboutBlocks.value = parseBlocks(settings.value.aboutBlocks);
+  } catch (err) {
+    toast.error('站点设置加载失败，请刷新重试');
+  } finally {
+    loaded.value = true;
+  }
 }
 
 async function handleSaveSettings() {
+  // 加载完成前禁止保存：settings 初始为空串，直接 PUT 会把线上配置覆盖成空值
+  if (!loaded.value) {
+    toast.warning('设置仍在加载中，请稍候再保存');
+    return;
+  }
   saving.value = true;
   try {
     settings.value.aboutBlocks = JSON.stringify(aboutBlocks.value);
@@ -142,9 +156,10 @@ async function handleSyncDouban() {
   syncingDouban.value = true;
   try {
     const timestamp = await api.triggerDoubanSync();
-    settings.value.lastDoubanSync = timestamp;
+    syncResult.value = timestamp;
     toast.success('豆瓣阅读数据同步成功！');
   } catch (err) {
+    syncResult.value = '同步失败，请检查豆瓣 User ID';
     toast.error('同步失败，请检查豆瓣 User ID');
   } finally {
     syncingDouban.value = false;
@@ -324,7 +339,7 @@ onMounted(() => {
         <h2 class="page-title">站点设置</h2>
         <div class="text-muted">配置站点信息、存储与上传、评论验证、前台功能与豆瓣同步</div>
       </div>
-      <button @click="handleSaveSettings" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm" :disabled="saving">
+      <button @click="handleSaveSettings" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm" :disabled="saving || !loaded">
         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
         <span>保存所有设置</span>
       </button>
@@ -555,8 +570,8 @@ onMounted(() => {
           </div>
           <div class="p-3 bg-body-tertiary rounded-3 border d-flex align-items-center justify-content-between">
             <div>
-              <div class="fw-semibold small">上次同步时间</div>
-              <div class="text-muted micro-text font-monospace">{{ settings.lastDoubanSync || '从未同步' }}</div>
+              <div class="fw-semibold small">同步状态</div>
+              <div class="text-muted micro-text font-monospace">{{ syncResult || '尚未执行过手动同步' }}</div>
             </div>
             <button
               @click="handleSyncDouban"

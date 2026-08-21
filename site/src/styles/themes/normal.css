@@ -3308,3 +3308,8 @@ html[data-lowend='true'][data-theme='normal'] .hero-static-bg {
   [data-theme='normal'] .about-marquee-item:nth-child(n+2) { display: none; }
   [data-theme='normal'] .about-scroll-line { animation: none; }
 }
+
+/* 文章页竖排品牌侧栏为 reader 专属（normal 顶部导航已有全部入口），隐藏避免多余按钮 */
+[data-theme='normal'] .sidebar-vertical {
+  display: none;
+}

@@ -11,7 +11,6 @@ const uploadingCover = ref(false);
 const newCat = ref({
   name: '',
   slug: '',
-  description: '',
   cover: '',
 });
 
@@ -20,7 +19,6 @@ const editingId = ref<number | null>(null);
 const editForm = ref({
   name: '',
   slug: '',
-  description: '',
   cover: '',
 });
 
@@ -78,12 +76,11 @@ async function handleAddCategory() {
   const created = await api.saveCategory({
     name: newCat.value.name.trim(),
     slug: newCat.value.slug.trim() || newCat.value.name.trim().toLowerCase().replace(/\s+/g, '-'),
-    description: newCat.value.description.trim(),
     cover: newCat.value.cover.trim(),
   });
 
   toast.success(`分类 "${created.name}" 已成功创建`);
-  newCat.value = { name: '', slug: '', description: '', cover: '' };
+  newCat.value = { name: '', slug: '', cover: '' };
   loadCategories();
 }
 
@@ -92,7 +89,6 @@ function startEdit(cat: Category) {
   editForm.value = {
     name: cat.name,
     slug: cat.slug,
-    description: cat.description,
     cover: cat.cover,
   };
 }
@@ -111,7 +107,6 @@ async function saveEdit(id: number) {
     id,
     name: editForm.value.name.trim(),
     slug: editForm.value.slug.trim(),
-    description: editForm.value.description.trim(),
     cover: editForm.value.cover.trim(),
   });
 
@@ -167,15 +162,6 @@ onMounted(() => {
             />
           </div>
           <div class="col-md-3">
-            <label class="form-label small fw-medium">描述</label>
-            <input
-              type="text"
-              v-model="newCat.description"
-              class="form-control"
-              placeholder="简短分类描述..."
-            />
-          </div>
-          <div class="col-md-4">
             <label class="form-label small fw-medium">特色图 URL（可选，分类页卡片背景）</label>
             <div class="d-flex gap-2">
               <input
@@ -207,10 +193,9 @@ onMounted(() => {
         <table class="table table-vcenter card-table">
           <thead>
             <tr>
-              <th style="width: 20%">分类名称</th>
+              <th style="width: 22%">分类名称</th>
               <th style="width: 18%">别名 (Slug)</th>
-              <th style="width: 22%">描述</th>
-              <th style="width: 20%">特色图</th>
+              <th style="width: 28%">特色图</th>
               <th class="text-center">文章数</th>
               <th class="text-end">操作</th>
             </tr>
@@ -221,7 +206,6 @@ onMounted(() => {
               <template v-if="editingId !== cat.id">
                 <td class="fw-bold text-main">{{ cat.name }}</td>
                 <td><code class="text-primary">{{ cat.slug }}</code></td>
-                <td class="text-muted small">{{ cat.description || '暂无描述' }}</td>
                 <td>
                   <img v-if="cat.cover" :src="cat.cover" class="rounded" style="width: 72px; height: 40px; object-fit: cover;" alt="分类特色图" />
                   <span v-else class="text-muted small">未设置</span>
@@ -244,9 +228,6 @@ onMounted(() => {
                 </td>
                 <td>
                   <input type="text" v-model="editForm.slug" class="form-control form-control-sm font-monospace" />
-                </td>
-                <td>
-                  <input type="text" v-model="editForm.description" class="form-control form-control-sm" />
                 </td>
                 <td>
                   <div class="d-flex gap-2 align-items-center">

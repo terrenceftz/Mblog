@@ -105,7 +105,6 @@ onMounted(() => {
               <option value="all">全部状态</option>
               <option value="published">已发布</option>
               <option value="draft">草稿</option>
-              <option value="archived">归档</option>
             </select>
           </div>
         </div>
@@ -175,8 +174,7 @@ onMounted(() => {
 
               <td>
                 <span v-if="post.status === 'published'" class="badge badge-soft-success">已发布</span>
-                <span v-else-if="post.status === 'draft'" class="badge badge-soft-secondary">草稿</span>
-                <span v-else class="badge badge-soft-warning">归档</span>
+                <span v-else class="badge badge-soft-secondary">草稿</span>
               </td>
 
               <td class="text-center small">

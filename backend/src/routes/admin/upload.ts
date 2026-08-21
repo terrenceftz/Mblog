@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import path from 'node:path';
 import { eq, desc, count, sql, like } from 'drizzle-orm';
 import { mediaFiles, posts, comments, talks, friendLinks, dailyStats } from '../../db/schema';
 import { getStorage } from '../../storage';
@@ -28,12 +29,25 @@ function sniffMime(buffer: Buffer): string | null {
   if (buffer.length >= 4 && magic.startsWith('\x89PNG')) return 'image/png';
   if (buffer.length >= 3 && magic.startsWith('GIF')) return 'image/gif';
   if (buffer.length >= 12 && magic.startsWith('RIFF') && magic.slice(8, 12) === 'WEBP') return 'image/webp';
+  if (buffer.length >= 12 && magic.startsWith('RIFF') && magic.slice(8, 12) === 'WAVE') return 'audio/wav';
   if (buffer.length >= 3 && magic.startsWith('ID3')) return 'audio/mpeg';
   // MPEG 帧同步：0xFFE0
   if (buffer.length >= 2 && magic[0] === '\xff' && (buffer[1] & 0xe0) === 0xe0) return 'audio/mpeg';
   if (buffer.length >= 4 && magic.startsWith('OggS')) return 'audio/ogg';
   return null;
 }
+
+// MIME → 落盘扩展名：文件名扩展名一律以嗅探结果派生，用户无法通过命名伪造（如 PNG 内容命名 x.html）
+const EXT_BY_MIME: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'audio/mpeg': '.mp3',
+  'audio/ogg': '.ogg',
+  'audio/wav': '.wav',
+  'audio/mp4': '.m4a',
+};
 
 export function uploadAdminRoutes(ctx: Db) {
   const app = new Hono();
@@ -63,7 +77,11 @@ export function uploadAdminRoutes(ctx: Db) {
     }
 
     const storage = getStorage(ctx);
-    const result = await storage.upload({ filename: file.name, mime: file.type, buffer });
+    // 落盘扩展名用嗅探 MIME 派生（拒绝的文件类型已提前拦截，此处必然命中映射）
+    const result = await storage.upload({
+      filename: file.name, mime: file.type, buffer,
+      ext: EXT_BY_MIME[sniffed ?? file.type] ?? path.extname(file.name).toLowerCase(),
+    });
     ctx.db.insert(mediaFiles).values({
       filename: file.name, url: result.url, key: result.key,
       size: file.size, mime: file.type, storage: storage.type,

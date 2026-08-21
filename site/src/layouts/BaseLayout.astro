@@ -165,6 +165,8 @@ const pageImage = new URL(image || '/banner.png', baseUrl).href;
           <a class="brand-block" href="/" aria-label="返回首页">
             <span class="brand-name-vertical">{siteName}</span>
           </a>
+          <!-- 文章页主题切换：normal 顶部导航已有切换钮，此入口仅 reader 显示（见主题 CSS） -->
+          <ThemeToggle client:load variant="icon" />
         </aside>
         <main class="site-main" id="main-content"><slot /></main>
         <slot name="toc" />

@@ -52,13 +52,13 @@ function toggleSelect(id: number) {
   }
 }
 
-async function handleBatch(action: 'approve' | 'spam' | 'delete') {
+async function handleBatch(action: 'approve' | 'reject' | 'delete') {
   if (selectedIds.value.length === 0) {
     toast.warning('请先勾选需要处理的评论');
     return;
   }
 
-  const actionText = action === 'approve' ? '批准' : action === 'spam' ? '标记垃圾' : '删除';
+  const actionText = action === 'approve' ? '通过' : action === 'reject' ? '拒绝' : '删除';
   if (confirm(`确定要对选中的 ${selectedIds.value.length} 条评论进行【${actionText}】操作吗？`)) {
     await api.batchUpdateComments(selectedIds.value, action);
     toast.success(`已对 ${selectedIds.value.length} 条评论执行${actionText}`);
@@ -79,6 +79,10 @@ function openReplyModal(comment: Comment) {
 
 async function saveReply() {
   if (!replyingComment.value) return;
+  if (!replyText.value.trim()) {
+    toast.warning('回复内容不能为空');
+    return;
+  }
   await api.updateCommentStatus(replyingComment.value.id, 'approved', replyText.value.trim());
   toast.success('已回复评论');
   replyingComment.value = null;
@@ -104,7 +108,7 @@ onMounted(() => {
       <div v-if="selectedIds.length > 0" class="d-flex align-items-center gap-2 bg-body-tertiary p-2 rounded-3 border">
         <span class="small text-muted me-1">已选 <strong>{{ selectedIds.length }}</strong> 项</span>
         <button @click="handleBatch('approve')" class="btn btn-sm btn-success">批量通过</button>
-        <button @click="handleBatch('spam')" class="btn btn-sm btn-warning">标记垃圾</button>
+        <button @click="handleBatch('reject')" class="btn btn-sm btn-warning">批量拒绝</button>
         <button @click="handleBatch('delete')" class="btn btn-sm btn-danger">批量删除</button>
       </div>
     </div>
@@ -138,15 +142,6 @@ onMounted(() => {
               @click="activeStatus = 'approved'; loadComments()"
             >
               已通过
-            </button>
-          </li>
-          <li class="nav-item">
-            <button
-              class="nav-link px-3 py-1.5 small rounded-2"
-              :class="{ active: activeStatus === 'spam' }"
-              @click="activeStatus = 'spam'; loadComments()"
-            >
-              垃圾评论
             </button>
           </li>
         </ul>
@@ -198,16 +193,11 @@ onMounted(() => {
 
               <td>
                 <div class="text-main small mb-1" style="max-width: 380px;">{{ c.content }}</div>
-                <!-- Reply Block Preview if exists -->
-                <div v-if="c.replyContent" class="p-2 bg-primary-subtle text-primary rounded small border border-primary-subtle mt-1">
-                  <strong>管理员回复：</strong>{{ c.replyContent }}
-                </div>
               </td>
 
               <td>
                 <span v-if="c.status === 'approved'" class="badge badge-soft-success">已通过</span>
                 <span v-else-if="c.status === 'pending'" class="badge badge-soft-warning">待审核</span>
-                <span v-else-if="c.status === 'spam'" class="badge badge-soft-danger">垃圾项</span>
                 <span v-else class="badge badge-soft-secondary">已拒绝</span>
               </td>
 
@@ -224,8 +214,8 @@ onMounted(() => {
                   <button v-if="c.status !== 'approved'" @click="handleUpdateStatus(c.id, 'approved')" class="btn btn-sm btn-ghost-success" title="通过">
                     通过
                   </button>
-                  <button v-if="c.status !== 'spam'" @click="handleUpdateStatus(c.id, 'spam')" class="btn btn-sm btn-ghost-warning" title="垃圾">
-                    垃圾
+                  <button v-if="c.status !== 'rejected'" @click="handleUpdateStatus(c.id, 'rejected')" class="btn btn-sm btn-ghost-warning" title="拒绝">
+                    拒绝
                   </button>
                 </div>
               </td>

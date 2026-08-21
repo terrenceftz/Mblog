@@ -244,7 +244,6 @@ onMounted(() => {
                 <div class="small text-main mb-2" style="white-space: pre-wrap;">{{ t.content }}</div>
                 <div class="d-flex justify-content-between align-items-center micro-text text-muted">
                   <span>{{ t.created_at }}</span>
-                  <span class="badge badge-soft-primary">👍 {{ t.likeCount }}</span>
                 </div>
               </div>
             </div>

@@ -603,6 +603,7 @@
   padding: 16px;
   overflow-x: auto;
   margin: 32px 0;
+  position: relative;
 }
 [data-theme='reader'] .article-content pre code {
   background: none;
@@ -610,6 +611,49 @@
   border-radius: 0;
   font-size: 0.833rem;
   line-height: 1.6;
+}
+/* 代码块语言标签（左上，取 data-lang；normal 已有，reader 补齐） */
+[data-theme='reader'] .article-content pre[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 8px;
+  left: 18px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+  pointer-events: none;
+}
+/* 复制按钮（右上，hover/focus 显示；极简：细边文字按钮） */
+[data-theme='reader'] .code-copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 2px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+[data-theme='reader'] .article-content pre:hover .code-copy-btn,
+[data-theme='reader'] .code-copy-btn:focus-visible {
+  opacity: 1;
+}
+[data-theme='reader'] .code-copy-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+[data-theme='reader'] .code-copy-btn.copied {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  opacity: 1;
 }
 [data-theme='reader'] .article-content a {
   color: var(--color-text-primary);
@@ -1911,5 +1955,86 @@
   text-decoration: none;
 }
 [data-theme='reader'] .article-kicker .article-series:hover {
+  border-color: var(--color-primary);
+}
+
+/* ---------- 分类总览页（reader 极简适配：无透视网格/无图遮罩，细线卡片网格） ---------- */
+[data-theme='reader'] .cat-grid-bg,
+[data-theme='reader'] .cat-glow,
+[data-theme='reader'] .cat-bg {
+  display: none;
+}
+[data-theme='reader'] .cat-luma-wrap {
+  max-width: 760px;
+}
+[data-theme='reader'] .cat-luma {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--color-border);
+}
+@media (min-width: 640px) {
+  [data-theme='reader'] .cat-luma {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+[data-theme='reader'] .cat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 132px;
+  padding: 20px 18px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  text-decoration: none;
+  overflow: hidden;
+  transition: background-color 0.18s ease;
+}
+[data-theme='reader'] .cat-card:hover {
+  background: color-mix(in srgb, var(--color-primary) 4%, transparent);
+}
+[data-theme='reader'] .cat-card-icon {
+  display: inline-flex;
+  color: var(--color-text-muted);
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+[data-theme='reader'] .cat-card:hover .cat-card-icon {
+  color: var(--color-primary);
+  transform: translateY(-2px);
+}
+[data-theme='reader'] .cat-card-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+[data-theme='reader'] .cat-card-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--color-text-heading);
+}
+[data-theme='reader'] .cat-card:hover .cat-card-name {
+  color: var(--color-primary);
+}
+[data-theme='reader'] .cat-card-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 文章页主题切换入口：竖排品牌下方（reader 专属，normal 已隐藏该侧栏） */
+[data-theme='reader'] .sidebar-vertical .theme-toggle {
+  margin-top: 16px;
+  padding: 6px 10px;
+  border-color: var(--color-border);
+  background: transparent;
+}
+[data-theme='reader'] .sidebar-vertical .theme-toggle:hover {
   border-color: var(--color-primary);
 }

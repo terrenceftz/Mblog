@@ -7,6 +7,8 @@ export interface UploadInput {
   filename: string;
   mime: string;
   buffer: Buffer;
+  /** 落盘扩展名：由服务端按魔数嗅探结果派生（不经用户文件名），防同名伪造扩展名 */
+  ext?: string;
 }
 
 export interface StorageResult {

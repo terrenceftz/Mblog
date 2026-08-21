@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, shallowRef } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import type Vditor from 'vditor';
 import 'vditor/dist/index.css';
@@ -31,7 +31,7 @@ const postForm = ref<{
   categoryId: number;
   collectionId: number | null;
   tags: string[];
-  status: 'published' | 'draft' | 'archived';
+  status: 'published' | 'draft';
   cover: string;
 }>({
   title: '',
@@ -55,6 +55,8 @@ let autoSavePending = false;
 let restoringDraft = true;
 /** 后端草稿行 id：新建页自动保存首次 POST 产生，之后自动保存改 PUT 该行 */
 const draftId = ref<number | null>(null);
+/** 用户是否显式保存过（发布/存草稿）：新建页在显式保存前，自动保存一律落草稿，避免直接发布 */
+let statusManuallySet = false;
 
 function writeLocalDraft() {
   try {
@@ -71,21 +73,33 @@ function scheduleAutoSave() {
   }, 3000);
 }
 
-/** 草稿自动保存到后端（status=draft；空表单不落库）。失败静默，本地草稿兜底。 */
+/** 取消待触发的自动保存定时器（显式保存后调用，防止把刚发布的内容再存回草稿） */
+function clearAutoSaveTimer() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = null;
+}
+
+/** 草稿自动保存到后端。状态规则：编辑态沿用表单当前状态（编辑已发布文章不降级为草稿）；
+ *  新建页在用户显式保存前一律落草稿（避免有字即发布），显式保存后沿用表单状态。失败静默，本地草稿兜底。 */
 async function persistDraft() {
   if (autoSavePending) return;
   const f = postForm.value;
   if (!f.title.trim() && !f.content.trim()) return;
   autoSavePending = true;
   try {
+    // 新建页：首次自动保存建草稿行（draft）；编辑态或已建过草稿/显式保存过 → 沿用当前 status
+    const targetStatus: 'draft' | 'published' =
+      !isEditMode.value && !statusManuallySet && draftId.value === null ? 'draft' : f.status;
     const saved = await api.savePost({
       id: postId.value ?? draftId.value ?? undefined,
       title: f.title || '无标题草稿',
+      slug: f.slug,
       content: f.content,
       summary: f.summary,
       categoryId: f.categoryId,
+      collectionId: f.collectionId,
       tags: f.tags,
-      status: 'draft',
+      status: targetStatus,
       cover: f.cover,
     });
     draftId.value = saved.id;
@@ -120,7 +134,7 @@ async function loadData() {
             ...postForm.value,
             ...d,
             tags: Array.isArray(d.tags) ? d.tags : [],
-            status: (d.status === 'published' || d.status === 'draft' || d.status === 'archived') ? d.status : 'published',
+            status: (d.status === 'published' || d.status === 'draft') ? d.status : 'published',
           };
         }
       }
@@ -160,6 +174,7 @@ async function handleSave(status?: 'published' | 'draft') {
 
   if (status) {
     postForm.value.status = status;
+    statusManuallySet = true;
   }
 
   saving.value = true;
@@ -171,6 +186,10 @@ async function handleSave(status?: 'published' | 'draft') {
       categoryName: selectedCat ? selectedCat.name : '未分类',
     });
     draftId.value = saved.id;
+    statusManuallySet = true;
+    clearAutoSaveTimer();
+    autoSavePending = false;
+    dirty.value = false;
 
     toast.success(status === 'draft' ? '草稿保存成功' : '文章已成功发布！');
     clearAutoSave();
@@ -178,7 +197,7 @@ async function handleSave(status?: 'published' | 'draft') {
       router.push(`/posts/${saved.id}`);
     }
   } catch (err) {
-    toast.error('保存失败，请检查数据');
+    toast.error(err instanceof Error ? err.message : '保存失败，请检查数据');
   } finally {
     saving.value = false;
   }
@@ -287,8 +306,9 @@ async function initVditor() {
       url: '/api/admin/upload',
       fieldName: 'file',
       headers: { Authorization: `Bearer ${localStorage.getItem('admin_token') ?? ''}` },
-      filename: () => 'file',
+      filename: (name: string) => name,
       accept: 'image/*',
+      // 逐个文件建立 原名 → URL 映射，避免多图上传互相覆盖（旧实现所有文件同名只插一张）
       format: (files, responseText) => {
         let url = '';
         try {
@@ -296,11 +316,14 @@ async function initVditor() {
         } catch {
           url = '';
         }
-        const name = files[0]?.name ?? 'image';
+        const succMap: Record<string, string> = {};
+        for (const f of files) {
+          if (f.name) succMap[f.name] = url;
+        }
         return JSON.stringify({
           code: 0,
           msg: '',
-          data: { errFiles: [], succMap: url ? { [name]: url } : {} },
+          data: { errFiles: [], succMap },
         });
       },
     },
@@ -336,6 +359,17 @@ onMounted(async () => {
     restoringDraft = false;
     initVditor();
   }, 50);
+});
+
+onUnmounted(() => {
+  clearAutoSaveTimer();
+  try {
+    vditor?.destroy();
+  } catch {
+    /* 销毁异常忽略 */
+  }
+  vditor = null;
+  vditorReady = false;
 });
 </script>
 
@@ -458,10 +492,6 @@ onMounted(async () => {
                 <label class="form-check cursor-pointer">
                   <input type="radio" v-model="postForm.status" value="draft" class="form-check-input" />
                   <span class="form-check-label small">草稿箱</span>
-                </label>
-                <label class="form-check cursor-pointer">
-                  <input type="radio" v-model="postForm.status" value="archived" class="form-check-input" />
-                  <span class="form-check-label small">仅归档</span>
                 </label>
               </div>
             </div>
