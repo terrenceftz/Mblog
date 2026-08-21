@@ -409,3 +409,14 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - **未部署线上**（用户未要求；要上线跑 `./deploy.sh site` 即可，纯前台改动）。
 - **坑**：Lenis 劫持 wheel/scrollBy——浏览器截图定位元素时 cua.scroll 大步长可用、回滚易 30s 超时，加高视口（1200px）让目标自然入镜更省事。
 - 验证：astro check 0/0/0；双主题浏览器实测（头像/徽章/层级全正常）。
+
+## 5h. 2026-08-21（三）：友链页改版（信息卡 + 弹窗申请 + RSS 字段），未部署
+
+> 提交 `d29b8c9`。参考 blog.yt/links/。**未部署线上**；上线需 backend（迁移加列）+ site + admin 三端都发（`./deploy.sh all`）。
+
+- **site**：`FriendLinkSection.vue` 替换删除 `FriendLinkForm.vue`——本站信息卡（SSR 传参回退链同首页 hero；四字段点击复制+反馈，execCommand 回退）、三步申请引导、申请按钮 + Teleport 弹窗（ESC/遮罩关/滚动锁/聚焦/aria；断网有错误提示）。normal 卡片壳 / reader 极简。props 必须 camelCase 传 Vue island（kebab-case astro check 报 ts(2322)）。
+- **backend**：friend_links 加 `rss` 列（幂等 ALTER）；公开 POST 收 avatar/rss（严格 http/https 校验）；GET 已审核带 rss；admin POST/PUT 支持。
+- **admin**：友链列表网址列显示 RSS ↗；新增表单加 RSS 输入；**修复 PUT 头像编辑从未保存**（前端发 logo 后端读 avatar）。
+- **坑**：Vue island setup 顶层不能碰 document/window（SSR 炸 "document is not defined"，监听器必须 onMounted 注册）；client:visible 的 island SSR 期抛错会静默吞掉——页面 200 但组件 0 渲染，要看 dev log 才有栈。
+- RSS 聚合：字段已铺好（存库/管理/公开接口返回），后续可做友链 RSS 拉取聚合页。
+- 验证：backend 118/118 · site 0/0/0 · admin 0；双主题浏览器实测 + 含 RSS 提交端到端入库（测试数据已清理）。
