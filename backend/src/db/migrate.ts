@@ -83,6 +83,14 @@ export function ensureMigrated(ctx: Db): void {
     ctx.sqlite.exec(`ALTER TABLE comments ADD COLUMN notify integer NOT NULL DEFAULT 0`);
   }
 
+  // 增量列迁移：友链 RSS 订阅地址（备 RSS 聚合）
+  const hasFriendRss = (ctx.sqlite.prepare('PRAGMA table_info(friend_links)').all() as { name: string }[]).some(
+    (c) => c.name === 'rss',
+  );
+  if (!hasFriendRss) {
+    ctx.sqlite.exec(`ALTER TABLE friend_links ADD COLUMN rss text NOT NULL DEFAULT ''`);
+  }
+
   // 合集/专栏表（系列文章）
   ctx.sqlite.exec(`
     CREATE TABLE IF NOT EXISTS collections (

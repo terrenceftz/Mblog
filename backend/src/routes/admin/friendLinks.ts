@@ -34,8 +34,20 @@ export function friendLinksAdminRoutes(ctx: Db) {
     if (!url) return c.json({ error: { code: 'INVALID', message: '请填写有效网址' } }, 400);
     const description = typeof body?.description === 'string' ? body.description.trim().slice(0, 200) : '';
     const avatar = typeof body?.avatar === 'string' ? body.avatar.trim().slice(0, 500) : '';
+    // RSS 可选；填写时校验 http(s)（备 RSS 聚合拉取）
+    const rawRss = typeof body?.rss === 'string' ? body.rss.trim().slice(0, 300) : '';
+    let rss: URL | null = null;
+    if (rawRss && !/[\s"'<>]/.test(rawRss)) {
+      try {
+        const parsed = new URL(rawRss);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') rss = parsed;
+      } catch {
+        rss = null;
+      }
+    }
+    if (rawRss && !rss) return c.json({ error: { code: 'INVALID', message: 'RSS 地址必须是有效的 http/https 网址' } }, 400);
     const status = body?.status === 'approved' ? 'approved' : 'pending';
-    const row = ctx.db.insert(friendLinks).values({ name, url: url.href, description, avatar, status }).returning().get();
+    const row = ctx.db.insert(friendLinks).values({ name, url: url.href, description, avatar, rss: rss?.href ?? '', status }).returning().get();
     return c.json({ data: row }, 201);
   });
 
@@ -61,6 +73,7 @@ export function friendLinksAdminRoutes(ctx: Db) {
       url: url.href,
       description: typeof body?.description === 'string' ? body.description.trim().slice(0, 200) : row.description,
       avatar: typeof body?.avatar === 'string' ? body.avatar.trim().slice(0, 500) : row.avatar,
+      rss: typeof body?.rss === 'string' ? body.rss.trim().slice(0, 300) : row.rss,
       status: body?.status === 'pending' || body?.status === 'approved' || body?.status === 'rejected'
         ? body.status : row.status,
     }).where(eq(friendLinks.id, id)).run();

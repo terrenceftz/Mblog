@@ -66,7 +66,7 @@ export interface Collection { id: number; name: string; slug: string; descriptio
 export interface Tag { id: number; name: string; slug: string; postCount: number }
 export interface ArchiveGroup { month: string; items: { createdAt: number; title: string; slug: string }[] }
 export interface Talk { id: number; content: string; createdAt: number }
-export interface FriendLink { id: number; name: string; url: string; description: string; avatar: string }
+export interface FriendLink { id: number; name: string; url: string; description: string; avatar: string; rss: string }
 export interface Photo {
   id: number; url: string; title: string; description: string; album: string;
   /** EXIF 摘要 JSON 字符串（机型/光圈/快门/焦距/ISO/时间），可能为空串 */
@@ -112,6 +112,7 @@ export interface CommentRow {
 }
 export interface FriendLinkRow {
   id: number; name: string; url: string; description: string; avatar: string;
+  rss: string;
   status: 'pending' | 'approved' | 'rejected'; createdAt: number;
 }
 export interface AdminPostRow {

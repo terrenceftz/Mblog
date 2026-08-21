@@ -86,6 +86,7 @@ export const friendLinks = sqliteTable('friend_links', {
   url: text('url').notNull(),
   description: text('description').notNull().default(''),
   avatar: text('avatar').notNull().default(''),
+  rss: text('rss').notNull().default(''),
   status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
 });

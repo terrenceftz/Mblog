@@ -11,6 +11,7 @@ const newLink = ref({
   name: '',
   url: '',
   logo: '',
+  rss: '',
   description: '',
 });
 
@@ -39,12 +40,13 @@ async function handleAddLink() {
     name: newLink.value.name.trim(),
     url: newLink.value.url.trim(),
     logo: newLink.value.logo.trim() || undefined,
+    rss: newLink.value.rss.trim() || undefined,
     description: newLink.value.description.trim(),
   });
 
   toast.success('友链已成功添加');
   showAddModal.value = false;
-  newLink.value = { name: '', url: '', logo: '', description: '' };
+  newLink.value = { name: '', url: '', logo: '', rss: '', description: '' };
   loadLinks();
 }
 
@@ -157,6 +159,15 @@ onMounted(() => {
                 <a :href="link.url" target="_blank" class="font-monospace text-decoration-none small text-primary">
                   {{ link.url }}
                 </a>
+                <a
+                  v-if="link.rss"
+                  :href="link.rss"
+                  target="_blank"
+                  class="d-block font-monospace micro-text text-muted text-decoration-none"
+                  title="RSS 订阅地址（备 RSS 聚合）"
+                >
+                  RSS ↗
+                </a>
               </td>
 
               <td class="text-muted small">{{ link.description || '暂无描述' }}</td>
@@ -216,6 +227,10 @@ onMounted(() => {
             <div class="mb-3">
               <label class="form-label small fw-medium">Logo / Favicon 链接</label>
               <input type="text" v-model="newLink.logo" class="form-control" placeholder="https://.../favicon.ico (选填)" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">RSS 订阅地址</label>
+              <input type="text" v-model="newLink.rss" class="form-control font-monospace" placeholder="https://.../rss.xml (选填，备 RSS 聚合)" />
             </div>
             <div class="mb-3">
               <label class="form-label small fw-medium">描述</label>

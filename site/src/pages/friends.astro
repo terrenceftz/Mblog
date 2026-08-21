@@ -1,10 +1,17 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
-import FriendLinkForm from '../components/FriendLinkForm.vue';
-import { getFriendLinks, type FriendLink } from '../lib/api';
+import FriendLinkSection from '../components/FriendLinkSection.vue';
+import { getFriendLinks, getPublicSettings, type FriendLink } from '../lib/api';
 
 const links = await getFriendLinks().catch(() => []);
+// 本站信息卡数据（与首页 hero 同一回退链）；头像转绝对 URL 供他人复制
+const settings = Astro.locals.settings ?? (await getPublicSettings());
+const siteName = settings.author || settings.siteName || '我的博客';
+const themeNormal = settings.themeNormal ?? {};
+const avatarRaw = settings.avatar || themeNormal.avatar || '/avatar.jpg';
+const siteUrl = (settings.siteUrl || '').replace(/\/$/, '');
+const avatarUrl = /^https?:\/\//.test(avatarRaw) ? avatarRaw : `${siteUrl}${avatarRaw}`;
 ---
 <BaseLayout title="友情链接" description="交换链接，一起写作。">
   <PageHeader title="友情链接" subtitle="交换链接，一起写作。" count={`共 ${links.length} 个站点`} class="friends-page">
@@ -27,7 +34,14 @@ const links = await getFriendLinks().catch(() => []);
     ) : (
       <p class="link-empty">暂无友链</p>
     )}
-    <FriendLinkForm client:load />
+    <FriendLinkSection
+      client:visible
+      siteName={siteName}
+      siteDesc={settings.siteDesc ?? ''}
+      siteUrl={siteUrl}
+      avatarUrl={avatarUrl}
+      enabled={settings.friendLinkEnabled !== false}
+    />
   </PageHeader>
 </BaseLayout>
 

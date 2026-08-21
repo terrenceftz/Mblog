@@ -98,6 +98,7 @@ export interface FriendLink {
   name: string;
   url: string;
   logo: string;
+  rss: string;
   description: string;
   status: 'approved' | 'pending' | 'rejected';
   created_at: string;
@@ -589,6 +590,7 @@ export const api = {
       name: l.name,
       url: l.url,
       logo: l.avatar,
+      rss: l.rss ?? '',
       description: l.description,
       status: l.status as FriendLink['status'],
       created_at: fmtTime(l.createdAt)
@@ -607,13 +609,14 @@ export const api = {
     if (link.id) {
       await request<{ id: number }>(`/admin/friend-links/${link.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ name: link.name, url: link.url, description: link.description, logo: link.logo, status: link.status })
+        body: JSON.stringify({ name: link.name, url: link.url, description: link.description, avatar: link.logo, rss: link.rss, status: link.status })
       });
       return {
         id: link.id,
         name: link.name || '',
         url: link.url || '',
         logo: link.logo || '',
+        rss: link.rss || '',
         description: link.description || '',
         status: link.status || 'pending',
         created_at: ''
@@ -621,13 +624,14 @@ export const api = {
     }
     const row = await request<FriendLinkRow>('/admin/friend-links', {
       method: 'POST',
-      body: JSON.stringify({ name: link.name, url: link.url, description: link.description, avatar: link.logo, status: 'pending' })
+      body: JSON.stringify({ name: link.name, url: link.url, description: link.description, avatar: link.logo, rss: link.rss, status: 'pending' })
     });
     return {
       id: row.id,
       name: row.name,
       url: row.url,
       logo: row.avatar,
+      rss: row.rss ?? '',
       description: row.description,
       status: row.status as FriendLink['status'],
       created_at: ''
