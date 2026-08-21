@@ -399,3 +399,13 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 
 ### 新增已知坑
 - 线上 admin 密码早已改（好习惯）；部署验证 admin API 需要凭据时无法远程测，用产物哈希比对代替。
+
+## 5g. 2026-08-21（二）：文章页作者卡 + 知识产权卡
+
+- **位置**：`post/[slug].astro` 文章尾部——tags footer 之后、prev/next 之前。
+- **数据回退链（与首页 hero 一致）**：作者名 settings.author→siteName；头像 settings.avatar→themeNormal.avatar→/avatar.jpg；简介 themeNormal.intro→siteDesc。文章链接 siteUrl 去尾斜杠 + /post/slug。
+- **结构**：上半区圆头像（normal 琥珀渐变描边 58px / reader 细描边 44px）+ mono 眉标 `AUTHOR · 作者` + 名 + 简介；下半区 CC/BY/NC/SA 圆形 mono 徽章（span 纯 CSS，非 SVG）+ CC BY-NC-SA 4.0 许可文字（链到 creativecommons.org deed.zh）+ mono 永久链接。≤640px 许可区纵排。
+- **样式**：normal 卡片壳（surface 底 16px 圆角 + hover 琥珀辉光/上浮阴影）；reader 无卡壳（两条细分隔线，与 .article-footer 同款节奏）。
+- **未部署线上**（用户未要求；要上线跑 `./deploy.sh site` 即可，纯前台改动）。
+- **坑**：Lenis 劫持 wheel/scrollBy——浏览器截图定位元素时 cua.scroll 大步长可用、回滚易 30s 超时，加高视口（1200px）让目标自然入镜更省事。
+- 验证：astro check 0/0/0；双主题浏览器实测（头像/徽章/层级全正常）。
