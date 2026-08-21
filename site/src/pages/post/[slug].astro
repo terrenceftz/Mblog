@@ -21,6 +21,12 @@ if (post === null) Astro.response.status = 404;
 const { html: contentHtml, toc } = post ? withTocIds(post.contentHtml) : { html: '', toc: [] };
 // 评论云验证（Turnstile）site key：中间件已共享设置，未命中时兜底直取
 const settings = Astro.locals.settings ?? (await getPublicSettings());
+// 作者卡数据源（与首页 hero 同一回退链：站点设置 → 主题配置 → 默认）
+const authorName = settings.author || settings.siteName || '我的博客';
+const themeNormal = settings.themeNormal ?? {};
+const avatarUrl = settings.avatar || themeNormal.avatar || '/avatar.jpg';
+const authorBio = themeNormal.intro || settings.siteDesc || '一个喜欢折腾代码和生活的博主';
+const postUrl = `${(settings.siteUrl || 'http://localhost').replace(/\/$/, '')}/post/${post?.slug ?? ''}`;
 // 相关文章：同分类下取 3 篇（排除当前），失败降级为空
 const related = post?.category
   ? await getPosts({ category: post.category.slug, pageSize: 4 })
@@ -138,7 +144,30 @@ for (const r of related) {
         </ul>
       </footer>
     )}
-    {/* 上一篇 / 下一篇 */}
+    {/* 作者简介 + 知识产权卡片（数据源同首页 hero 回退链） */}
+    <aside class="author-card" data-reveal aria-label="作者与版权信息">
+      <div class="author-card-main">
+        <div class="author-card-avatar"><img src={avatarUrl} alt={authorName} loading="lazy" decoding="async" /></div>
+        <div class="author-card-info">
+          <span class="author-card-kicker">AUTHOR · 作者</span>
+          <span class="author-card-name">{authorName}</span>
+          <p class="author-card-bio">{authorBio}</p>
+        </div>
+      </div>
+      <div class="author-card-license">
+        <div class="license-badges" aria-hidden="true">
+          <span class="license-badge">CC</span>
+          <span class="license-badge">BY</span>
+          <span class="license-badge">NC</span>
+          <span class="license-badge">SA</span>
+        </div>
+        <div class="license-text">
+          <p class="license-line">本文采用 <a rel="license noopener noreferrer" target="_blank" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh">CC BY-NC-SA 4.0</a> 国际许可协议进行许可</p>
+          <p class="license-line">转载请注明作者与原文链接，商业使用请先取得作者授权</p>
+          <p class="license-permalink">本文链接：<a href={postUrl}>{postUrl}</a></p>
+        </div>
+      </div>
+    </aside>
     {(post.prev || post.next) && (
       <nav class="post-nav" aria-label="前后文章">
         {post.prev ? (

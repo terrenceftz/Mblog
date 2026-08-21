@@ -2038,3 +2038,118 @@
 [data-theme='reader'] .sidebar-vertical .theme-toggle:hover {
   border-color: var(--color-primary);
 }
+
+/* ---------- 文章页：作者简介 + 知识产权卡片（极简版：无卡壳，细分隔线 + mono 徽章） ---------- */
+[data-theme='reader'] .author-card {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+[data-theme='reader'] .author-card-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+[data-theme='reader'] .author-card-avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+}
+[data-theme='reader'] .author-card-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+[data-theme='reader'] .author-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+[data-theme='reader'] .author-card-kicker {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+[data-theme='reader'] .author-card-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+[data-theme='reader'] .author-card-bio {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+[data-theme='reader'] .author-card-license {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+[data-theme='reader'] .license-badges {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+[data-theme='reader'] .license-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+[data-theme='reader'] .license-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+[data-theme='reader'] .license-line,
+[data-theme='reader'] .license-permalink {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+[data-theme='reader'] .license-permalink {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  word-break: break-all;
+}
+[data-theme='reader'] .license-text a {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-strong);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color 0.18s ease, text-decoration-color 0.18s ease;
+}
+[data-theme='reader'] .license-text a:hover {
+  color: var(--color-primary);
+  text-decoration-color: var(--color-primary);
+}
+@media (max-width: 640px) {
+  [data-theme='reader'] .author-card-license {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
