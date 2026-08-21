@@ -370,3 +370,32 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 - Reactbits 组件移植（border-glow / pill-nav / blur-text / liquid-ether / line-sidebar / **masonry**）
 - 已装 skill：web-design-guidelines、ui-inspiration-triad、ui-ux-pro-max 等
 - 历史 spec/plan 在 `docs/superpowers/`
+
+## 5f. 2026-08-21：优化执行（数据安全 + reader 补课 + 后台去假数据），已部署
+
+> 提交 `281634d`，三端已部署（backend/site/admin 健康检查全 200，产物哈希比对一致）。GitHub 已 push（2bcf5a0..281634d）。
+
+### backend（测试 118/118 保持）
+- **settings PUT 拒写 TOTP 键**：`routes/admin/settings.ts` 加 `SETTINGS_WRITE_FORBIDDEN = { totp_enabled, totp_secret }`——只能走 `/admin/totp/*`（enable/disable 需验证码）。线上实测写 totp_enabled=1 被拒保持原值。
+- **上传扩展名绑定魔数**：`upload.ts` 加 `EXT_BY_MIME`，storage 的 `UploadInput` 加 `ext`（local.ts/cos.ts 优先用），落盘扩展名一律由嗅探 MIME 派生——PNG 内容命名 x.html 落盘 .png，堵同源存储型 XSS。补 WAV 嗅探（RIFF WAVE）。
+- **admin posts 列表补 tags/commentCount**：批量查询（tagMap + commentCountMap，groupBy），杜绝列表接口 N+1。
+
+### admin（typecheck 0 + build OK）
+- **PostEditor 自动保存重写**：编辑态沿用表单 status（编辑已发布文章不再被自动保存降级草稿）；新建页 `statusManuallySet` 标记前一律落 draft（防有字即发布）；payload 补 slug/collectionId；`clearAutoSaveTimer()` 发布后取消待触发定时器；save 成功重置 `dirty`（不再误弹未保存确认）；onUnmounted 销毁 Vditor + 清定时器；多图上传 filename 用原名 + format 逐文件建 succMap。
+- **SettingsPage 保存守卫**：`loaded` 标记，加载完成前保存按钮 disabled + toast 警告（防空值覆盖线上配置）。
+- **去假数据**：PostList 封面/摘要/标签/评论数真接通（后端已补）；移除「仅归档」状态（后端无 archived，UI 三处全清）；移除评论 spam 体系（后端无 spam——Tab/批量/单条按钮改 reject）；移除说说假点赞数、分类假描述字段（后端 categories 无 description 列）、豆瓣假同步时间（改 `syncResult` 实时消息）。
+- **CommentManager**：saveReply 加空内容校验。
+
+### site（check 0/0/0）
+- **reader 分类页极简适配**：reader.css 追加 `.cat-*` 规则（透明底细线卡片网格，隐藏 cat-grid-bg/cat-glow/cat-bg）。
+- **reader 代码块复制按钮**：reader `pre` 补 `position:relative`（复制按钮/语言标签此前定位参照错误祖先）；追加 `.code-copy-btn` 极简样式。
+- **文章页主题切换入口**：BaseLayout article layout 侧栏加 `<ThemeToggle client:load variant="icon" />`；`[data-theme='normal'] .sidebar-vertical{display:none}`（normal 顶部已有切换钮），reader 显示。浏览器实测：reader 文章页按钮可见、normal 隐藏。
+
+### 部署验证（2026-08-21 已部署）
+- `./deploy.sh backend`（PM2 restart mblog-api，健康检查 200）→ `site` → `admin`。
+- 线上验证：admin JS hash `index-Cnjkiz8O.js` 本地=线上一致；site CSS hash `about.BtjSjtvV.css` 一致；/ /category /radio 全 200。
+- **线上 admin 密码非默认 admin123**（login 返回 UNAUTHORIZED）——admin API 类改动（TOTP 拦截、上传扩展名）无法远程实测，以本地实测 + 部署产物哈希为准。
+- SSH 这次直连正常（本机出口 IP 未变，安全组未拦截）。
+
+### 新增已知坑
+- 线上 admin 密码早已改（好习惯）；部署验证 admin API 需要凭据时无法远程测，用产物哈希比对代替。
