@@ -400,19 +400,19 @@ AdminLayout（navbar-vertical 侧栏 + 主题三态）、Login、Dashboard、Pos
 ### 新增已知坑
 - 线上 admin 密码早已改（好习惯）；部署验证 admin API 需要凭据时无法远程测，用产物哈希比对代替。
 
-## 5g. 2026-08-21（二）：文章页作者卡 + 知识产权卡
+## 5g. 2026-08-21（二）：文章页作者卡 + 知识产权卡（2026-08-21 已随友链改版一起部署上线）
 
 - **位置**：`post/[slug].astro` 文章尾部——tags footer 之后、prev/next 之前。
 - **数据回退链（与首页 hero 一致）**：作者名 settings.author→siteName；头像 settings.avatar→themeNormal.avatar→/avatar.jpg；简介 themeNormal.intro→siteDesc。文章链接 siteUrl 去尾斜杠 + /post/slug。
 - **结构**：上半区圆头像（normal 琥珀渐变描边 58px / reader 细描边 44px）+ mono 眉标 `AUTHOR · 作者` + 名 + 简介；下半区 CC/BY/NC/SA 圆形 mono 徽章（span 纯 CSS，非 SVG）+ CC BY-NC-SA 4.0 许可文字（链到 creativecommons.org deed.zh）+ mono 永久链接。≤640px 许可区纵排。
 - **样式**：normal 卡片壳（surface 底 16px 圆角 + hover 琥珀辉光/上浮阴影）；reader 无卡壳（两条细分隔线，与 .article-footer 同款节奏）。
-- **未部署线上**（用户未要求；要上线跑 `./deploy.sh site` 即可，纯前台改动）。
+- **已部署线上**（2026-08-21 随 5h 三端一起上线）。
 - **坑**：Lenis 劫持 wheel/scrollBy——浏览器截图定位元素时 cua.scroll 大步长可用、回滚易 30s 超时，加高视口（1200px）让目标自然入镜更省事。
 - 验证：astro check 0/0/0；双主题浏览器实测（头像/徽章/层级全正常）。
 
-## 5h. 2026-08-21（三）：友链页改版（信息卡 + 弹窗申请 + RSS 字段），未部署
+## 5h. 2026-08-21（三）：友链页改版（信息卡 + 弹窗申请 + RSS 字段），已部署
 
-> 提交 `d29b8c9`。参考 blog.yt/links/。**未部署线上**；上线需 backend（迁移加列）+ site + admin 三端都发（`./deploy.sh all`）。
+> 提交 `d29b8c9`。参考 blog.yt/links/。**2026-08-21 三端已部署**（backend 迁移自动补 rss 列，线上验证：rss 列 ✓ / 公开接口含 rss ✓ / 友链页信息卡+复制按钮+申请区 ✓ / 作者卡一并上线 ✓ / 页面全 200）。
 
 - **site**：`FriendLinkSection.vue` 替换删除 `FriendLinkForm.vue`——本站信息卡（SSR 传参回退链同首页 hero；四字段点击复制+反馈，execCommand 回退）、三步申请引导、申请按钮 + Teleport 弹窗（ESC/遮罩关/滚动锁/聚焦/aria；断网有错误提示）。normal 卡片壳 / reader 极简。props 必须 camelCase 传 Vue island（kebab-case astro check 报 ts(2322)）。
 - **backend**：friend_links 加 `rss` 列（幂等 ALTER）；公开 POST 收 avatar/rss（严格 http/https 校验）；GET 已审核带 rss；admin POST/PUT 支持。
